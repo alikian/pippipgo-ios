@@ -232,3 +232,5 @@ Default iOS launch page (October 4, 2026): signed-in app opens Pip / Talk to Pip
 - October 4: Accepted responsive web redesign and opt-in Ask Pip/Talk to Pip browser location deployed to Dev and Prod, after backend revision 47/9 and same-origin geolocation policy. 360 backend tests (one skipped), 21 web tests, builds/lint/audit/container checks passed; four synthetic provider-backed voice/translation setups and both Google sign-in/sign-out flows passed. Live artifacts match; public/app responsive widths 320–1280px checked. Real GPS/microphone/device acceptance remains separate.
 
 Translation header (October 4, 2026): removed top Translate title/navigation bar while retaining language controls and bottom tab. Swift syntax and diff checks passed; app build/install pending, no backend deployment required in Dev or Prod.
+
+Compact Pip header (October 4, 2026): Chat Pip / Talk to Pip picker now occupies the top navigation title position, preserving new-conversation actions and removing the second header row. Swift syntax and diff checks passed; app build/install and visual device acceptance pending. No backend deployment required in Dev or Prod.

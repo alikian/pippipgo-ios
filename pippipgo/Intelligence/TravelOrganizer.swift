@@ -146,8 +146,8 @@ struct TravelOrganizerView: View {
     let chat: TravelChatStore
     var profilePictureURL: URL? = nil
     let signOut: () -> Void
-    @SceneStorage("pip.selectedTab") private var tab = AppTab.trips
-    @State private var pipMode = PipMode.chat
+    @State private var tab = AppTab.pip
+    @State private var pipMode = PipMode.voice
     @State private var editor: OrganizerEditorKind?
     @State private var reviewingTrip: OrganizerTrip?
     @State private var voiceStartRequest: UUID?
@@ -456,18 +456,18 @@ struct PipTab: View {
                     .disabled(voiceUnavailable)
                 }
             }
-            .safeAreaInset(edge: .top, spacing: 0) {
-                Picker("Pip", selection: $mode) {
-                    Text("Chat Pip").tag(PipMode.chat)
-                    Text("Talk to Pip").tag(PipMode.voice)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("Pip", selection: $mode) {
+                        Text("Chat Pip").tag(PipMode.chat)
+                        Text("Talk to Pip").tag(PipMode.voice)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(minWidth: 240)
+                    // Leaving the voice page ends the call, so require an explicit End first.
+                    .disabled(chat.voice.active || chat.busy)
                 }
-                .pickerStyle(.segmented)
-                // Leaving the voice page ends the call, so require an explicit End first.
-                .disabled(chat.voice.active || chat.busy)
-                .padding(.horizontal, 16).padding(.vertical, 8)
-                .background(.bar)
             }
-            .navigationTitle("Pip")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -946,7 +946,7 @@ struct TravelChatView: View {
                         if store.messages.isEmpty {
                             Text("\(name.map { "Hi, \($0)!" } ?? "Hi!") I'm Pip, your travel companion. How can I help with your trip?").font(.headline)
                         }
-                        ForEach(store.messages) { message in
+                        ForEach(store.messages.suffix(2)) { message in
                             let isUser = message.role == "user"
                             HStack(spacing: 0) {
                                 if isUser { Spacer(minLength: 40) }
@@ -990,7 +990,6 @@ struct TravelChatView: View {
                 }
             }
             VStack(spacing: 8) {
-                ConversationLocationView(store: store.locationDisplay)
                 HStack(alignment: .bottom) {
                     TextField("Ask about your trip…", text: $store.composer, axis: .vertical)
                         .lineLimit(1...5).textFieldStyle(.roundedBorder)

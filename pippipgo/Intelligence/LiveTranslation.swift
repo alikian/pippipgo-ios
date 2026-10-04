@@ -99,8 +99,7 @@ struct TranslateTab: View {
         NavigationStack {
             LiveVoiceView(store: store)
                 .safeAreaInset(edge: .top, spacing: 0) { TranslationLanguageBar(store: store) }
-                .navigationTitle("Translate")
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(.hidden, for: .navigationBar)
         }
     }
 }
