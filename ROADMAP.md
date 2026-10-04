@@ -216,3 +216,11 @@ Local live-voice startup credit exhaustion (October 2, 2026): Akiphone reached t
 - October 2: Production admin USD columns and backend 5-second inactivity/4-second reply timing deployed; full repository publication underway. CI Prod automatic-deploy gate remains disabled.
 
 - October 2: All pending admin/backend/iOS work prepared for develop/main pushes. Current cloud build 17 verified, signed Local build 18 and 96 tests passed (one skipped). Backend Dev CI release running; Prod CI gate remains false.
+
+- October 2: Talk to Pip brief-response prompt implemented; backend deployment and live speech acceptance pending.
+
+- October 2: Brief Talk to Pip prompt deployed to Dev revision 43 and Prod revision 6; stable stacks/services and HTTPS verified. New-session spoken brevity acceptance pending.
+
+- October 4: Mobile-friendly web app published at pippipgo.com/app (Prod) and dev.pippipgo.com/app (Dev), after additive Cognito callbacks and backend Dev revision 44/Prod revision 7. Organizer/chat/voice/translation/account tools implemented; synthetic organizer/isolation and live Production Google login/logout passed. Web controls English; Dev browser DNS-cache and live microphone/physical-device acceptance remain pending. See backend infra/web-hosting.md.
+
+- October 4: Browser voice handshake and translation URL corrected, deployed to backend Dev revision 45/Prod revision 8 and both websites. Four synthetic authenticated provider-backed voice/translation sessions returned session.started with pippipgo protocol selected. 348 backend and 13 web tests passed; microphone/playback/device acceptance remains separate.

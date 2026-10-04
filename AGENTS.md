@@ -71,3 +71,7 @@ Use CloudFormation `Environment=dev` or `prod`. Dev retains its existing pool/ta
 
 - Always explicitly mention when a change requires backend deployment. State whether it is still pending or has been completed, identify the environment, and mention any required backend-before-app rollout order.
 - Before setting an iOS build number or preparing an app build, check the latest PipPipGo build number in Xcode Cloud and set the new build number to exactly that number plus one. Use the build number (`CFBundleVersion` / `CURRENT_PROJECT_VERSION`), not the marketing version. Do not rely on a stale local number or guess; if the current cloud number cannot be verified, report that limitation before claiming the build number is correct.
+
+## Web app — October 4, 2026
+
+The user requested full mobile-friendly web functionality: Prod is `https://pippipgo.com/app`; Dev is `https://dev.pippipgo.com/app`, a separately hosted web app. APIs remain api.pippipgo.com and api-dev.pippipgo.com. The previously removed Dev API alias is now reused solely for the Dev website. Preserve environment isolation and additive mobile/admin callbacks. See backend infra/web-hosting.md for rollout and acceptance boundaries.
