@@ -252,3 +252,9 @@ Web save bar (October 4, 2026): hide idle saved state; preserve save for edits, 
 Web app footer (October 4, 2026): public footer removed from /app routes and retained on public pages. Web lint/build/tests passed; local preview updated; website deployment pending, no backend deployment required.
 
 Web translation layout (October 4, 2026): compact iOS-style language controls, direction indicator, short disclosure, centered captions and bottom start/stop button; promotional heading hidden on Translate. Browser headphone mode remains unavailable. Web lint/build/tests passed; website deployment/visual acceptance pending; no backend deployment required.
+
+Final Dev/Prod web publication (October 4, 2026): both websites published, CloudFront invalidations completed and live app/environment/assets match verified builds. Per-environment 21 tests/lint/build/audit passed. Prod release gate enabled after verified reviewed main publication; Dev and Prod backend workflows succeeded and readiness passed. Web SSR correction d4ff79d published to both branches. Physical-device microphone/GPS acceptance remains separate.
+
+Native-style web Pip conversations (October 4, 2026): blue user/white Pip bubbles, speaker labels, gray background and bottom voice action; voice deltas grouped by speaker. 21 tests/lint/build passed. Local preview updated; website deployment and visual acceptance pending; no backend deployment required.
+
+Web headphone translation (October 4, 2026): one-way headphone checkbox/direction/help, browser protocol mapped to existing interpreter mode, fail-closed session confirmation. 22 web tests/lint/build and 360 backend tests (one skipped)/Ruff passed. Requires Dev/Prod backend deployment before web rollout; live device acceptance pending.
