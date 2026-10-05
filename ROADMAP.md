@@ -234,3 +234,21 @@ Default iOS launch page (October 4, 2026): signed-in app opens Pip / Talk to Pip
 Translation header (October 4, 2026): removed top Translate title/navigation bar while retaining language controls and bottom tab. Swift syntax and diff checks passed; app build/install pending, no backend deployment required in Dev or Prod.
 
 Compact Pip header (October 4, 2026): Chat Pip / Talk to Pip picker now occupies the top navigation title position, preserving new-conversation actions and removing the second header row. Swift syntax and diff checks passed; app build/install and visual device acceptance pending. No backend deployment required in Dev or Prod.
+
+Automatic web location (October 4, 2026): removed large location panel/buttons and request browser location on Ask Pip send or Talk to Pip start. Translation excludes location; browser permission and account-reset late-response fences retained. Privacy wording updated; 21 web tests, lint/build/audit passed. Dev/Prod website publication pending; no backend deployment required.
+
+Web Profile/account consolidation (October 4, 2026): Profile includes companions and account controls; separate Account tab and Download my data UI removed. Account deletion confirmation/reset retained. 21 web tests, lint/build and diff checks passed; Dev/Prod website deployment pending, no backend deployment required.
+
+Local web OAuth repair (October 4, 2026): Dev CloudFormation callbacks/logout for localhost/127.0.0.1:5173 deployed; local Dev API proxy added. Page/proxy 200 and Google redirect verified; full simulator login retry pending. 360 backend tests (one skipped), Ruff and 21 web tests/lint/build passed. No backend image deployment required; Prod unchanged.
+
+Web sign-out placement (October 4, 2026): Sign out moved into Profile account section. Existing confirmation and account-reset handling retained. 21 tests, lint/build and diff checks passed; local preview updated. Dev/Prod website deployment pending; no backend deployment required.
+
+Website header spacing (October 4, 2026): reduced vertical padding to 6px mobile / 10px desktop. Lint/build and diff checks passed; local preview updated. Website publication pending; no backend deployment required.
+
+Compact website toolbar controls (October 4, 2026): reduced header language/Open app control minimum height to 34px and Open app vertical padding to 4px. Lint/build and diff checks passed; local preview updated. Website deployment pending; no backend deployment required.
+
+Web save bar (October 4, 2026): hide idle saved state; preserve save for edits, retry and conflict review. Web lint/build/tests passed; local preview updated; website deployment pending, no backend deployment required.
+
+Web app footer (October 4, 2026): public footer removed from /app routes and retained on public pages. Web lint/build/tests passed; local preview updated; website deployment pending, no backend deployment required.
+
+Web translation layout (October 4, 2026): compact iOS-style language controls, direction indicator, short disclosure, centered captions and bottom start/stop button; promotional heading hidden on Translate. Browser headphone mode remains unavailable. Web lint/build/tests passed; website deployment/visual acceptance pending; no backend deployment required.
