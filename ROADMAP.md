@@ -258,3 +258,5 @@ Final Dev/Prod web publication (October 4, 2026): both websites published, Cloud
 Native-style web Pip conversations (October 4, 2026): blue user/white Pip bubbles, speaker labels, gray background and bottom voice action; voice deltas grouped by speaker. 21 tests/lint/build passed. Local preview updated; website deployment and visual acceptance pending; no backend deployment required.
 
 Web headphone translation (October 4, 2026): one-way headphone checkbox/direction/help, browser protocol mapped to existing interpreter mode, fail-closed session confirmation. 22 web tests/lint/build and 360 backend tests (one skipped)/Ruff passed. Requires Dev/Prod backend deployment before web rollout; live device acceptance pending.
+
+Web headphone release (October 4, 2026): source pushed to develop/main; Dev backend revision 50 and Prod revision 11 COMPLETED before website publication. Both CloudFront invalidations Completed, live app/environment/assets match validated builds. 22 web tests per environment, lint/build/audit passed. Native-style web Pip conversation bubbles included. Physical-device headphone acceptance remains pending.
