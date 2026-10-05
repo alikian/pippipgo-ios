@@ -518,9 +518,10 @@ final class IntakeSpeech {
     }
     func stop() {
         generation = UUID(); recording = false
+        let hadAudioSession = engine != nil
         engine?.stop(); engine?.inputNode.removeTap(onBus: 0); engine = nil
         request?.endAudio(); request = nil; task?.cancel(); task = nil
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        if hadAudioSession { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
     }
 }
 

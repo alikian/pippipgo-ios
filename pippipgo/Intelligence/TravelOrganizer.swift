@@ -436,40 +436,39 @@ struct PipTab: View {
     @Binding var mode: PipMode
     @Binding var reviewingTrip: OrganizerTrip?
     @Binding var voiceStartRequest: UUID?
-    private var voiceUnavailable: Bool {
-        !chat.voice.active && (chat.busy || chat.pending != nil || chat.translator.active)
-    }
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
-            Group {
-                switch mode {
-                case .chat:
-                    TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip, name: organizer.data.profile?.name)
-                case .voice:
-                    VoiceConversationView(store: chat.voice, startRequest: $voiceStartRequest, newTalk: {
-                        await chat.load()
-                        let started = await chat.newConversation()
-                        if !started { chat.voice.error = chat.error }
-                        return started
-                    }, canCreateTalk: !chat.busy && chat.pending == nil && !chat.translator.active && chat.composer.isEmpty)
-                    .disabled(voiceUnavailable)
+            VStack(spacing: 0) {
+                if mode == .voice {
+                    LiveVoiceView(store: chat.voice, showsControls: false)
+                } else {
+                    TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip, name: organizer.data.profile?.name, showsComposer: false)
+                }
+                PipComposer(store: chat) {
+                    mode = .voice
+                    chat.voice.start()
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("Pip", selection: $mode) {
-                        Text("Chat Pip").tag(PipMode.chat)
-                        Text("Talk to Pip").tag(PipMode.voice)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(minWidth: 240)
-                    // Leaving the voice page ends the call, so require an explicit End first.
-                    .disabled(chat.voice.active || chat.busy)
-                }
-            }
+            .navigationTitle("Pip")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: chat.voice.active) { _, active in
+                if !active && mode == .voice {
+                    mode = .chat
+                }
+            }
+            .onChange(of: scenePhase, initial: true) { _, _ in startRequestedConversation() }
+            .onChange(of: voiceStartRequest) { _, _ in startRequestedConversation() }
+            .onAppear { if !chat.voice.active { mode = .chat } }
         }
+    }
+
+    private func startRequestedConversation() {
+        guard scenePhase == .active, voiceStartRequest != nil else { return }
+        voiceStartRequest = nil
+        mode = .voice
+        chat.voice.start()
     }
 }
 
@@ -938,6 +937,7 @@ struct TravelChatView: View {
     @State private var savedTripName: String?
     @FocusState private var composing: Bool
     var name: String? = nil
+    var showsComposer = true
     var body: some View {
         VStack(spacing: 0) {
             ScrollViewReader { scroll in
@@ -989,26 +989,17 @@ struct TravelChatView: View {
                     if let id { withAnimation { scroll.scrollTo(id, anchor: .bottom) } }
                 }
             }
-            VStack(spacing: 8) {
-                HStack(alignment: .bottom) {
-                    TextField("Ask about your trip…", text: $store.composer, axis: .vertical)
-                        .lineLimit(1...5).textFieldStyle(.roundedBorder)
-                        .focused($composing)
-                        .disabled(store.busy || store.pending != nil || store.voice.active)
-                    Button { Task { await store.send() } } label: {
-                        Image(systemName: "arrow.up.circle.fill").font(.title)
-                    }.accessibilityLabel("Send message")
-                        .disabled(store.voice.active || !store.loaded || store.busy || store.pending != nil || store.composer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.composer.count > 4000)
-                }
-                if store.composer.count > 4000 { Text("Keep your message under 4,000 characters.").font(.caption).foregroundStyle(.red) }
-            }.padding().background(.bar)
+            if showsComposer {
+                PipComposer(store: store) { store.voice.start() }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("New conversation", systemImage: "square.and.pencil") {
+                if showsComposer { Button("New conversation", systemImage: "square.and.pencil") {
                     Task { if await store.newConversation() { composing = true } }
                 }
                 .disabled(!store.loaded || store.busy || store.pending != nil || store.voice.active || store.translator.active || !store.composer.isEmpty)
+                }
             }
         }
         // Runs whenever this page appears, so talks held on the voice page show up here.
@@ -1018,6 +1009,79 @@ struct TravelChatView: View {
                 savedTripName = organizer.data.trips.first { $0.id == draft.id }?.name
             }
         }
+    }
+}
+
+/// Dictation fills a reviewable draft; the separate waveform starts live conversation.
+struct PipComposer: View {
+    @Bindable var store: TravelChatStore
+    let startVoice: () -> Void
+    @AppStorage("pip.language") private var language = "en"
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var speech = IntakeSpeech()
+    @FocusState private var composing: Bool
+    private var hasText: Bool { !store.composer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var unavailable: Bool { store.busy || store.pending != nil || store.translator.active }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            if let error = speech.error ?? store.voice.error {
+                Text(error).font(.caption).foregroundStyle(.red)
+            }
+            if speech.recording { Text("Dictating… Tap the microphone to stop.").font(.caption).foregroundStyle(.secondary) }
+            if store.voice.active {
+                Text(store.voice.connected ? "Listening — you can speak naturally" : "Connecting…")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            HStack(spacing: 14) {
+                Button {
+                    if speech.recording { speech.stop() }
+                    else {
+                        composing = false
+                        let prefix = store.composer
+                        Task { await speech.start(language: language) { store.composer = prefix.isEmpty ? $0 : prefix + " " + $0 } }
+                    }
+                } label: {
+                    Image(systemName: speech.recording ? "stop.circle.fill" : "mic")
+                        .font(.title2).foregroundStyle(speech.recording ? Color.red : Color.secondary)
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel(speech.recording ? "Stop dictation" : "Dictate message")
+                .disabled(unavailable || store.voice.active)
+                TextField("Ask me anything…", text: $store.composer, axis: .vertical)
+                    .lineLimit(1...5).focused($composing)
+                    .disabled(unavailable || store.voice.active || speech.recording)
+                Button {
+                    speech.stop(); composing = false
+                    if store.voice.active { store.voice.stop() }
+                    else if hasText { Task { await store.send() } }
+                    else { startVoice() }
+                } label: {
+                    Image(systemName: store.voice.active ? "phone.down.fill" : (hasText ? "arrow.up" : "waveform"))
+                        .font(.title2.weight(.semibold)).foregroundStyle(.white)
+                        .frame(width: 54, height: 54)
+                        .background(store.voice.active ? Color.red : Color.blue, in: Circle())
+                }
+                .accessibilityLabel(store.voice.active ? "End voice conversation" : (hasText ? "Send message" : "Talk to Pip"))
+                .disabled(!store.voice.active && (unavailable || (hasText && (!store.loaded || store.composer.count > 4000))))
+            }
+            .padding(8).background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 36))
+            if store.composer.count > 4000 { Text("Keep your message under 4,000 characters.").font(.caption).foregroundStyle(.red) }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12).background(Color(.systemGroupedBackground))
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("New conversation", systemImage: "square.and.pencil") {
+                    speech.stop()
+                    Task { if await store.newConversation() { composing = true } }
+                }
+                .disabled(!store.loaded || unavailable || store.voice.active || speech.recording || !store.composer.isEmpty)
+            }
+        }
+        .task { if !store.loaded { await store.load() } }
+        .onDisappear { speech.stop() }
+        .onChange(of: store.voice.active) { _, active in if active { speech.stop() } }
+        .onChange(of: scenePhase) { _, phase in if phase != .active { speech.stop() } }
     }
 }
 

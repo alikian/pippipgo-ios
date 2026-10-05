@@ -543,6 +543,7 @@ struct VoiceMessageBubble: View {
 
 struct LiveVoiceView: View {
     @Bindable var store: LiveVoiceStore
+    var showsControls = true
     @Environment(\.scenePhase) private var scenePhase
     @State private var followsLatest = true
     private var translating: Bool { store.mode.translation != nil }
@@ -592,7 +593,7 @@ struct LiveVoiceView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .safeAreaInset(edge: .bottom, spacing: 0) { controls }
+        .safeAreaInset(edge: .bottom, spacing: 0) { if showsControls { controls } }
         .onChange(of: scenePhase) { _, phase in
             // Only established audio sessions can continue in the background.
             if phase == .background && !store.connected { store.stop() }

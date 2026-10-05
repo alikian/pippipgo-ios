@@ -3788,6 +3788,9 @@
         }
       }
     },
+    "Dictating… Tap the microphone to stop." : {
+
+    },
     "Discard this edit and load latest" : {
       "extractionState" : "manual",
       "localizations" : {
