@@ -684,6 +684,53 @@ struct APIClientTests {
         #expect(store.selectedID == nil); #expect(store.memories.isEmpty); #expect(!store.hasPending)
     }
 
+    @Test func guideRecapKeepsOlderUsefulConversations() throws {
+        let now = Date()
+        let iso = ISO8601DateFormatter()
+        let data = GuideData(version: 1, welcome_due: true, welcome: "Hi Sara!", summary: [
+            GuideHighlight(text: "Recent", at: iso.string(from: now.addingTimeInterval(-3600)), source_id: "one"),
+            GuideHighlight(text: "Expired", at: iso.string(from: now.addingTimeInterval(-25 * 3600)), source_id: "two")
+        ], preferences: [])
+        #expect(data.recentSummary.map(\.text) == ["Recent", "Expired"])
+        #expect(try APIJSON.decoder().decode(GuideData.self, from: APIJSON.encoder().encode(data)).welcome_due)
+    }
+
+    @MainActor @Test func guidePreferenceRetryIsImmutableAndResetClearsMemory() async throws {
+        let pref = GuidePreference(id: "cafes", topic: "cafes", category: "food", kind: "like", text: "Quiet cafes", evidence: "I like quiet cafes", updated_at: "2026-10-06T00:00:00Z", edited: false)
+        var guide = GuideData(version: 1, welcome_due: false, welcome: "Hi!", summary: [], preferences: [pref])
+        guide.version = 2
+        let store = TravelChatStore(client: APIClient(baseURL: URL(string: "https://example.invalid")!, urlSession: queuedSession([
+            .init(error: .timedOut), .init(status: 200, body: try APIJSON.encoder().encode(guide))
+        ])), authentication: TestTokens())
+        guide.version = 1; store.guide = guide
+        await store.editPreference(pref, text: "Outdoor cafes", remove: false)
+        #expect(store.pendingGuideEdit != nil)
+        await store.retryGuideEdit()
+        #expect(store.pendingGuideEdit == nil)
+        #expect(StubURLProtocol.bodies[0] == StubURLProtocol.bodies[1])
+        #expect(StubURLProtocol.requests[0].value(forHTTPHeaderField: "Idempotency-Key") == StubURLProtocol.requests[1].value(forHTTPHeaderField: "Idempotency-Key"))
+        store.reset()
+        #expect(store.guide == nil && store.pendingGuideEdit == nil && store.guideError == nil)
+    }
+
+    @MainActor @Test func guideSetupRetriesFrozenChoicesAndResets() async throws {
+        var choices = GuideSetup(); choices.voice = "sage"; choices.interview = "no"
+        let record = APIRecord(id: "me", kind: "guide_setup", version: 1, revision: 1, updatedAt: Date(), deleted: false, data: choices)
+        let store = GuideSetupStore(client: APIClient(baseURL: URL(string: "https://example.invalid")!, urlSession: queuedSession([
+            .init(error: .timedOut), .init(status: 200, body: try APIJSON.encoder().encode(record))
+        ])), authentication: TestTokens())
+        store.loaded = true
+        #expect(await store.save(choices) == false)
+        #expect(store.pending != nil)
+        choices.voice = "ash"
+        #expect(await store.retry())
+        #expect(store.data.voice == "sage" && store.data.interview == "no")
+        #expect(StubURLProtocol.bodies[0] == StubURLProtocol.bodies[1])
+        #expect(StubURLProtocol.requests[0].value(forHTTPHeaderField: "Idempotency-Key") == StubURLProtocol.requests[1].value(forHTTPHeaderField: "Idempotency-Key"))
+        store.reset()
+        #expect(!store.loaded && store.pending == nil && store.data == GuideSetup())
+    }
+
     private var configuration: AppConfiguration {
         AppConfiguration(cognitoDomain: URL(string: "https://auth-dev.pippipgo.com")!, clientID: "test-client", callbackURL: URL(string: "pippipgo://auth/callback")!, logoutURL: URL(string: "pippipgo://auth/logout")!, backendBaseURL: URL(string: "https://example.invalid")!)
     }
@@ -852,5 +899,24 @@ struct ChatMapDestinationTests {
         #expect(ChatMapDestination(url: try #require(URL(string: "https://www.google.com/search?q=Paris")), title: "") == nil)
         #expect(ChatMapDestination(url: try #require(URL(string: "https://www.google.com/maps?q=place_id:abc")), title: "") == nil)
         #expect(ChatMapDestination.parse("Visit Paris tomorrow.").isEmpty)
+    }
+}
+
+struct PipContactTests {
+    @Test func digitRunsBecomeDialableButOrdinaryProseDoesNot() throws {
+        let text = PipContactLinks.digitText("Call eight five eight five five five one two one two. Take one or two walks.")
+        #expect(text == "Call 8585551212. Take one or two walks.")
+        #expect(PipContactLinks.phoneURL("+1 (858) 555-1212")?.absoluteString == "tel:+18585551212")
+        #expect(PipContactLinks.phoneURL("*21*18585551212#") == nil)
+        #expect(PipContactLinks.phoneURL("18585551212,999") == nil)
+        let block = ChatMarkdownBlock(id: 0, kind: .paragraph, text: "Call +1 (858) 555-1212 or https://example.com")
+        #expect(block.attributed.runs.contains { $0.link?.scheme == "tel" })
+        #expect(block.attributed.runs.contains { $0.link?.host == "example.com" })
+        #expect(!PipContactLinks.allowed(try #require(URL(string: "pippipgo://auth/logout"))))
+    }
+    @Test func photoPreviewRequiresProviderURLAndIsBounded() {
+        #expect(PipPhotoLink.validURL("https://googleusercontent.com.evil.invalid/a") == nil)
+        #expect(PipPhotoLink.validURL("http://lh3.googleusercontent.com/a") == nil)
+        #expect(PipPhotoLink.parse("![Cafe — A](https://lh3.googleusercontent.com/a) ![Cafe again](https://lh3.googleusercontent.com/a)").count == 1)
     }
 }

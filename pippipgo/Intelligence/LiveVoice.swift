@@ -62,6 +62,7 @@ final class VoiceAudioSession: @unchecked Sendable {
 final class VoiceAudio: @unchecked Sendable {
     private lazy var engine = AVAudioEngine()
     private lazy var player = AVAudioPlayerNode()
+    private lazy var humPlayer = AVAudioPlayerNode()
     private let sessionOwner = UUID()
     private var stopped = false
     private var tapped = false
@@ -82,6 +83,8 @@ final class VoiceAudio: @unchecked Sendable {
         let output = engine.outputNode
         let hardwareOutput = output.inputFormat(forBus: 0)
         engine.attach(player)
+        engine.attach(humPlayer)
+        engine.connect(humPlayer, to: engine.mainMixerNode, format: playbackFormat)
         engine.connect(player, to: engine.mainMixerNode, format: playbackFormat)
         // Connecting the player can reconfigure the mixer's automatic output link.
         // Finalize that link afterward or VoiceProcessingIO may never deliver input.
@@ -141,8 +144,31 @@ final class VoiceAudio: @unchecked Sendable {
         }
     }
 
+    /// A short original, wordless hum; never sent as generated speech or stored audio.
+    @MainActor func hum() {
+        guard !stopped, engine.isRunning, !hasPendingPlayback,
+              let buffer = AVAudioPCMBuffer(pcmFormat: playbackFormat, frameCapacity: 33_600),
+              let samples = buffer.floatChannelData else { return }
+        buffer.frameLength = 33_600
+        let notes = [261.63, 329.63, 293.66, 261.63]
+        for frame in 0..<33_600 {
+            let t = Double(frame) / 24_000
+            let note = min(3, Int(t / 0.35))
+            let position = t.truncatingRemainder(dividingBy: 0.35) / 0.35
+            let envelope = pow(sin(.pi * position), 2)
+            let phase = 2 * Double.pi * notes[note] * t
+            samples[0][frame] = Float(0.035 * envelope * (sin(phase) + 0.18 * sin(2 * phase)))
+        }
+        humPlayer.stop()
+        humPlayer.scheduleBuffer(buffer)
+        humPlayer.play()
+    }
+
+    @MainActor func stopHum() { humPlayer.stop() }
+
     @MainActor func stop() {
         stopped = true
+        humPlayer.stop()
         generation = UUID(); queuedFrames = 0
         if tapped {
             engine.inputNode.removeTap(onBus: 0); tapped = false
@@ -243,6 +269,10 @@ final class LiveVoiceStore {
     private(set) var capturingLocation = false
     private(set) var microphoneLevel = 0.0
     private(set) var microphoneReceiving = false
+    private(set) var waitingForWelcome = false
+    private(set) var lookingUp = false
+    private(set) var places: [PipPlaceResult] = []
+    private var humTask: Task<Void, Never>?
     private var lastInputAt: Date?
     private(set) var transcript = VoiceTranscript()
     var error: String?
@@ -256,6 +286,8 @@ final class LiveVoiceStore {
     private var socket: URLSessionWebSocketTask?
     private var session: URLSession?
     private var audio: VoiceAudio?
+    /// Read-only presentation state from the existing playback queue.
+    var isPlayingResponse: Bool { audio?.hasPendingPlayback == true }
     private let client: APIClient
     private let authentication: any AccessTokenProviding
 
@@ -272,7 +304,8 @@ final class LiveVoiceStore {
 
     func start() {
         guard !active else { return }
-        active = true; error = nil; transcript.clear()
+        active = true; error = nil; transcript.clear(); places = []
+        waitingForWelcome = mode == .pip
         conversationContext = nil; capturingLocation = false
         microphoneReceiving = false; microphoneLevel = 0; lastInputAt = nil
         let ticket = UUID(); epoch = ticket
@@ -292,10 +325,15 @@ final class LiveVoiceStore {
                 var request = try Self.request(baseURL: client.baseURL, token: token, mode: mode)
                 if mode == .pip {
                     // Interpreter sessions never send location or other traveler context.
+                    // Bound the initial fix so a slow GPS cannot hold the spoken welcome for 15–60 seconds.
                     capturingLocation = true
                     let context: ConversationContext
                     if let recent = locationDisplay.context, recent.hasFreshLocation() { context = recent }
-                    else { context = await ConversationContext.capture() }
+                    else {
+                        let collector = ConversationLocationCollector(captureTimeout: .seconds(2), permissionTimeout: .seconds(2))
+                        let fix = await collector.capture()
+                        context = ConversationContext.snapshot(location: fix, status: collector.status)
+                    }
                     guard self.epoch == ticket, !Task.isCancelled else { return }
                     conversationContext = context; capturingLocation = false
                     request.setValue(try JSONEncoder().encode(context).base64EncodedString(), forHTTPHeaderField: "X-Pip-Context")
@@ -326,13 +364,6 @@ final class LiveVoiceStore {
                             fail("This backend does not support headphone mode yet. Use the updated local backend or turn headphone mode off.", ticket: ticket)
                             return
                         }
-                        if mode == .pip, let history = event["messages"] as? [[String: Any]] {
-                            for message in history {
-                                if let text = message["text"] as? String {
-                                    transcript.appendHistory(text, speaker: message["role"] as? String == "user" ? .user : .pip)
-                                }
-                            }
-                        }
                         guard !connected else { continue }
                         let audio = VoiceAudio(); self.audio = audio
                         let stream = try await audio.start()
@@ -361,12 +392,24 @@ final class LiveVoiceStore {
                                 }
                             } catch { self?.fail("The voice connection was interrupted. Please try again.", ticket: ticket) }
                         }
+                    case "pip.lookup":
+                        if mode == .pip { setLookingUp(event["active"] as? Bool == true) }
+                    case "pip.places":
+                        if mode == .pip, let raw = event["places"],
+                           let encoded = try? JSONSerialization.data(withJSONObject: raw),
+                           let results = try? JSONDecoder().decode([PipPlaceResult].self, from: encoded) {
+                            places = Array(results.prefix(3))
+                        }
                     case "navigation.open":
                         if mode == .pip { scheduleNavigation(event, ticket: ticket) }
                     case "session.output_audio.delta":
                         lastOutputAt = Date()
-                        if let delta = event["delta"] as? String, let bytes = Data(base64Encoded: delta) { try audio?.play(bytes) }
+                        if let delta = event["delta"] as? String, let bytes = Data(base64Encoded: delta) {
+                            if Self.level(bytes) > 0.003 { waitingForWelcome = false; setLookingUp(false) }
+                            try audio?.play(bytes)
+                        }
                     case "session.input_transcript.delta":
+                        if let text = event["delta"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { waitingForWelcome = false; setLookingUp(false) }
                         appendCaption(event, speaker: .user)
                     case "session.output_transcript.delta":
                         appendCaption(event, speaker: .pip)
@@ -436,7 +479,7 @@ final class LiveVoiceStore {
     #if DEBUG
     static var preview: LiveVoiceStore {
         let store = LiveVoiceStore(client: APIClient(baseURL: URL(string: "https://example.invalid")!), authentication: VoicePreviewTokens())
-        store.transcript.append("Hi, I’m Pip, your travel companion. Where would you like to go?", speaker: .pip, startMilliseconds: 0, endMilliseconds: 4000)
+        store.transcript.append("Hi there! I’m Pip, your friendly local guide. What would make today a good day for you?", speaker: .pip, startMilliseconds: 0, endMilliseconds: 4000)
         store.transcript.append("I’m planning a weekend in Paris. I’d love a relaxed trip with good food.", speaker: .user, startMilliseconds: 5000, endMilliseconds: 9000)
         store.transcript.append("That sounds lovely. We can plan a morning in Montmartre, lunch at a neighborhood bistro, and a walk along the Seine. What dates do you have in mind?", speaker: .pip, startMilliseconds: 10000, endMilliseconds: 18000)
         store.active = true; store.connected = true; store.microphoneReceiving = true; store.microphoneLevel = 0.04
@@ -484,10 +527,29 @@ final class LiveVoiceStore {
             if pair.listenOnly { request.setValue("1", forHTTPHeaderField: "X-Pip-Translate-Listen-Only") }
         } else {
             request.setValue("1", forHTTPHeaderField: "X-Pip-Navigation")
+            request.setValue("1", forHTTPHeaderField: "X-Pip-Enrichment")
             let selected = AppLanguage.selected(language ?? UserDefaults.standard.string(forKey: "pip.language") ?? "en")
             request.setValue(selected.rawValue, forHTTPHeaderField: "X-Pip-Language")
         }
         return request
+    }
+
+    private func setLookingUp(_ value: Bool) {
+        guard lookingUp != value else { return }
+        lookingUp = value
+        humTask?.cancel(); humTask = nil
+        audio?.stopHum()
+        guard value, mode == .pip else { return }
+        let ticket = epoch
+        humTask = Task { [weak self] in
+            // Short lookups stay silent; bound the cue even if a provider never completes.
+            for _ in 0..<6 {
+                do { try await Task.sleep(for: .seconds(2.5)) } catch { return }
+                guard let self, self.epoch == ticket, self.active, self.lookingUp else { return }
+                if UserDefaults.standard.object(forKey: "pip.waitingHum") as? Bool ?? true,
+                   !self.isPlayingResponse { self.audio?.hum() }
+            }
+        }
     }
 
     private func fail(_ message: String, ticket: UUID) {
@@ -496,7 +558,8 @@ final class LiveVoiceStore {
     }
 
     func stop(clearCaptions: Bool = false) {
-        epoch = UUID(); active = false; connected = false; capturingLocation = false
+        setLookingUp(false)
+        epoch = UUID(); active = false; connected = false; capturingLocation = false; waitingForWelcome = false
         worker?.cancel(); worker = nil; sender?.cancel(); sender = nil; watchdog?.cancel(); watchdog = nil
         captureWatchdog?.cancel(); captureWatchdog = nil
         navigationTask?.cancel(); navigationTask = nil
@@ -506,7 +569,7 @@ final class LiveVoiceStore {
         socket = nil; session = nil
         ending?.cancel(with: .normalClosure, reason: nil)
         endingSession?.invalidateAndCancel()
-        if clearCaptions { transcript.clear(); error = nil; conversationContext = nil }
+        if clearCaptions { transcript.clear(); places = []; error = nil; conversationContext = nil }
     }
 }
 
@@ -525,7 +588,7 @@ struct VoiceMessageBubble: View {
                 Text(label)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(isUser ? Color.white.opacity(0.85) : Color.secondary)
-                Text(verbatim: message.text)
+                Text(isUser || translating ? AttributedString(message.text) : ChatMarkdownBlock(id: 0, kind: .paragraph, text: message.text).attributed)
                     // Larger translations are easier to show to the other person.
                     .font(translating && !isUser ? Font.title3 : Font.body)
                     .fixedSize(horizontal: false, vertical: true)
@@ -544,6 +607,7 @@ struct VoiceMessageBubble: View {
 struct LiveVoiceView: View {
     @Bindable var store: LiveVoiceStore
     var showsControls = true
+    var companionStyle = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var followsLatest = true
     private var translating: Bool { store.mode.translation != nil }
@@ -558,14 +622,17 @@ struct LiveVoiceView: View {
                                 ContentUnavailableView("Live Translation", systemImage: "translate",
                                                        description: Text("Tap Start translation once, then speak naturally. Pip translates aloud in real time—no need to hold a button."))
                                     .padding(.top, 32)
-                            } else {
-                                ContentUnavailableView("Say hello to Pip", systemImage: "bubble.left.and.bubble.right",
-                                                       description: Text("Your conversation will appear here as you speak."))
+                            } else if !companionStyle {
+                                ContentUnavailableView("Pip, your friendly local guide", systemImage: "bubble.left.and.bubble.right",
+                                                       description: Text("Pip will welcome you back, then listen. Your current conversation appears here."))
                                     .padding(.top, 32)
                             }
                         }
                         ForEach(store.transcript.messages) { message in
                             VoiceMessageBubble(message: message, translating: translating).id(message.id)
+                        }
+                        if !translating {
+                            ForEach(store.places) { place in PipPlaceCard(place: place) }
                         }
                         Color.clear.frame(height: 1).id("latestVoiceMessage")
                     }
@@ -592,8 +659,13 @@ struct LiveVoiceView: View {
                 }
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(companionStyle ? PipAppearance.cream : Color(.systemGroupedBackground))
         .safeAreaInset(edge: .bottom, spacing: 0) { if showsControls { controls } }
+        .environment(\.openURL, OpenURLAction { url in
+            guard PipContactLinks.allowed(url) else { return .discarded }
+            if url.scheme == "tel" { store.stop() }
+            return .systemAction
+        })
         .onChange(of: scenePhase) { _, phase in
             // Only established audio sessions can continue in the background.
             if phase == .background && !store.connected { store.stop() }
@@ -616,7 +688,7 @@ struct LiveVoiceView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if store.active {
-                Label(store.connected ? (store.microphoneReceiving ? (translating ? "Translating — take turns speaking" : "Listening — you can speak naturally") : "Starting microphone…") : "Connecting…", systemImage: "waveform")
+                Label(store.connected ? (store.microphoneReceiving ? (translating ? "Translating — take turns speaking" : (store.waitingForWelcome ? "Pip is getting ready to welcome you…" : "Listening — you can speak naturally")) : "Starting microphone…") : "Connecting…", systemImage: "waveform")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if store.microphoneReceiving {
                     ProgressView(value: min(1, store.microphoneLevel * 5))

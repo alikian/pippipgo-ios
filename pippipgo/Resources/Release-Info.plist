@@ -25,5 +25,7 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Choose calendars to check your travel plans for schedule conflicts. Calendar contents stay on this device.</string>
 </dict>
 </plist>

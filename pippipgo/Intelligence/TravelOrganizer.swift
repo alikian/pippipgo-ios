@@ -1,4 +1,7 @@
 import MapKit
+import EventKit
+import EventKitUI
+import UniformTypeIdentifiers
 import SwiftUI
 import Observation
 
@@ -158,16 +161,19 @@ struct TravelOrganizerView: View {
             TripsTab(store: store, editor: $editor, askPip: { pipMode = .chat; tab = .pip })
                 .tabItem { Label("Trips", systemImage: "suitcase") }
                 .tag(AppTab.trips)
-            PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest)
+            PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
                 .tabItem { Label("Pip", systemImage: "bubble.left.and.bubble.right") }
                 .tag(AppTab.pip)
             TranslateTab(store: chat.translator)
                 .tabItem { Label("Translate", systemImage: "translate") }
                 .tag(AppTab.translate)
-            ProfileTab(store: store, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, signOut: signOut)
+            ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, signOut: signOut)
                 .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                 .tag(AppTab.profile)
         }
+        .tint(.blue)
+        .toolbarBackground(PipAppearance.cream, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .task { if !store.loaded { await store.load() } }
         .sheet(item: $editor) { kind in OrganizerEditor(store: store, kind: kind) }
         .onChange(of: TalkToPipLaunch.shared.requestID, initial: true) { _, _ in handleVoiceLaunch() }
@@ -429,46 +435,186 @@ struct TripStopSummary: View {
 
 // MARK: - Pip
 
-/// Typed chat and live voice share one conversation but stay separate pages.
+enum PipAppearance {
+    static let cream = Color(red: 250 / 255, green: 248 / 255, blue: 243 / 255)
+    static let navy = Color(red: 7 / 255, green: 29 / 255, blue: 61 / 255)
+    static let secondary = Color(red: 94 / 255, green: 112 / 255, blue: 135 / 255)
+}
+
+/// One signed-in conversation surface, backed by the existing text and voice stores.
 struct PipTab: View {
     @Bindable var chat: TravelChatStore
     @Bindable var organizer: OrganizerStore
     @Binding var mode: PipMode
     @Binding var reviewingTrip: OrganizerTrip?
     @Binding var voiceStartRequest: UUID?
+    let planTrip: () -> Void
+    let openTranslation: () -> Void
+    var isVisible = true
+    @State private var showingHistory = false
+    @State private var editingText = false
+    @State private var hasOpenedVoice = false
+    @State private var lastVoiceEntry: Date?
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                if mode == .voice {
-                    LiveVoiceView(store: chat.voice, showsControls: false)
-                } else {
-                    TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip, name: organizer.data.profile?.name, showsComposer: false)
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    if !editingText {
+                        PipCompanionHero(compact: hasConversation, availableHeight: geometry.size.height)
+                            .padding(.horizontal, 24)
+                    }
+                    if mode == .voice {
+                        LiveVoiceView(store: chat.voice, showsControls: false, companionStyle: true)
+                    } else {
+                        TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip,
+                                       name: organizer.data.profile?.name, showsComposer: false, companionStyle: true)
+                    }
                 }
-                PipComposer(store: chat) {
-                    mode = .voice
-                    chat.voice.start()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .background(PipAppearance.cream.ignoresSafeArea())
+            .preferredColorScheme(.light)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    PipComposer(store: chat, beginTyping: {
+                        mode = .chat
+                    }, editingChanged: { editingText = $0 }, companionStyle: true) {
+                        editingText = false
+                        mode = .voice
+                        hasOpenedVoice = true
+                        lastVoiceEntry = Date()
+                        chat.voice.start()
+                    }
+                    if !editingText {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                suggestion("Plan a trip", icon: "suitcase", action: planTrip)
+                                suggestion("Translate for me", icon: "translate", action: openTranslation)
+                                suggestion("Find something fun nearby", icon: "sparkles") {
+                                    mode = .chat
+                                    chat.composer = "Find something fun nearby"
+                                }
+                                .disabled(chat.busy || chat.pending != nil || chat.translator.active || !chat.composer.isEmpty)
+                            }.padding(.horizontal, 16)
+                        }
+                        .padding(.bottom, 12)
+                    }
+                }.background(PipAppearance.cream)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text("PipPipGo").font(.subheadline.weight(.semibold)).fixedSize().foregroundStyle(PipAppearance.navy)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showingHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+                        .accessibilityLabel("Conversation history")
+                        .accessibilityIdentifier("pip.history")
                 }
             }
-            .navigationTitle("Pip")
+            .toolbarBackground(PipAppearance.cream, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingHistory) {
+                NavigationStack {
+                    TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip,
+                                   showsComposer: false, fullHistory: true)
+                        .navigationTitle("Conversations")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingHistory = false } } }
+                }
+            }
             .onChange(of: chat.voice.active) { _, active in
                 if !active && mode == .voice {
-                    mode = .chat
+                    Task { await chat.loadGuide(refresh: true) }
                 }
             }
+            .onChange(of: chat.busy) { _, busy in if !busy { startWelcomeIfDue() } }
             .onChange(of: scenePhase, initial: true) { _, _ in startRequestedConversation() }
             .onChange(of: voiceStartRequest) { _, _ in startRequestedConversation() }
-            .onAppear { if !chat.voice.active { mode = .chat } }
+            .onChange(of: mode) { _, selected in
+                if selected == .voice, isVisible, scenePhase == .active {
+                    hasOpenedVoice = true
+                    chat.voice.start()
+                } else if selected == .chat { chat.voice.stop() }
+            }
+            .onChange(of: chat.composer) { _, text in
+                if !text.isEmpty { mode = .chat }
+            }
+            .task(id: isVisible && scenePhase == .active) {
+                guard isVisible, scenePhase == .active else { return }
+                await chat.loadGuide()
+                guard !Task.isCancelled, isVisible, scenePhase == .active else { return }
+                startWelcomeIfDue()
+                await chat.loadGuide(refresh: true)
+            }
         }
+    }
+
+    private func startWelcomeIfDue() {
+        guard isVisible, scenePhase == .active, chat.loaded,
+              !chat.voice.active, !chat.translator.active, !editingText,
+              (mode == .voice && !hasOpenedVoice) || chat.guide?.welcome_due == true,
+              chat.pending == nil, !chat.busy, chat.composer.isEmpty,
+              lastVoiceEntry.map({ Date().timeIntervalSince($0) >= 1800 }) ?? true else { return }
+        lastVoiceEntry = Date()
+        hasOpenedVoice = true
+        mode = .voice
+        chat.beginVisit()
+        chat.voice.start()
+    }
+
+    private var hasConversation: Bool {
+        mode == .voice ? !chat.voice.transcript.messages.isEmpty : !chat.visibleMessages.isEmpty
+    }
+
+    private func suggestion(_ title: LocalizedStringKey, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Label(title, systemImage: icon).font(.caption.weight(.medium)).padding(.horizontal, 12).padding(.vertical, 10) }
+            .buttonStyle(.plain)
+            .foregroundStyle(PipAppearance.navy)
+            .background(.white.opacity(0.8), in: Capsule())
+            .frame(minHeight: 44)
     }
 
     private func startRequestedConversation() {
         guard scenePhase == .active, voiceStartRequest != nil else { return }
         voiceStartRequest = nil
+        lastVoiceEntry = Date()
+        hasOpenedVoice = true
         mode = .voice
         chat.voice.start()
+    }
+}
+
+/// Shared approved artwork, framed in the UI without changing the source image.
+private struct PipCompanionHero: View {
+    var compact: Bool
+    var availableHeight: CGFloat
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(spacing: compact ? 4 : 10) {
+            PipWelcomeArtwork()
+                .frame(width: imageWidth, height: imageWidth * 700 / 851)
+                .clipShape(RoundedRectangle(cornerRadius: 32))
+            Text("Hi, I’m Pip.")
+                .font(compact ? .title3.weight(.semibold) : .largeTitle.weight(.semibold))
+                .foregroundStyle(PipAppearance.navy)
+            if !compact {
+                Text("Where are we going today?")
+                    .font(.title3).foregroundStyle(PipAppearance.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .padding(.top, compact ? 4 : 12)
+        .padding(.bottom, 8)
+    }
+
+    private var imageWidth: CGFloat {
+        if typeSize.isAccessibilitySize { return compact ? 60 : 100 }
+        return compact ? 100 : min(300, max(130, availableHeight * 0.56))
     }
 }
 
@@ -477,11 +623,16 @@ struct PipTab: View {
 struct ProfileTab: View {
     @Environment(\.locale) private var locale
     @Bindable var store: OrganizerStore
+    @Bindable var chat: TravelChatStore
     let location: CurrentLocationStore
     var profilePictureURL: URL? = nil
     @Binding var editor: OrganizerEditorKind?
     let signOut: () -> Void
     @State private var confirmSignOut = false
+    @State private var travelStyle = false
+    @State private var booking = false
+    @State private var calendars = false
+    @AppStorage("pip.waitingHum") private var waitingHum = true
 
     var body: some View {
         NavigationStack {
@@ -533,6 +684,15 @@ struct ProfileTab: View {
                 } else if store.busy {
                     ProgressView()
                 }
+                Section("Make the most of Pip") {
+                    Text("Help Pip learn how you like to travel for ideas that feel like you.").font(.footnote)
+                    Toggle("Pip’s waiting hum", isOn: $waitingHum)
+                    Button("Travel style & Pip’s voice", systemImage: "slider.horizontal.3") { travelStyle = true }
+                    Button("Plan a trip", systemImage: "suitcase") { editor = .trip(UUID()) }
+                    Button("Upload a booking receipt", systemImage: "doc.badge.plus") { booking = true }
+                    Button("Calendars", systemImage: "calendar") { calendars = true }
+                }
+                GuidePreferencesSection(store: chat)
                 Section {
                     ConversationLocationView(store: location).buttonStyle(.borderless)
                 }
@@ -546,6 +706,10 @@ struct ProfileTab: View {
             .id(locale.identifier)
             .refreshable { await store.load() }
             .navigationTitle("Profile")
+            .sheet(isPresented: $travelStyle) { GuideSetupView(store: chat.setup) }
+            .sheet(isPresented: $booking) { GuideBookingView(setup: chat.setup, organizer: store) }
+            .sheet(isPresented: $calendars) { GuideCalendarView() }
+            .task { await chat.loadGuide(refresh: true) }
             .toolbar {
                 // Stays outside the list so switching language never rebuilds its own menu.
                 ToolbarItem(placement: .topBarTrailing) { AppLanguageMenu() }
@@ -814,6 +978,7 @@ struct TravelChatMessage: Codable, Identifiable, Sendable {
     var role: String
     var text: String
     var trip_draft: OrganizerTrip? = nil
+    var at: String? = nil
 }
 struct TravelChatData: Codable, Sendable { var messages: [TravelChatMessage] = [] }
 struct TravelChatRequest: Codable, Sendable {
@@ -824,11 +989,24 @@ struct TravelChatRequest: Codable, Sendable {
 
 @MainActor @Observable
 final class TravelChatStore {
+    let setup: GuideSetupStore
     let voice: LiveVoiceStore
     /// Two-way interpreter; shares no traveler context with the backend session.
     let translator: LiveVoiceStore
     let locationDisplay: CurrentLocationStore
     var messages: [TravelChatMessage] = []
+    var guide: GuideData?
+    var guideError: String?
+    var refreshingGuide = false
+    var pendingGuideEdit: APIRequest<GuideData>?
+    var guideEditConflict = false
+    private var displaySince = Date()
+    var visibleMessages: [TravelChatMessage] {
+        messages.filter { message in
+            guard let value = message.at, let date = GuideData.date(value) else { return false }
+            return date >= displaySince
+        }
+    }
     var composer = ""
     var version = 0
     var loaded = false
@@ -843,6 +1021,7 @@ final class TravelChatStore {
     private(set) var capturingLocation = false
     private let captureContext: @MainActor () async -> ConversationContext
     init(client: APIClient, authentication: any AccessTokenProviding, captureContext: @escaping @MainActor () async -> ConversationContext = { await ConversationContext.capture() }) {
+        self.setup = GuideSetupStore(client: client, authentication: authentication)
         self.captureContext = captureContext
         self.client = client; self.authentication = authentication
         let display = CurrentLocationStore(capture: captureContext)
@@ -851,10 +1030,12 @@ final class TravelChatStore {
         self.translator = LiveVoiceStore(client: client, authentication: authentication, mode: .translate(.saved()))
     }
     func reset() {
+        setup.reset()
         voice.stop(clearCaptions: true)
         translator.stop(clearCaptions: true)
         locationDisplay.reset()
         conversationContext = nil; capturingLocation = false
+        guide = nil; guideError = nil; refreshingGuide = false; pendingGuideEdit = nil; guideEditConflict = false; displaySince = Date()
         epoch = UUID(); messages = []; composer = ""; version = 0; loaded = false
         busy = false; error = nil; conflict = nil; pending = nil
     }
@@ -868,6 +1049,52 @@ final class TravelChatStore {
             messages = result.data.messages; version = result.version; loaded = true; error = nil
             conversationContext = nil
         } catch { if ticket == epoch { self.error = error.localizedDescription } }
+    }
+    func beginVisit() { displaySince = Date() }
+    func loadGuide(refresh: Bool = false) async {
+        let startingEpoch = epoch
+        while refreshingGuide {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            guard epoch == startingEpoch, !Task.isCancelled else { return }
+        }
+        guard pendingGuideEdit == nil else { return }
+        let ticket = epoch
+        refreshingGuide = true
+        defer { if ticket == epoch { refreshingGuide = false } }
+        do {
+            let request: APIRequest<GuideData> = refresh
+                ? try .post(.guide, body: [String: String]()) : try .get(.guide)
+            let result = try await client.send(request, using: authentication)
+            guard ticket == epoch, !Task.isCancelled else { return }
+            guide = result
+            guideError = result.refresh_pending == true ? "Your recap will update when Pip reconnects." : nil
+        } catch { if ticket == epoch { guideError = "Pip couldn't refresh your recap. Your saved information is safe." } }
+    }
+    func editPreference(_ preference: GuidePreference, text: String, remove: Bool) async {
+        guard pendingGuideEdit == nil, !refreshingGuide, let guide else { return }
+        do {
+            pendingGuideEdit = try .put(.guide, body: GuidePreferenceEdit(id: preference.id, text: text, remove: remove), expectedVersion: guide.version)
+            await retryGuideEdit()
+        } catch { guideError = error.localizedDescription }
+    }
+    func retryGuideEdit() async {
+        guard !refreshingGuide, !guideEditConflict, let request = pendingGuideEdit else { return }
+        let ticket = epoch
+        refreshingGuide = true
+        defer { if ticket == epoch { refreshingGuide = false } }
+        do {
+            let result = try await client.send(request, using: authentication)
+            guard ticket == epoch else { return }
+            guide = result; pendingGuideEdit = nil; guideError = nil
+        } catch APIClientError.conflict {
+            guard ticket == epoch else { return }
+            guideEditConflict = true
+            guideError = "Preferences changed elsewhere. Load the latest and review your edit."
+        } catch { if ticket == epoch { guideError = error.localizedDescription } }
+    }
+    func reloadGuideAfterConflict() async {
+        pendingGuideEdit = nil; guideEditConflict = false
+        await loadGuide()
     }
     func send() async {
         guard loaded, !busy, !voice.active, pending == nil, !composer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -911,6 +1138,7 @@ final class TravelChatStore {
             let current: APIRecord<TravelChatData> = try await client.send(.get(.travelChat), using: authentication)
             guard ticket == epoch else { return }
             messages = current.data.messages; version = current.version; pending = nil; composer = ""; error = nil
+            Task { await self.loadGuide(refresh: true) }
         } catch APIClientError.conflict(let body, _) {
             guard ticket == epoch else { return }
             if let record = body.currentRecord, let data = try? record.data.decoded(as: TravelChatData.self) {
@@ -938,15 +1166,19 @@ struct TravelChatView: View {
     @FocusState private var composing: Bool
     var name: String? = nil
     var showsComposer = true
+    var companionStyle = false
+    var fullHistory = false
+    private var displayedMessages: [TravelChatMessage] { fullHistory ? store.messages : store.visibleMessages }
     var body: some View {
         VStack(spacing: 0) {
             ScrollViewReader { scroll in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        if store.messages.isEmpty {
-                            Text("\(name.map { "Hi, \($0)!" } ?? "Hi!") I'm Pip, your travel companion. How can I help with your trip?").font(.headline)
+                        if !companionStyle { GuideRecapView(guide: store.guide) }
+                        if displayedMessages.isEmpty && !companionStyle {
+                            Text("Open voice to talk with Pip, your friendly local guide, or write a message below.").foregroundStyle(.secondary)
                         }
-                        ForEach(store.messages.suffix(2)) { message in
+                        ForEach(displayedMessages) { message in
                             let isUser = message.role == "user"
                             HStack(spacing: 0) {
                                 if isUser { Spacer(minLength: 40) }
@@ -984,7 +1216,7 @@ struct TravelChatView: View {
                     }.padding()
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .background(Color(.systemGroupedBackground))
+                .background(companionStyle ? PipAppearance.cream : Color(.systemGroupedBackground))
                 .onChange(of: store.messages.last?.id) { _, id in
                     if let id { withAnimation { scroll.scrollTo(id, anchor: .bottom) } }
                 }
@@ -1015,10 +1247,14 @@ struct TravelChatView: View {
 /// Dictation fills a reviewable draft; the separate waveform starts live conversation.
 struct PipComposer: View {
     @Bindable var store: TravelChatStore
+    var beginTyping: () -> Void = {}
+    var editingChanged: (Bool) -> Void = { _ in }
+    var companionStyle = false
     let startVoice: () -> Void
     @AppStorage("pip.language") private var language = "en"
     @Environment(\.scenePhase) private var scenePhase
     @State private var speech = IntakeSpeech()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var composing: Bool
     private var hasText: Bool { !store.composer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     private var unavailable: Bool { store.busy || store.pending != nil || store.translator.active }
@@ -1030,8 +1266,10 @@ struct PipComposer: View {
             }
             if speech.recording { Text("Dictating… Tap the microphone to stop.").font(.caption).foregroundStyle(.secondary) }
             if store.voice.active {
-                Text(store.voice.connected ? "Listening — you can speak naturally" : "Connecting…")
-                    .font(.caption).foregroundStyle(.secondary)
+                TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+                    Text(store.voice.connected ? (store.voice.isPlayingResponse ? "Pip is speaking…" : (store.voice.lookingUp ? "Pip is finding out more…" : (store.voice.waitingForWelcome ? "Pip is getting ready to welcome you…" : "Listening — you can speak naturally"))) : "Connecting…")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             HStack(spacing: 14) {
                 Button {
@@ -1050,7 +1288,7 @@ struct PipComposer: View {
                 .disabled(unavailable || store.voice.active)
                 TextField("Ask me anything…", text: $store.composer, axis: .vertical)
                     .lineLimit(1...5).focused($composing)
-                    .disabled(unavailable || store.voice.active || speech.recording)
+                    .disabled(unavailable || speech.recording)
                 Button {
                     speech.stop(); composing = false
                     if store.voice.active { store.voice.stop() }
@@ -1060,15 +1298,17 @@ struct PipComposer: View {
                     Image(systemName: store.voice.active ? "phone.down.fill" : (hasText ? "arrow.up" : "waveform"))
                         .font(.title2.weight(.semibold)).foregroundStyle(.white)
                         .frame(width: 54, height: 54)
-                        .background(store.voice.active ? Color.red : Color.blue, in: Circle())
+                        .background(companionStyle ? Color.blue : (store.voice.active ? Color.red : Color.blue), in: Circle())
+                        .symbolEffect(.variableColor, isActive: store.voice.connected && !reduceMotion)
                 }
                 .accessibilityLabel(store.voice.active ? "End voice conversation" : (hasText ? "Send message" : "Talk to Pip"))
                 .disabled(!store.voice.active && (unavailable || (hasText && (!store.loaded || store.composer.count > 4000))))
             }
-            .padding(8).background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 36))
+            .padding(8).background(companionStyle ? Color.white : Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 36))
+            .foregroundStyle(companionStyle ? PipAppearance.navy : Color.primary)
             if store.composer.count > 4000 { Text("Keep your message under 4,000 characters.").font(.caption).foregroundStyle(.red) }
         }
-        .padding(.horizontal, 16).padding(.vertical, 12).background(Color(.systemGroupedBackground))
+        .padding(.horizontal, 16).padding(.vertical, 12).background(companionStyle ? PipAppearance.cream : Color(.systemGroupedBackground))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("New conversation", systemImage: "square.and.pencil") {
@@ -1079,7 +1319,11 @@ struct PipComposer: View {
             }
         }
         .task { if !store.loaded { await store.load() } }
-        .onDisappear { speech.stop() }
+        .onChange(of: composing) { _, focused in
+            editingChanged(focused)
+            if focused { store.voice.stop(); beginTyping() }
+        }
+        .onDisappear { speech.stop(); editingChanged(false) }
         .onChange(of: store.voice.active) { _, active in if active { speech.stop() } }
         .onChange(of: scenePhase) { _, phase in if phase != .active { speech.stop() } }
     }
@@ -1135,11 +1379,20 @@ struct ChatMarkdownBlock: Identifiable, Equatable {
     }
 
     var attributed: AttributedString {
-        var result = (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
-        // Only ordinary web links can be opened from AI-generated text.
+        var result = (try? AttributedString(markdown: PipContactLinks.digitText(text), options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
         for run in result.runs {
-            if let link = run.link, !["https", "http"].contains(link.scheme?.lowercased() ?? "") {
-                result[run.range].link = nil
+            if let link = run.link, !PipContactLinks.allowed(link) { result[run.range].link = nil }
+        }
+        let plain = String(result.characters)
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue | NSTextCheckingResult.CheckingType.phoneNumber.rawValue) {
+            for match in detector.matches(in: plain, range: NSRange(plain.startIndex..., in: plain)) {
+                guard let range = Range(match.range, in: plain),
+                      let start = AttributedString.Index(range.lowerBound, within: result),
+                      let end = AttributedString.Index(range.upperBound, within: result) else { continue }
+                let url = match.phoneNumber.flatMap(PipContactLinks.phoneURL) ?? match.url
+                if let url, PipContactLinks.allowed(url), result[start..<end].runs.allSatisfy({ $0.link == nil }) {
+                    result[start..<end].link = url
+                }
             }
         }
         return result
@@ -1155,7 +1408,7 @@ struct ChatMarkdownView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(ChatMarkdownBlock.parse(displayText)) { block in
+            ForEach(ChatMarkdownBlock.parse(PipPhotoLink.removingImages(displayText))) { block in
                 switch block.kind {
                 case .heading(let level):
                     Text(block.attributed).font(level == 1 ? .title3.bold() : .headline)
@@ -1174,6 +1427,7 @@ struct ChatMarkdownView: View {
                     Text(block.attributed)
                 }
             }
+            ForEach(PipPhotoLink.parse(text)) { photo in PipPhotoView(photo: photo) }
             ForEach(ChatMapDestination.parse(text)) { destination in
                 ChatMapPreview(destination: destination)
             }
@@ -1372,5 +1626,562 @@ struct ChatMapPreview: View {
         } catch {
             if !Task.isCancelled { failed = true }
         }
+    }
+}
+
+// MARK: - Local guide recap and preferences
+
+struct GuideHighlight: Codable, Sendable, Identifiable {
+    var text: String
+    var at: String
+    var source_id: String
+    var id: String { source_id + text }
+}
+struct GuidePreference: Codable, Sendable, Identifiable {
+    var id: String
+    var topic: String
+    var category: String
+    var kind: String
+    var text: String
+    var evidence: String
+    var updated_at: String
+    var edited: Bool
+}
+struct GuideData: Codable, Sendable {
+    var version: Int
+    var welcome_due: Bool
+    var welcome: String
+    var summary: [GuideHighlight]
+    var preferences: [GuidePreference]
+    var updated_at: String?
+    var refresh_pending: Bool?
+
+    static func date(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let result = formatter.date(from: value) { return result }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
+    var recentSummary: [GuideHighlight] {
+        return summary.filter { Self.date($0.at).map { $0 <= Date() } ?? false }
+    }
+}
+struct GuidePreferenceEdit: Codable, Sendable {
+    var id: String
+    var text: String
+    var remove: Bool
+}
+
+struct GuideRecapView: View {
+    var guide: GuideData?
+    var compact = false
+    @State private var expanded = true
+    var body: some View {
+        if let guide, !guide.recentSummary.isEmpty {
+            DisclosureGroup(isExpanded: $expanded) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(guide.recentSummary) { highlight in
+                        Label { VStack(alignment: .leading, spacing: 3) { Text(verbatim: highlight.text); if let date = GuideData.date(highlight.at) { Text(date, style: .date).font(.caption).foregroundStyle(.secondary) } } } icon: {
+                            Image(systemName: "smallcircle.filled.circle").font(.caption2)
+                        }
+                    }
+                    Text("A recap of what we discussed, not live availability or confirmed bookings.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }.font(.subheadline).padding(.top, 8)
+            } label: {
+                Label("Our recent conversations", systemImage: "bubble.left.and.bubble.right")
+                    .font(.headline)
+            }
+            .padding(compact ? 12 : 16)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, compact ? 16 : 0)
+            .accessibilityIdentifier("pip.recentRecap")
+            .onAppear { expanded = !compact }
+        }
+    }
+}
+
+struct GuidePreferencesSection: View {
+    @Bindable var store: TravelChatStore
+    @State private var editing: GuidePreference?
+    @State private var draft = ""
+    var body: some View {
+        Section {
+            Text("Pip learns the travel likes, dislikes and preferences you share to offer more personal suggestions. Review, edit or forget them here.")
+                .font(.footnote).foregroundStyle(.secondary)
+            if let preferences = store.guide?.preferences, !preferences.isEmpty {
+                ForEach(preferences) { preference in
+                    Button {
+                        draft = preference.text
+                        editing = preference
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(verbatim: preference.text).foregroundStyle(.primary)
+                            Text(preference.kind == "dislike" ? "Dislike" : preference.kind == "like" ? "Like" : "Preference")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } else {
+                Text("No learned preferences yet. Tell Pip what you enjoy—or what you'd rather skip.")
+                    .foregroundStyle(.secondary)
+            }
+            if let error = store.guideError { Text(error).font(.footnote).foregroundStyle(.secondary) }
+            if store.guideEditConflict {
+                Button("Load latest preferences") { Task { await store.reloadGuideAfterConflict() } }
+            } else if store.pendingGuideEdit != nil {
+                Button("Retry preference change") { Task { await store.retryGuideEdit() } }
+                    .disabled(store.refreshingGuide)
+            }
+        } header: {
+            Text("What Pip knows about you")
+        }
+        .sheet(item: $editing) { preference in
+            NavigationStack {
+                Form {
+                    Section("Preference") { TextField("Preference", text: $draft, axis: .vertical) }
+                    Section("Based on what you shared") { Text(verbatim: preference.evidence) }
+                    Section {
+                        Button("Forget this preference", role: .destructive) {
+                            Task {
+                                await store.editPreference(preference, text: "", remove: true)
+                                if store.pendingGuideEdit == nil, store.guideError == nil { editing = nil }
+                            }
+                        }.disabled(store.refreshingGuide || store.pendingGuideEdit != nil)
+                    }
+                    if let error = store.guideError { Text(error).foregroundStyle(.red) }
+                }
+                .navigationTitle("What Pip remembers")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Close") { editing = nil } }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            Task {
+                                await store.editPreference(preference, text: draft, remove: false)
+                                if store.pendingGuideEdit == nil, store.guideError == nil { editing = nil }
+                            }
+                        }.disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.refreshingGuide || store.pendingGuideEdit != nil)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// MARK: - Your travel style
+struct GuideSetup: Codable, Equatable, Sendable {
+    var preferred_name = ""
+    var home_city = ""
+    var work = ""
+    var hobbies = ""
+    var free_time = ""
+    var curiosities = ""
+    var bucket_list = ""
+    var favorite_travel_memory = ""
+    var voice = "ballad"
+    var personality = "warm"
+    var planning_style = "not_set"
+    var offer_opinions = true
+    var compliments = "ask"
+    var film_references = "ask"
+    var interview = "open"
+}
+struct GuideBooking: Codable, Sendable {
+    var explanation: String
+    var facts: [ImportFact]
+    var flights: [FlightSegment]
+    var notes: String {
+        (facts.map { [$0.title, $0.details, $0.timing, $0.location].filter { !$0.isEmpty }.joined(separator: " · ") }
+        + flights.map { "\($0.airline) \($0.flight_number): \($0.departure_airport) → \($0.arrival_airport), \($0.departure_local) – \($0.arrival_local)" }).joined(separator: "\n")
+    }
+}
+@MainActor @Observable
+final class GuideSetupStore {
+    var data = GuideSetup()
+    var version = 0
+    var loaded = false
+    var busy = false
+    var conflict = false
+    var error: String?
+    private(set) var pending: APIRequest<APIRecord<GuideSetup>>?
+    private var epoch = UUID()
+    private let client: APIClient
+    private let authentication: any AccessTokenProviding
+    init(client: APIClient, authentication: any AccessTokenProviding) {
+        self.client = client; self.authentication = authentication
+    }
+    func reset() {
+        epoch = UUID(); data = GuideSetup(); version = 0; loaded = false
+        busy = false; conflict = false; error = nil; pending = nil
+    }
+    func load() async {
+        guard !busy, pending == nil else { return }
+        busy = true; let ticket = epoch
+        defer { if ticket == epoch { busy = false } }
+        do {
+            let result: APIRecord<GuideSetup> = try await client.send(.get(.guideSetup), using: authentication)
+            guard ticket == epoch else { return }
+            data = result.data; version = result.version; loaded = true; error = nil
+        } catch { if ticket == epoch { self.error = error.localizedDescription } }
+    }
+    func save(_ draft: GuideSetup) async -> Bool {
+        guard loaded, !busy, pending == nil else { return false }
+        do { pending = try .put(.guideSetup, body: draft, expectedVersion: version) }
+        catch { self.error = error.localizedDescription; return false }
+        return await retry()
+    }
+    func retry() async -> Bool {
+        guard !busy, !conflict, let request = pending else { return false }
+        busy = true; let ticket = epoch
+        defer { if ticket == epoch { busy = false } }
+        do {
+            let result = try await client.send(request, using: authentication)
+            guard ticket == epoch else { return false }
+            data = result.data; version = result.version; pending = nil; error = nil
+            return true
+        } catch APIClientError.conflict {
+            if ticket == epoch { conflict = true; error = "Your choices changed elsewhere. Load the latest and review before saving." }
+        } catch { if ticket == epoch { self.error = error.localizedDescription } }
+        return false
+    }
+    func loadLatest() async { pending = nil; conflict = false; await load() }
+    func extract(_ request: PipImportRequest) async throws -> GuideBooking {
+        let ticket = epoch
+        let result: GuideBooking = try await client.send(.post(.guideBooking, body: request), using: authentication)
+        guard ticket == epoch else { throw CancellationError() }
+        return result
+    }
+}
+struct GuideSetupView: View {
+    @Bindable var store: GuideSetupStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft = GuideSetup()
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Help Pip learn how you like to travel, so ideas for destinations, local gems and activities feel more like you. Share in your own words, or skip anything.")
+                    TextField("What should Pip call you?", text: $draft.preferred_name)
+                    TextField("Home city", text: $draft.home_city)
+                    TextField("Hobbies and fun", text: $draft.hobbies, axis: .vertical)
+                    TextField("When you're not working…", text: $draft.free_time, axis: .vertical)
+                    TextField("Work (optional)", text: $draft.work, axis: .vertical)
+                    TextField("What are you curious about?", text: $draft.curiosities, axis: .vertical)
+                    TextField("Your bucket list", text: $draft.bucket_list, axis: .vertical)
+                    TextField("A trip you loved—what made it special?", text: $draft.favorite_travel_memory, axis: .vertical)
+                } header: { Text("A little about you") }
+                .disabled(store.pending != nil)
+                Section("Make Pip your own") {
+                    Picker("Voice", selection: $draft.voice) {
+                        Text("Ballad").tag("ballad"); Text("Coral").tag("coral"); Text("Sage").tag("sage")
+                        Text("Ash").tag("ash"); Text("Verse").tag("verse")
+                    }
+                    Text("Your voice choice takes effect the next time you open voice.").font(.footnote)
+                    Picker("Pip's tone", selection: $draft.personality) {
+                        Text("Warm and friendly").tag("warm"); Text("Playful").tag("playful")
+                        Text("Calm").tag("calm"); Text("Friendly and direct").tag("direct")
+                    }
+                    Picker("Planning feels best when…", selection: $draft.planning_style) {
+                        Text("Let's discover together").tag("not_set"); Text("There's room for spontaneity").tag("spontaneous")
+                        Text("There's a little of both").tag("balanced"); Text("Everything is organized").tag("organized")
+                    }
+                    Toggle("Offer your honest opinion", isOn: $draft.offer_opinions)
+                    Picker("A little sincere encouragement?", selection: $draft.compliments) {
+                        Text("Ask me first").tag("ask"); Text("Yes, occasionally").tag("gentle"); Text("Skip compliments").tag("none")
+                    }
+                    Picker("Fun film and TV references?", selection: $draft.film_references) {
+                        Text("Ask me first").tag("ask"); Text("Yes, please").tag("yes"); Text("No thanks").tag("no")
+                    }
+                    Picker("Getting-to-know-you questions", selection: $draft.interview) {
+                        Text("One at a time is welcome").tag("open"); Text("Maybe later").tag("later"); Text("Don't ask").tag("no")
+                    }
+                }
+                .disabled(store.pending != nil)
+                if let error = store.error { Section { Text(error).foregroundStyle(.red) } }
+                if store.conflict {
+                    Button("Load latest choices") { Task { await store.loadLatest(); draft = store.data } }
+                } else if store.pending != nil {
+                    Button("Retry saving these choices") { Task { if await store.retry() { dismiss() } } }
+                }
+            }
+            .disabled(store.busy)
+            .navigationTitle("My travel style")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { Task { if await store.save(draft) { dismiss() } } }
+                        .disabled(!store.loaded || store.busy || store.pending != nil)
+                }
+            }
+            .task {
+                await store.load()
+                if let body = store.pending?.body, let frozen = try? APIJSON.decoder().decode(GuideSetup.self, from: body) { draft = frozen }
+                else { draft = store.data }
+            }
+        }
+    }
+}
+struct GuideBookingView: View {
+    @Bindable var setup: GuideSetupStore
+    @Bindable var organizer: OrganizerStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var choosing = false
+    @State private var busy = false
+    @State private var error: String?
+    @State private var extracted = false
+    @State private var title = "My trip"
+    @State private var notes = ""
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Upload a booking receipt to help prepare your trip. Pip reads it with AI; you'll review the details before saving. Check dates and times against your receipt.")
+                    Button("Choose receipt", systemImage: "doc.badge.plus") { choosing = true }
+                        .disabled(busy || organizer.pending != nil)
+                    Text("PDF, JPEG, PNG or Word document, up to 5 MB.").font(.footnote)
+                    if busy { ProgressView("Reading your receipt…") }
+                }
+                if extracted {
+                    Section("Review your trip") {
+                        TextField("Trip name", text: $title)
+                        TextEditor(text: $notes).frame(minHeight: 200)
+                        Text("\(notes.count)/2000 characters").font(.caption)
+                        Button("Save as a trip") { Task {
+                            var data = organizer.data
+                            var trip = OrganizerTrip(); trip.name = title; trip.notes = notes
+                            data.trips.append(trip)
+                            if await organizer.save(data) { dismiss() }
+                        } }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || notes.count > 2000 || !organizer.loaded || organizer.busy || organizer.pending != nil)
+                    }.disabled(organizer.pending != nil)
+                }
+                if let error = error ?? organizer.error { Text(error).foregroundStyle(.red) }
+                if organizer.pending != nil { Text("The save needs attention. Close this sheet and review the pending change in Trips before trying again.") }
+            }
+            .navigationTitle("Booking receipt")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+            .fileImporter(isPresented: $choosing, allowedContentTypes: [.pdf, .jpeg, .png, UTType(filenameExtension: "docx")!]) { result in
+                Task { await read(result) }
+            }
+        }
+    }
+    private func read(_ result: Result<URL, Error>) async {
+        busy = true; error = nil
+        defer { busy = false }
+        do {
+            let url = try result.get()
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+            guard size <= 5 * 1024 * 1024 else { error = "Choose a receipt smaller than 5 MB."; return }
+            let bytes = try Data(contentsOf: url)
+            guard bytes.count <= 5 * 1024 * 1024 else { error = "Choose a receipt smaller than 5 MB."; return }
+            let result = try await setup.extract(PipImportRequest(filename: url.lastPathComponent, content_base64: bytes.base64EncodedString()))
+            notes = result.notes; extracted = true
+            if notes.isEmpty { error = "Pip couldn't find booking details. You can add them yourself or choose another receipt." }
+        } catch { self.error = error.localizedDescription }
+    }
+}
+
+// Calendar content stays on this device. Only explicitly reviewed events are added.
+struct GuideCalendarView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var store = EKEventStore()
+    @State private var calendars: [EKCalendar] = []
+    @State private var selected: Set<String> = []
+    @State private var events: [EKEvent] = []
+    @State private var error: String?
+    @State private var title = "Trip plans"
+    @State private var start = Date()
+    @State private var end = Date().addingTimeInterval(3600)
+    @State private var editing = false
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Connect calendars on this iPhone, including Apple Calendar and Google calendars you've synced in Settings. Select which calendars to check. Their contents stay on this device.")
+                    Button("Connect calendars") { Task {
+                        do {
+                            if try await store.requestFullAccessToEvents() {
+                                calendars = store.calendars(for: .event)
+                            } else { error = "Calendar access is off. You can allow it in iPhone Settings whenever you're ready." }
+                        } catch { self.error = error.localizedDescription }
+                    } }
+                }
+                if !calendars.isEmpty {
+                    Section("Check these calendars") {
+                        ForEach(calendars, id: \.calendarIdentifier) { calendar in
+                            Toggle("\(calendar.title) · \(calendar.source.title)", isOn: Binding(
+                                get: { selected.contains(calendar.calendarIdentifier) },
+                                set: { if $0 { selected.insert(calendar.calendarIdentifier) } else { selected.remove(calendar.calendarIdentifier) }; events = [] }
+                            ))
+                        }
+                    }
+                    Section("Review a time for your plans") {
+                        TextField("Event title", text: $title)
+                        DatePicker("Starts", selection: $start)
+                        DatePicker("Ends", selection: $end, in: start...)
+                        Button("Check for schedule conflicts") {
+                            let chosen = calendars.filter { selected.contains($0.calendarIdentifier) }
+                            guard !chosen.isEmpty, end > start else { error = "Choose a calendar and an end time after the start."; return }
+                            events = store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: chosen))
+                            error = events.isEmpty ? "No conflicts found in your selected calendars." : "These events overlap your plans:"
+                        }
+                        ForEach(events, id: \.eventIdentifier) { event in
+                            VStack(alignment: .leading) { Text(event.title ?? "Busy"); Text(event.startDate, style: .date); Text(event.startDate, style: .time) }
+                        }
+                        Button("Review and add to calendar") { editing = true }.disabled(end <= start || title.isEmpty)
+                    }
+                }
+                if let error { Text(error) }
+            }
+            .onChange(of: start) { events = []; error = nil; if end <= start { end = start.addingTimeInterval(3600) } }
+            .onChange(of: end) { events = []; error = nil }
+            .navigationTitle("Calendars")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .sheet(isPresented: $editing) { GuideCalendarEditor(store: store, title: title, start: start, end: end) }
+        }
+    }
+}
+struct GuideCalendarEditor: UIViewControllerRepresentable {
+    let store: EKEventStore
+    let title: String
+    let start: Date
+    let end: Date
+    @Environment(\.dismiss) private var dismiss
+    func makeCoordinator() -> Coordinator { Coordinator { dismiss() } }
+    func makeUIViewController(context: Context) -> EKEventEditViewController {
+        let controller = EKEventEditViewController()
+        controller.eventStore = store
+        let event = EKEvent(eventStore: store)
+        event.title = title; event.startDate = start; event.endDate = end; event.calendar = store.defaultCalendarForNewEvents
+        controller.event = event; controller.editViewDelegate = context.coordinator
+        return controller
+    }
+    func updateUIViewController(_ uiViewController: EKEventEditViewController, context: Context) {}
+    final class Coordinator: NSObject, EKEventEditViewDelegate {
+        let close: () -> Void
+        init(close: @escaping () -> Void) { self.close = close }
+        func eventEditViewController(_ controller: EKEventEditViewController, didCompleteWith action: EKEventEditViewAction) { close() }
+    }
+}
+
+// MARK: - Verified contact links and optional place photos
+
+enum PipContactLinks {
+    static func phoneURL(_ value: String) -> URL? {
+        let raw = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard raw.allSatisfy({ $0.isNumber || "+ ()-.".contains($0) }),
+              raw.filter({ $0 == "+" }).count <= 1,
+              !raw.contains("+") || raw.hasPrefix("+") else { return nil }
+        let digits = raw.compactMap(\.wholeNumberValue).map(String.init).joined()
+        guard (7...15).contains(digits.count) else { return nil }
+        return URL(string: "tel:" + (raw.hasPrefix("+") ? "+" : "") + digits)
+    }
+
+    static func allowed(_ url: URL) -> Bool {
+        switch url.scheme?.lowercased() {
+        case "https", "http": return url.host != nil && url.user == nil && url.password == nil
+        case "tel":
+            let raw = String(url.absoluteString.dropFirst(4)).removingPercentEncoding ?? ""
+            return phoneURL(raw) != nil
+        default: return false
+        }
+    }
+
+    /// Convert only long runs of spoken single digits, never ordinary number phrases.
+    static func digitText(_ text: String) -> String {
+        let words = ["zero": "0", "oh": "0", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9"]
+        let word = "(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)"
+        guard let regex = try? NSRegularExpression(pattern: "(?i)\\b" + word + "(?:[ -]+" + word + "){6,14}\\b") else { return text }
+        var output = text
+        for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).reversed() {
+            guard let range = Range(match.range, in: output) else { continue }
+            let digits = output[range].lowercased().split(whereSeparator: { $0 == " " || $0 == "-" }).compactMap { words[String($0)] }.joined()
+            output.replaceSubrange(range, with: digits)
+        }
+        return output
+    }
+}
+
+struct PipPhotoLink: Identifiable {
+    var url: URL
+    var caption: String
+    var id: String { url.absoluteString }
+    static let pattern = #"!\[([^\]]*)\]\((https://[^\s)]+)\)"#
+    static func validURL(_ text: String) -> URL? {
+        guard let url = URL(string: text), url.scheme == "https", url.user == nil, url.password == nil,
+              url.host?.hasSuffix(".googleusercontent.com") == true else { return nil }
+        return url
+    }
+    static func parse(_ text: String) -> [Self] {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        var seen = Set<String>()
+        return regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).compactMap { match in
+            guard let caption = Range(match.range(at: 1), in: text), let raw = Range(match.range(at: 2), in: text),
+                  let url = validURL(String(text[raw])), seen.insert(url.absoluteString).inserted else { return nil }
+            return Self(url: url, caption: String(text[caption]))
+        }.prefix(2).map { $0 }
+    }
+    static func removingImages(_ text: String) -> String {
+        text.replacingOccurrences(of: pattern, with: "$1", options: .regularExpression)
+    }
+}
+
+struct PipPhotoView: View {
+    let photo: PipPhotoLink
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            AsyncImage(url: photo.url) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFit().frame(maxHeight: 200).clipShape(RoundedRectangle(cornerRadius: 16))
+                        .accessibilityLabel(photo.caption)
+                } else if phase.error != nil {
+                    Text("Photo unavailable").font(.caption).foregroundStyle(.secondary)
+                } else { ProgressView().frame(height: 60) }
+            }
+            Text(photo.caption).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct PipPlaceResult: Decodable, Identifiable {
+    struct Name: Decodable { var text: String }
+    struct Author: Decodable { var displayName: String?; var uri: String? }
+    struct Photo: Decodable { var url: String; var authors: [Author] }
+    var id: String
+    var displayName: Name?
+    var internationalPhoneNumber: String?
+    var websiteUri: String?
+    var googleMapsUri: String?
+    var photo: Photo?
+}
+
+struct PipPlaceCard: View {
+    let place: PipPlaceResult
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(place.displayName?.text ?? "Place details").font(.headline)
+            if let photo = place.photo, let url = PipPhotoLink.validURL(photo.url) {
+                PipPhotoView(photo: PipPhotoLink(url: url, caption: "Photo · Google Maps"))
+                ForEach(Array(photo.authors.enumerated()), id: \.offset) { _, author in
+                    if let raw = author.uri, let url = URL(string: raw), PipContactLinks.allowed(url), url.scheme == "https" {
+                        Link(author.displayName ?? "Photo contributor", destination: url).font(.caption)
+                    } else { Text(author.displayName ?? "Photo contributor").font(.caption) }
+                }
+            }
+            if let phone = place.internationalPhoneNumber, let url = PipContactLinks.phoneURL(phone) {
+                Link(destination: url) { Label(phone, systemImage: "phone") }.font(.subheadline)
+            }
+            if let raw = place.websiteUri, let url = URL(string: raw), ["https", "http"].contains(url.scheme ?? ""), PipContactLinks.allowed(url) {
+                Link("Website", destination: url)
+            }
+            if let raw = place.googleMapsUri, let url = URL(string: raw), url.scheme == "https", PipContactLinks.allowed(url) {
+                Link("Source: Google Maps", destination: url).font(.caption)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+        .background(.background, in: RoundedRectangle(cornerRadius: 18))
     }
 }

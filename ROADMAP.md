@@ -262,3 +262,38 @@ Web headphone translation (October 4, 2026): one-way headphone checkbox/directio
 Web headphone release (October 4, 2026): source pushed to develop/main; Dev backend revision 50 and Prod revision 11 COMPLETED before website publication. Both CloudFront invalidations Completed, live app/environment/assets match validated builds. 22 web tests per environment, lint/build/audit passed. Native-style web Pip conversation bubbles included. Physical-device headphone acceptance remains pending.
 
 Unified iOS Pip input (October 4, 2026): removed Chat Pip / Talk to Pip segmented tabs; one rounded composer has left dictation, editable draft and blue waveform live-voice action, switching to Send for text and End during a call. Shared history, explicit New conversation and Siri launch retained; dictation stops on disappearance/inactivity and cannot overlap voice. Swift syntax parsing and diff checks passed. Xcode Cloud latest number not verified; build number unchanged, full build/simulator/device acceptance pending. No backend deployment required in Dev or Prod.
+
+## October 5 — Friendly local guide, return welcome and memory
+
+User-selected direction: Pip is a friendly, useful, informative AI local guide and kind listener. Local implementation adds a profile-name welcome on returning after more than 30 minutes, a rolling 24-hour recap, and evidence-backed travel likes/dislikes/preferences with review/edit/forget controls. Existing profile and trip records remain separate. Translation conversations are excluded. The backend must precede the app rollout.
+
+Backend full regression suite passed (375 passed, one skipped); final expanded memory suite passed all 18 tests; Ruff passed. Synthetic live extraction produced a grounded recap and three preferences. Signed Local app compilation succeeded; focused device tests/install remain pending a reachable, unlocked iPhone. Local backend restarted with the changes. Hosted Dev/Prod deployment pending; physical greeting and screen acceptance separate. See backend docs/local-guide-memory.md.
+
+
+### October 5, 2026 — lasting recaps and personal local-guide setup
+
+Implemented last-five useful conversation recaps without a 24-hour cutoff, voice-only return welcomes, optional personal travel stories and five voice/tone/planning choices. Added reviewed booking-receipt import into trip notes and optional on-device Apple/synced-Google calendar conflict checks/event review. Backend: 384 tests passed, one skipped; final 62 affected tests and Ruff passed; five real voice sessions accepted. Signed Local app/test builds passed; local backend restarted and healthy. Hosted deployment pending, backend before app. See backend `docs/local-guide-memory.md` for limitations and device acceptance.
+
+
+### October 5, 2026 — proactive spoken profile starter repair
+
+Fixed long voice-opening instructions (observed 15.9-second silence), generic short-return branch skipping profile setup, and Voice mode being reset to Chat. Final synthetic live test spoke in 3.7 seconds with a single interest question. Added explicit Chat/Voice selector and welcome-preparation status. Backend regression checks and signed Local build passed after updating two obsolete prompt assertions; local backend active; hosted rollout pending. See backend local-guide-memory documentation for device installation/acceptance evidence.
+
+
+### October 6, 2026 — guided introduction and everyday local-guide check-ins
+
+Added evidence-backed introduction progress, optional ten-minute consent, one-question-at-a-time continuation, group-aware interests and a clear completion transition to present-day check-ins. Live three-turn dialogue and progress extraction passed with synthetic data; 397 backend tests passed, one skipped, final 15 affected checks and Ruff passed. Local backend active; hosted Dev/Prod rollout pending. Event schedules still require verified sources; no new event feed is claimed.
+
+### October 6, 2026 — opening-page Pip artwork
+
+Added the user-selected seaside Pip image to the welcome and session-restoration pages. The original asset is retained intact; the view frames the illustration to exclude embedded mock controls, with native accessible sign-in and language controls. Signed Local build and wired iPhone installation passed; device visual acceptance pending. Xcode Cloud latest build number could not be verified, so the existing local number was retained for validation. No backend deployment required.
+
+### October 6, 2026 — signed-in Pip tab visual redesign
+
+Redesigned the active organizer PipTab (not authentication) with approved Pip artwork, warm cream surfaces, direct text/voice composer, compact history/new-conversation actions and existing trip/translation suggestions. Voice selection remains in Profile, now clearly labeled. Existing stores, API calls and navigation reused; consumer build strip removed. Xcode Cloud latest build 25 verified; signed Local 26 built, installed and launched, with signed-in physical-screen capture. Simulator runtimes unavailable; full interaction/device-size acceptance remains separate. No backend deployment required.
+
+### October 6, 2026 — timely openers, waiting cue and contact cards
+
+Added day-aware spoken check-ins, startup retry/cooldown and bounded GPS wait; optional quiet local lookup hum; digit telephone/web links in typed/voice captions; verified place contact cards and attributed photos. 408 backend tests passed/one skipped; Ruff and signed app/test builds passed; two contact tests ran successfully on physical iPhone. Synthetic live greeting audible at 2.26 seconds; live Google contact/photo lookup passed after bounded response-size correction. Final phone audio/launch acceptance awaits unlock. Local backend updated; hosted Dev/Prod rollout pending, backend before app.
+
+October 6 unlocked-phone follow-up: one targeted physical microphone capture test passed; normal signed-in app relaunched and automatic voice playback confirmed by device screenshot. Local backend ready. Hum preference/quality and real tap-to-call acceptance remain separate; hosted deployment pending.

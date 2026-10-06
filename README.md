@@ -2,7 +2,7 @@
 
 # PipPipGo
 
-Pip is a conversational travel companion: understand the trip, get to know the traveler,
+Pip is a conversational local guide: understand the trip, get to know the traveler,
 suggest a light plan, learn during the journey, and propose useful changes. **Never overplan.**
 
 - [New product requirements](docs/traveler-intelligence-requirements.md)

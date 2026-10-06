@@ -186,6 +186,7 @@
       }
     },
     "%@ I'm Pip, your travel companion. How can I help with your trip?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -281,6 +282,9 @@
           }
         }
       }
+    },
+    "%@/2000 characters" : {
+
     },
     "%lld adults · %lld children · %lld travelers total" : {
       "extractionState" : "manual",
@@ -449,6 +453,9 @@
         }
       }
     },
+    "A little about you" : {
+
+    },
     "A little less planning.\nA little more exploring." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -465,6 +472,9 @@
           }
         }
       }
+    },
+    "A recap of what we discussed, not live availability or confirmed bookings." : {
+
     },
     "A suggestion for you" : {
       "localizations" : {
@@ -512,7 +522,11 @@
         }
       }
     },
+    "A thoughtful local guide for the journey ahead." : {
+
+    },
     "A thoughtful travel companion for the journey ahead." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1823,6 +1837,9 @@
         }
       }
     },
+    "Ash" : {
+
+    },
     "Ask about your trip…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1863,6 +1880,9 @@
           }
         }
       }
+    },
+    "Ask me first" : {
+
     },
     "Ask Pip" : {
       "extractionState" : "manual",
@@ -1938,6 +1958,9 @@
           }
         }
       }
+    },
+    "Ballad" : {
+
     },
     "Before we plan, I'd love to get to know you a little." : {
       "localizations" : {
@@ -2220,6 +2243,9 @@
         }
       }
     },
+    "Calm" : {
+
+    },
     "Cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2484,6 +2510,9 @@
           }
         }
       }
+    },
+    "Chat" : {
+
     },
     "Chat Pip" : {
       "extractionState" : "manual",
@@ -2941,6 +2970,9 @@
         }
       }
     },
+    "Connect calendars on this iPhone, including Apple Calendar and Google calendars you've synced in Settings. Select which calendars to check. Their contents stay on this device." : {
+
+    },
     "Connecting…" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3219,6 +3251,9 @@
           }
         }
       }
+    },
+    "Coral" : {
+
     },
     "Correct this" : {
       "extractionState" : "stale",
@@ -3849,6 +3884,9 @@
         }
       }
     },
+    "Don't ask" : {
+
+    },
     "Don't remember that" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4346,6 +4384,9 @@
         }
       }
     },
+    "Everything is organized" : {
+
+    },
     "Existing plans" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4708,6 +4749,9 @@
         }
       }
     },
+    "Friendly and direct" : {
+
+    },
     "Get to know me" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4782,6 +4826,12 @@
           }
         }
       }
+    },
+    "Help Pip learn how you like to travel for ideas that feel like you." : {
+
+    },
+    "Help Pip learn how you like to travel, so ideas for destinations, local gems and activities feel more like you. Share in your own words, or skip anything." : {
+
     },
     "Hi there" : {
       "localizations" : {
@@ -5802,6 +5852,9 @@
         }
       }
     },
+    "Let's discover together" : {
+
+    },
     "Let's get to know you" : {
       "localizations" : {
         "en" : {
@@ -6091,6 +6144,9 @@
           }
         }
       }
+    },
+    "Maybe later" : {
+
     },
     "Me" : {
       "extractionState" : "manual",
@@ -6582,6 +6638,12 @@
         }
       }
     },
+    "No learned preferences yet. Tell Pip what you enjoy—or what you'd rather skip." : {
+
+    },
+    "No thanks" : {
+
+    },
     "No trips yet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7043,6 +7105,9 @@
         }
       }
     },
+    "One at a time is welcome" : {
+
+    },
     "Only for this trip" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7193,6 +7258,9 @@
           }
         }
       }
+    },
+    "Open voice to talk with Pip, your friendly local guide, or write a message below." : {
+
     },
     "Opens an external flight search with known trip details. Searching does not book a flight; add your booking whenever you're ready." : {
       "localizations" : {
@@ -7625,6 +7693,9 @@
         }
       }
     },
+    "PDF, JPEG, PNG or Word document, up to 5 MB." : {
+
+    },
     "persistent" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7747,6 +7818,12 @@
         }
       }
     },
+    "Pip learns the travel likes, dislikes and preferences you share to offer more personal suggestions. Review, edit or forget them here." : {
+
+    },
+    "Pip will welcome you back, then listen. Your current conversation appears here." : {
+
+    },
     "PipPipGo" : {
       "localizations" : {
         "es" : {
@@ -7826,6 +7903,9 @@
           }
         }
       }
+    },
+    "Playful" : {
+
     },
     "Please use a file smaller than 5 MB." : {
       "extractionState" : "stale",
@@ -8867,6 +8947,9 @@
         }
       }
     },
+    "Sage" : {
+
+    },
     "Save" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9733,6 +9816,9 @@
           }
         }
       }
+    },
+    "Skip compliments" : {
+
     },
     "Skip for now" : {
       "extractionState" : "stale",
@@ -10811,6 +10897,9 @@
         }
       }
     },
+    "The save needs attention. Close this sheet and review the pending change in Trips before trying again." : {
+
+    },
     "The selected content is sent to Pip's server and OpenAI for extraction. Raw files are not saved by Pip. Extracted details stay with this trip." : {
       "localizations" : {
         "en" : {
@@ -10856,6 +10945,12 @@
           }
         }
       }
+    },
+    "There's a little of both" : {
+
+    },
+    "There's room for spontaneity" : {
+
     },
     "These details apply to this trip. They do not become permanent preferences." : {
       "localizations" : {
@@ -12280,6 +12375,9 @@
         }
       }
     },
+    "Upload a booking receipt to help prepare your trip. Pip reads it with AI; you'll review the details before saving. Check dates and times against your receipt." : {
+
+    },
     "Upload flight confirmation" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12418,6 +12516,9 @@
         }
       }
     },
+    "Verse" : {
+
+    },
     "Version %@ (Build %@)" : {
       "localizations" : {
         "en" : {
@@ -12481,6 +12582,9 @@
         }
       }
     },
+    "Voice" : {
+
+    },
     "walking" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12498,6 +12602,9 @@
         }
       }
     },
+    "Warm and friendly" : {
+
+    },
     "What ground transportation is already arranged?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12514,6 +12621,9 @@
           }
         }
       }
+    },
+    "What Pip knows about you" : {
+
     },
     "What Pip remembers" : {
       "extractionState" : "stale",
@@ -12796,6 +12906,12 @@
         }
       }
     },
+    "Yes, occasionally" : {
+
+    },
+    "Yes, please" : {
+
+    },
     "You" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12972,6 +13088,7 @@
       }
     },
     "Your conversation will appear here as you speak." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -13147,6 +13264,9 @@
           }
         }
       }
+    },
+    "Your voice choice takes effect the next time you open voice." : {
+
     },
     "فارسی" : {
       "localizations" : {

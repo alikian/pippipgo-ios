@@ -7,53 +7,70 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color.indigo.opacity(0.18), Color.cyan.opacity(0.08), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-                .ignoresSafeArea()
-            VStack(spacing: 28) {
-                Spacer()
-                Image(systemName: "airplane.departure")
-                    .font(.system(size: 56, weight: .medium))
-                    .foregroundStyle(.indigo)
-                    .accessibilityHidden(true)
-                VStack(spacing: 10) {
-                    Text("PipPipGo")
-                        .font(.largeTitle.bold())
-                    Text("A thoughtful travel companion for the journey ahead.")
-                        .font(.title3)
+            Color(uiColor: .systemBackground).ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 24) {
+                    PipWelcomeArtwork()
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .padding(.top, 40)
+                    VStack(spacing: 10) {
+                        Text("PipPipGo")
+                            .font(.largeTitle.bold())
+                        Text("A thoughtful local guide for the journey ahead.")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.callout)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                            .accessibilityLabel("Sign-in error: \(errorMessage)")
+                    }
+                    Button(action: signIn) {
+                        HStack(spacing: 12) {
+                            if isBusy { ProgressView().tint(.white) }
+                            Image(systemName: "person.crop.circle.badge.checkmark")
+                            Text(LocalizedStringKey(isBusy ? "Connecting…" : "Sign in or create account"))
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.indigo)
+                    .disabled(isBusy)
+                    Text("Use Google or email and password. When creating an account, enter your email address as both username and email.")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                    AppVersionView()
                 }
-                Spacer()
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.callout)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                        .accessibilityLabel("Sign-in error: \(errorMessage)")
-                }
-                Button(action: signIn) {
-                    HStack(spacing: 12) {
-                        if isBusy { ProgressView().tint(.white) }
-                        Image(systemName: "person.crop.circle.badge.checkmark")
-                        Text(LocalizedStringKey(isBusy ? "Connecting…" : "Sign in or create account"))
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.indigo)
-                .disabled(isBusy)
-                Text("Use Google or email and password. When creating an account, enter your email address as both username and email.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                AppVersionView()
+                .padding(24)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
             }
-            .padding(28)
         }
         .overlay(alignment: .topTrailing) {
             AppLanguageMenu().padding()
         }
+    }
+}
+
+/// Displays only the illustration within the supplied screen mockup.
+/// Keep the original asset intact; real text and controls remain accessible.
+struct PipWelcomeArtwork: View {
+    var body: some View {
+        GeometryReader { geometry in
+            Image("PipWelcome")
+                .resizable()
+                .frame(width: geometry.size.width, height: geometry.size.width * 1848 / 851)
+                .offset(y: -geometry.size.width * 235 / 851)
+        }
+        .aspectRatio(851.0 / 700.0, contentMode: .fit)
+        .clipped()
+        .accessibilityLabel("Pip, a fluffy dog, on a sunny seaside terrace")
+        .allowsHitTesting(false)
     }
 }

@@ -8,13 +8,6 @@ struct RootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                BuildEnvironmentIndicator(environment: environment)
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 2)
-            .allowsHitTesting(false)
 
             Group {
                 switch store.state {
@@ -98,22 +91,26 @@ struct BuildEnvironmentIndicator: View {
     }
 }
 
-/// Matches the system launch screen, then adds progress once SwiftUI is ready.
+/// Shows the welcome artwork while the saved session is restored.
 struct StartupLoadingView: View {
     let message: String
 
     var body: some View {
         ZStack {
             Color(uiColor: .systemBackground).ignoresSafeArea()
-            Text("PipPipGo")
-                .font(.largeTitle.bold())
-                .overlay(alignment: .bottom) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    PipWelcomeArtwork()
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                    Text("PipPipGo").font(.largeTitle.bold())
                     ProgressView(LocalizedStringKey(message))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .fixedSize()
-                        .offset(y: 72)
                 }
+                .padding(24)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
+            }
         }
     }
 }

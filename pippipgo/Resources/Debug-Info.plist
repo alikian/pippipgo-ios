@@ -10,8 +10,8 @@
 	<array>
 		<string>audio</string>
 	</array>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Turn your spoken trip plans into text for you to review before sending to Pip.</string>
 	<key>CFBundleDisplayName</key>
@@ -38,7 +38,7 @@
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
 			</dict>
-			<key>192.168.0.156</key>
+			<key>192.168.0.208</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
@@ -69,5 +69,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Choose calendars to check your travel plans for schedule conflicts. Calendar contents stay on this device.</string>
 </dict>
 </plist>
