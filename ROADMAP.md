@@ -340,4 +340,4 @@ October 8 visual Profile: replaced the industrial list with a cream photo/name/P
 
 ### October 8 — GitHub synchronization
 
-User authorized committing and pushing accumulated iOS and backend improvements to develop. Latest local validation remains recorded above; backend push triggers automatic Dev deployment. Hosted rollout completion and physical acceptance remain separate. Prod is unchanged.
+Committed and pushed accumulated improvements to develop: iOS 0f6a0b8, backend 0fde3b1. Both branches matched origin after push; web was clean. Latest local validation remains recorded above; backend push triggers automatic Dev deployment, whose result has not been verified. Hosted rollout completion and physical acceptance remain separate. Prod is unchanged.
