@@ -5,6 +5,7 @@ actor AuthenticationService: AccessTokenProviding {
     private let keychain: any TokenStoring
     private var tokens: TokenSet?
     private var refreshTask: Task<TokenSet, Error>?
+    private var sessionEpoch = UUID()
 
     init(configuration: AppConfiguration = .live, keychain: (any TokenStoring)? = nil, urlSession: URLSession = .shared) {
         cognito = CognitoClient(configuration: configuration, urlSession: urlSession)
@@ -29,16 +30,24 @@ actor AuthenticationService: AccessTokenProviding {
     func validAccessToken(forceRefresh: Bool = false) async throws -> String {
         guard let tokens else { throw AuthenticationError.sessionExpired }
         guard forceRefresh || tokens.needsRefresh else { return tokens.accessToken }
-        if let refreshTask { return try await refreshTask.value.accessToken }
+        if let refreshTask {
+            let ticket = sessionEpoch
+            let refreshed = try await refreshTask.value
+            guard sessionEpoch == ticket else { throw AuthenticationError.sessionExpired }
+            return refreshed.accessToken
+        }
         let task = Task { try await cognito.refresh(tokens) }
+        let ticket = sessionEpoch
         refreshTask = task
-        defer { refreshTask = nil }
+        defer { if sessionEpoch == ticket { refreshTask = nil } }
         do {
             let refreshed = try await task.value
+            guard sessionEpoch == ticket else { throw AuthenticationError.sessionExpired }
             try keychain.save(refreshed)
             self.tokens = refreshed
             return refreshed.accessToken
         } catch {
+            guard sessionEpoch == ticket else { throw AuthenticationError.sessionExpired }
             try? keychain.delete()
             self.tokens = nil
             throw error
@@ -47,9 +56,15 @@ actor AuthenticationService: AccessTokenProviding {
 
     func clearAndRevoke() async throws {
         let refreshToken = tokens?.refreshToken
+        try clearLocalSession()
+        if let refreshToken { try await cognito.revoke(refreshToken: refreshToken) }
+    }
+
+    func clearLocalSession() throws {
+        sessionEpoch = UUID()
+        refreshTask?.cancel(); refreshTask = nil
         tokens = nil
         try keychain.delete()
-        if let refreshToken { try await cognito.revoke(refreshToken: refreshToken) }
     }
 
     func profilePictureURL() async throws -> URL? {

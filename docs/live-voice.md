@@ -336,3 +336,80 @@ October 1 final conversation controls: Ask Pip shows Continue conversation and N
 October 1 text-only Ask Pip: removed the Talk to Pip entry, embedded voice sheet, End voice control and Siri voice-launch handling from the typed chat page. Talk to Pip remains on home as its own voice page. Typed and voice still share saved conversation history.
 
 October 1 live-caption continuation repair: restored history had no session timestamps and was treated as later than timed live captions, inserting current speech above old messages while scrolling to the old bottom. History messages now have an explicit presentation boundary: live timing orders only the current session, and live fragments cannot merge into historical bubbles. Caption bounds and account/session clearing remain unchanged. Regression covers restored history, out-of-order live speakers, continued fragments and fresh-session clear. 92 simulator tests and signed Dev build/signature passed. Physical streamed-caption acceptance requires the updated app.
+
+## Siri: Start PipPipGo — October 6, 2026
+
+Say **“Hey Siri, start PipPipGo.”** The App Shortcut and action now display
+**Start PipPipGo**. The existing intent identifier and three longer phrases remain
+compatible with saved shortcuts. The new `Start \(.applicationName)` phrase uses
+Apple's app-name token, with a **PipPipGo** synonym and **Pip Pip Go** pronunciation
+hint in both build plists so environment display-name suffixes do not require a
+longer spoken command. See [Apple’s app-name synonym guidance](https://developer.apple.com/documentation/sirikit/specifying-synonyms-for-your-app-name).
+
+The existing foreground launch request selects Pip voice mode and starts the live
+microphone conversation. Sign in and grant microphone permission first; unlock
+when iOS requests it. Requests still wait for editors, pending chat and active
+translation, expire after 60 seconds, and clear across account changes. An active
+voice session is reused. No backend deployment is required in Dev or Prod.
+
+Install the updated app, then verify the phrase from a cold launch and while the
+app is already open; confirm listening, repeated invocation, signed-out behavior,
+and microphone denial. Spoken Siri recognition and physical microphone handoff
+remain pending for this update.
+
+Validation: Signed Local build 27 and strict signature verification passed; generated Siri metadata contains the new phrase, retained phrases and PipPipGo app-name synonym. Latest Xcode Cloud build 26 verified in Xcode before incrementing. No simulator devices/runtimes are installed, so simulator tests were unavailable; iPhone installation and spoken Siri/microphone handoff acceptance remain pending. No backend deployment required in Dev or Prod.
+
+October 6 Siri installation: signed Local build 27 installed and launched successfully on Sara’s iPhone (iPhone 16 Pro Max); local backend health returned OK. Spoken “Start PipPipGo” recognition and Siri-to-microphone handoff remain physical acceptance checks. No backend deployment required.
+
+## Local startup chime — October 6, 2026
+
+The iOS app now plays an original 0.8-second two-note chime when it enters the
+foreground, before account restoration and voice network setup finish. Starting
+Talk to Pip (including Siri) also requests the cue; requests within three seconds
+coalesce. Returning to an already active voice/translation session does not chime.
+The bundled PCM WAV requires no download, AI request or microphone permission.
+Playback uses the media volume/current output route, including in Silent mode;
+zero volume still means no audible cue. It is an acknowledgement of app startup,
+not a claim that the microphone or backend is ready.
+
+Audio-session operations stay off the main thread. A cue cannot take over an owned
+voice session; stale cue cleanup cannot deactivate a replacement voice session.
+The cue stops on background/inactive transitions, voice cancellation and before
+microphone capture begins. Existing optional lookup hum behavior is unchanged.
+
+The reported minute-long delay has not been reproduced or attributed to a specific
+request. Existing account/history/guide loading and backend/provider setup still
+precede the greeting; the chime provides immediate local feedback independently.
+No backend deployment is required in Dev or Prod.
+
+Validation: October 6 local startup sound: bundled 0.8-second chime plays on foreground entry and voice start independently of network/authentication, with duplicate suppression and owned audio-session cleanup. Signed Local app/test build, strict signature, bundled PCM validation and diff checks passed; latest Cloud remains 26, Local remains exactly 27. Updated app installed on Sara’s iPhone. Three targeted physical tests were blocked by device lock and stopped; audible chime/voice handoff acceptance pending unlock. The reported minute-long greeting delay is not yet reproduced. No backend deployment required.
+
+## Voice previews — October 7, 2026
+
+My travel style now offers separate selection and Preview/Stop controls for Ballad,
+Coral, Sage, Ash and Verse. Five bundled English samples were generated with the
+existing Dev credential and **gpt-live-1**, using the same sentence: “Hi, I'm Pip.
+Let's find something wonderful for your next trip.” Returned transcripts matched;
+clips are 3.34–4.03 seconds of mono PCM at 24 kHz. No user data was sent and no
+credentials are bundled. Samples follow the [official Live WebSocket protocol](https://developers.openai.com/api/docs/guides/voice-websockets).
+
+Previewing requires no network, microphone permission, saved-choice update or
+provider session at runtime. Only one sample plays; tapping Stop, changing samples,
+leaving the editor, backgrounding, or saving stops playback. Shared audio-session
+ownership prevents preview from taking over a live conversation. Samples are
+labeled AI-generated English; live phrasing/language can differ.
+
+Three physical-iPhone tests passed: all five assets decode, setup retry retains
+frozen choices, and learned-preference retry/reset preserves its safety behavior.
+No backend deployment required in Dev or Prod. Physical listening-quality
+acceptance remains separate from decoding and generation transcript checks.
+
+### October 7 — reference-based translation screen
+
+Translate now uses the supplied cream/navy layout with native language cards, a Pip cutout and large microphone control. Settings contains privacy details and the retained headphone mode explanation; a bottom shortcut toggles the same saved mode. Language changes, swapping and mode changes remain disabled during sessions. Existing transcript selection, latest-message control, microphone status, errors, stopping and tab-exit cleanup are retained through LiveVoiceView. Signed Local build/signature and eight physical-device regression tests passed; language/settings/headphone controls and a live start/caption/stop sequence were checked on the installed iPhone. No new backend deployment is required.
+
+October 8 translation language list: picker now shows Chinese, Japanese, Korean, Vietnamese, Filipino, Tagalog, Farsi, Turkish, Arabic, Russian, Italian, French and English in that order. Retained languages remain accepted for existing saved pairs and older clients. New default pairs use a listed device language plus English, or English/Farsi. Backend accepts Filipino (fil) and Tagalog (tl), validating supported two/three-letter codes. Final backend suite 458 passed/one skipped and Ruff passed; eight physical-iPhone translation tests passed. Latest Cloud 26 verified; signed Local 27 built, signature verified, installed and launched. Local backend deployed and readiness passed before installing app; device picker visually checked. Hosted Dev/Prod backend rollout is required before distributing this app update and remains pending. Filipino/Tagalog live speech quality has not been accepted.
+
+October 8 translation cleanup and separate voice settings: removed translation branding/slogans/instructional headlines, reduced Pip artwork, retained language and native microphone controls, and moved settings to the footer. Headphone shortcut has a green indicator driven by AVAudioSession output-route notifications (wired headphones or Bluetooth output, not the listen-only setting); phone speaker/receiver and AirPlay are not green. Bluetooth port types identify the route, not the physical distinction between a Bluetooth headset and speaker. Profile now opens separate voice/tone and travel-style/questions sheets using the same saved record, previews, Save & Done, retry and conflict behavior. Saving voice choices stops any old sessions so the next connection loads the saved setting.
+
+Found and fixed translation’s hard-coded Ballad voice: translation now reads only the saved voice field, keeping traveler data out of interpreter context. Talk to Pip already reads the saved voice at session creation; existing tests confirm all five values. Full backend suite 474 passed/one skipped; Ruff passed. Ten targeted physical-iPhone tests passed, including output-route indicator classification and frozen voice-save retries. Signed Local 27 built/verified and installed/launched after local backend deployment/readiness; latest Cloud 26 verified. Initial device test attempt could not find the destination; connection returned and retry passed. Final screen sharing unavailable because iOS reported active microphone/camera; final visual, physical headphone connection and audible selected-voice acceptance remain pending. Hosted Dev/Prod backend deployment is required for the translation voice fix and remains pending; backend before app rollout.

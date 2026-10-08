@@ -26,7 +26,7 @@ final class TalkToPipLaunch {
 }
 
 struct StartTalkToPipIntent: AppIntent {
-    static var title: LocalizedStringResource = "Start Talk to Pip"
+    static var title: LocalizedStringResource = "Start PipPipGo"
     static var description = IntentDescription("Open PipPipGo and start a live voice conversation with Pip. Sign in and allow microphone access first.")
     static var openAppWhenRun: Bool = true
 
@@ -42,11 +42,12 @@ struct PipPipGoShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: StartTalkToPipIntent(),
             phrases: [
+                "Start \(.applicationName)",
                 "Start Talk to Pip in \(.applicationName)",
                 "Talk to Pip in \(.applicationName)",
                 "Start a conversation in \(.applicationName)"
             ],
-            shortTitle: "Talk to Pip",
+            shortTitle: "Start PipPipGo",
             systemImageName: "mic.fill"
         )
     }

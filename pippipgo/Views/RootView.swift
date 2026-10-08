@@ -22,11 +22,23 @@ struct RootView: View {
                 case .loadingAccount:
                     AccountLoadingView()
                 case .signedIn:
-                    TravelOrganizerView(store: store.organizer, chat: store.chat, profilePictureURL: store.profilePictureURL, signOut: { Task { await store.signOut() } })
+                    TravelOrganizerView(store: store.organizer, chat: store.chat, profilePictureURL: store.profilePictureURL, signOut: { Task { await store.signOut() } }, deleteAccount: { Task { await store.deleteAccount() } })
                 case .accountError(let message):
                     AccountErrorView(message: message, retry: { Task { await store.loadAccount() } }, signOut: { Task { await store.signOut() } })
                 case .signingOut:
                     ProgressView("Signing out…")
+                case .deletingAccount:
+                    ProgressView("Deleting your account…")
+                case .accountDeletionFailed(let message):
+                    AccountDeletionErrorView(message: message, retry: { Task { await store.deleteAccount() } }, signOut: { Task { await store.signOut() } })
+                case .accountDeletionCleanupFailed:
+                    ContentUnavailableView {
+                        Label("Your account was deleted", systemImage: "checkmark.circle")
+                    } description: {
+                        Text("This device could not clear its saved sign-in. Retry to finish signing out.")
+                    } actions: {
+                        Button("Finish signing out") { Task { await store.finishAccountDeletion() } }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

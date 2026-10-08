@@ -4,6 +4,8 @@ import SwiftUI
 struct pippipgoApp: App {
     @AppStorage("pip.language") private var language = "en"
     @State private var authenticationStore = AuthenticationStore()
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var needsOpeningSound = true
 
     var body: some Scene {
         WindowGroup {
@@ -11,6 +13,19 @@ struct pippipgoApp: App {
                 .environment(\.locale, Locale(identifier: AppLanguage.selected(language).rawValue))
                 .environment(\.layoutDirection, AppLanguage.selected(language).direction)
                 .task { await authenticationStore.restoreSession() }
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    if phase == .active, needsOpeningSound {
+                        needsOpeningSound = false
+                        if !authenticationStore.chat.voice.active && !authenticationStore.chat.translator.active {
+                            PipStartupSound.shared.play()
+                        }
+                    } else if phase == .background {
+                        needsOpeningSound = true
+                        PipStartupSound.shared.stop()
+                    } else if phase == .inactive {
+                        PipStartupSound.shared.stop()
+                    }
+                }
         }
     }
 }

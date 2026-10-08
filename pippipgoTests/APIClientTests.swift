@@ -145,6 +145,45 @@ struct APIClientTests {
         #expect(changes.values == ["activate", "deactivate", "activate", "deactivate"])
     }
 
+    @Test func startupCueCannotInterruptVoiceOrDeactivateItsReplacement() async throws {
+        let changes = AudioSessionChanges()
+        let session = VoiceAudioSession(activate: {
+            changes.append("voice")
+        }, activateCue: {
+            #expect(!Thread.isMainThread)
+            changes.append("cue")
+        }, deactivate: {
+            changes.append("deactivate")
+        })
+        let cue = UUID(), voice = UUID()
+        #expect(await session.activateCue(owner: cue))
+        try await session.activate(owner: voice)
+        session.deactivate(owner: cue)
+        #expect(await session.activateCue(owner: UUID()) == false)
+        await session.flush()
+        #expect(changes.values == ["cue", "voice"])
+        session.deactivate(owner: voice)
+        await session.flush()
+        #expect(changes.values == ["cue", "voice", "deactivate"])
+    }
+
+    @MainActor @Test func allVoicePreviewsAreBundledAndDecodable() throws {
+        #expect(PipVoicePreview.voices.count == 5)
+        for voice in PipVoicePreview.voices {
+            let url = try #require(Bundle.main.url(forResource: voice, withExtension: "wav", subdirectory: "VoicePreviews"))
+            let audio = try AVAudioFile(forReading: url)
+            let seconds = Double(audio.length) / audio.processingFormat.sampleRate
+            #expect(seconds > 2 && seconds < 8)
+        }
+    }
+
+    @Test func startupChimeIsBundledAndDecodable() throws {
+        let url = try #require(Bundle.main.url(forResource: "PipStartup", withExtension: "wav"))
+        let audio = try AVAudioFile(forReading: url)
+        #expect(audio.length > 0)
+        #expect(Double(audio.length) / audio.processingFormat.sampleRate < 1)
+    }
+
     @Test func voiceBubblesPreserveOverlappingSpeechAndLateFragments() {
         var transcript = VoiceTranscript()
         transcript.append("Hi, I’m Pip.", speaker: .pip, startMilliseconds: 0, endMilliseconds: 800)
@@ -804,6 +843,45 @@ struct APIClientTests {
 
 
 
+    @MainActor @Test func accountDeletionClearsSessionAndPrivateState() async throws {
+        let session = makeSession(status: 200, body: Data(#"{"id":"me","kind":"account","version":1,"revision":1,"updated_at":"2026-10-07T00:00:00Z","deleted":false}"#.utf8))
+        let keychain = DeletionTestKeychain()
+        let auth = AuthenticationService(configuration: configuration, keychain: keychain, urlSession: session)
+        let store = AuthenticationStore(configuration: configuration, authentication: auth, apiClient: APIClient(baseURL: configuration.backendBaseURL, urlSession: session))
+        await store.restoreSession()
+        guard case .signedIn = store.state else { Issue.record("Expected signed-in test account"); return }
+        store.chat.composer = "private draft"
+        TalkToPipLaunch.shared.request()
+        StubURLProtocol.body = Data(#"{"status":"deleted"}"#.utf8)
+        await store.deleteAccount()
+        #expect(store.state == .signedOut)
+        #expect(keychain.load() == nil)
+        #expect(store.chat.composer.isEmpty)
+        #expect(TalkToPipLaunch.shared.requestID == nil)
+        #expect(StubURLProtocol.requests.last?.httpMethod == "DELETE")
+        #expect(StubURLProtocol.requests.last?.url?.path == "/v1/me")
+        do {
+            _ = try await auth.validAccessToken()
+            Issue.record("Deleted session retained an access token")
+        } catch {}
+    }
+
+    @MainActor @Test func uncertainAccountDeletionStaysBlockedAndCanRetry() async throws {
+        let session = makeSession(status: 200, body: Data(#"{"id":"me","kind":"account","version":1,"revision":1,"updated_at":"2026-10-07T00:00:00Z","deleted":false}"#.utf8))
+        let keychain = DeletionTestKeychain()
+        let auth = AuthenticationService(configuration: configuration, keychain: keychain, urlSession: session)
+        let store = AuthenticationStore(configuration: configuration, authentication: auth, apiClient: APIClient(baseURL: configuration.backendBaseURL, urlSession: session))
+        await store.restoreSession()
+        StubURLProtocol.replies = [StubReply(status: 503, body: Data())]
+        await store.deleteAccount()
+        guard case .accountDeletionFailed = store.state else { Issue.record("Deletion failure must not resume account writes"); return }
+        #expect(keychain.load() != nil)
+        StubURLProtocol.replies = [StubReply(status: 200, body: Data(#"{"status":"deleted"}"#.utf8))]
+        await store.deleteAccount()
+        #expect(store.state == .signedOut)
+        #expect(keychain.load() == nil)
+    }
+
     private func makeSession(status: Int, body: Data) -> URLSession {
         StubURLProtocol.response = HTTPURLResponse(url: URL(string: "https://example.invalid/v1/me")!, statusCode: status, httpVersion: nil, headerFields: nil)!
         StubURLProtocol.body = body
@@ -919,4 +997,12 @@ struct PipContactTests {
         #expect(PipPhotoLink.validURL("http://lh3.googleusercontent.com/a") == nil)
         #expect(PipPhotoLink.parse("![Cafe — A](https://lh3.googleusercontent.com/a) ![Cafe again](https://lh3.googleusercontent.com/a)").count == 1)
     }
+}
+
+private final class DeletionTestKeychain: TokenStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var tokens: TokenSet? = TokenSet(accessToken: "test-access", idToken: nil, refreshToken: "test-refresh", tokenType: "Bearer", expiresAt: .distantFuture)
+    func load() -> TokenSet? { lock.withLock { tokens } }
+    func save(_ tokens: TokenSet) { lock.withLock { self.tokens = tokens } }
+    func delete() { lock.withLock { tokens = nil } }
 }

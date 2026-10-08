@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB1070000000000000000001 /* VoicePreviews in Resources */ = {isa = PBXBuildFile; fileRef = AB1070000000000000000002 /* VoicePreviews */; };
+		AB1060000000000000000001 /* PipStartup.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1060000000000000000002 /* PipStartup.wav */; };
 		079A596F004B80CE9ACD0DFB /* pippipgo/Views/WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCE157C7AAA02B8867AD4C2 /* pippipgo/Views/WelcomeView.swift */; };
 		115C62EF751601B1BEB250C6 /* pippipgo/Networking/APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0FB40147CE94E8F6D0F626A /* pippipgo/Networking/APIClient.swift */; };
 		13942DEE7CC5ED9161D3E70E /* pippipgoTests/OAuthCallbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29707B315ECB0F7B45832291 /* pippipgoTests/OAuthCallbackTests.swift */; };
@@ -52,6 +54,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AB1070000000000000000002 /* VoicePreviews */ = {isa = PBXFileReference; lastKnownFileType = folder; path = pippipgo/Resources/VoicePreviews; sourceTree = SOURCE_ROOT; };
+		AB1060000000000000000002 /* PipStartup.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = pippipgo/Resources/PipStartup.wav; sourceTree = SOURCE_ROOT; };
 		04B5A7AB86A3EEBC6072BDB7 /* pippipgo/Authentication/CognitoClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Authentication/CognitoClient.swift; sourceTree = SOURCE_ROOT; };
 		09AAADA0DD1E499C8E85EA37 /* pippipgoTests/AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/AppConfigurationTests.swift; sourceTree = SOURCE_ROOT; };
 		0CD180DAD3324907BA95633D /* pippipgo/Authentication/KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Authentication/KeychainStore.swift; sourceTree = SOURCE_ROOT; };
@@ -162,6 +166,8 @@
 			isa = PBXGroup;
 			children = (
 				BCC6E64B306792BD007721AD /* Assets.xcassets */,
+				AB1060000000000000000002 /* PipStartup.wav */,
+				AB1070000000000000000002 /* VoicePreviews */,
 				E33000000000000000000002 /* LaunchScreen.storyboard */,
 				C12345678901234567890123A /* pippipgo/Resources/Localizable.xcstrings */,
 			);
@@ -277,6 +283,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				BCC6E64C306792BD007721AD /* Assets.xcassets in Resources */,
+				AB1060000000000000000001 /* PipStartup.wav in Resources */,
+				AB1070000000000000000001 /* VoicePreviews in Resources */,
 				E33000000000000000000001 /* LaunchScreen.storyboard in Resources */,
 				C12345678901234567890123B /* pippipgo/Resources/Localizable.xcstrings in Resources */,
 			);
@@ -376,7 +384,7 @@
 				DEVELOPMENT_TEAM = U47SMLD234;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "pippipgo/Resources/Release-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "$(PIPPIPGO_DISPLAY_NAME)";
+				INFOPLIST_KEY_CFBundleDisplayName = "PipPipGo Dev";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PipPipGo uses your location, including precise coordinates when allowed, for nearby travel suggestions and conversation context shared with OpenAI.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.";
@@ -468,7 +476,7 @@
 				DEVELOPMENT_TEAM = U47SMLD234;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "pippipgo/Resources/Debug-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "$(PIPPIPGO_DISPLAY_NAME)";
+				INFOPLIST_KEY_CFBundleDisplayName = "PipPipGo Dev";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PipPipGo uses your location, including precise coordinates when allowed, for nearby travel suggestions and conversation context shared with OpenAI.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.";
@@ -497,7 +505,7 @@
 				DEVELOPMENT_TEAM = U47SMLD234;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "pippipgo/Resources/Release-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "$(PIPPIPGO_DISPLAY_NAME)";
+				INFOPLIST_KEY_CFBundleDisplayName = "PipPipGo Dev";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PipPipGo uses your location, including precise coordinates when allowed, for nearby travel suggestions and conversation context shared with OpenAI.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.";

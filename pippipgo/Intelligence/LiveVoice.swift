@@ -14,16 +14,39 @@ final class VoiceAudioSession: @unchecked Sendable {
     private var owner: UUID?
     private let activateSession: @Sendable () throws -> Void
     private let deactivateSession: @Sendable () -> Void
+    private let activateCueSession: @Sendable () throws -> Void
 
     init(activate: @escaping @Sendable () throws -> Void = {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetoothHFP])
         try session.setActive(true)
+    }, activateCue: @escaping @Sendable () throws -> Void = {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playback, mode: .default, options: [.duckOthers])
+        try session.setActive(true)
     }, deactivate: @escaping @Sendable () -> Void = {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }) {
         activateSession = activate
+        activateCueSession = activateCue
         deactivateSession = deactivate
+    }
+
+    /// Startup feedback never takes the session away from recording or live playback.
+    func activateCue(owner: UUID) async -> Bool {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                guard self.owner == nil else { continuation.resume(returning: false); return }
+                do {
+                    try self.activateCueSession()
+                    self.owner = owner
+                    continuation.resume(returning: true)
+                } catch {
+                    self.deactivateSession()
+                    continuation.resume(returning: false)
+                }
+            }
+        }
     }
 
     func activate(owner: UUID) async throws {
@@ -58,6 +81,95 @@ final class VoiceAudioSession: @unchecked Sendable {
     }
 }
 
+/// Bundled feedback starts independently of authentication, GPS, networking and AI.
+@MainActor final class PipStartupSound {
+    static let shared = PipStartupSound()
+    private var player: AVAudioPlayer?
+    private var task: Task<Void, Never>?
+    private var generation = UUID()
+    private var lastStarted = Date.distantPast
+
+    func play() {
+        guard UIApplication.shared.applicationState == .active,
+              Date().timeIntervalSince(lastStarted) > 3,
+              let url = Bundle.main.url(forResource: "PipStartup", withExtension: "wav") else { return }
+        stop()
+        lastStarted = Date()
+        let ticket = UUID(); generation = ticket
+        task = Task { [weak self] in
+            guard await VoiceAudioSession.shared.activateCue(owner: ticket) else { return }
+            defer { VoiceAudioSession.shared.deactivate(owner: ticket) }
+            guard let self, self.generation == ticket, !Task.isCancelled,
+                  UIApplication.shared.applicationState == .active else { return }
+            do {
+                let player = try AVAudioPlayer(contentsOf: url)
+                self.player = player
+                player.play()
+                try await Task.sleep(for: .milliseconds(900))
+            } catch { /* Optional feedback must never prevent a voice connection. */ }
+            guard self.generation == ticket else { return }
+            self.player?.stop(); self.player = nil
+            self.task = nil
+        }
+    }
+
+    func stop() {
+        let ticket = generation
+        generation = UUID()
+        task?.cancel(); task = nil
+        player?.stop(); player = nil
+        VoiceAudioSession.shared.deactivate(owner: ticket)
+    }
+}
+
+/// Offline samples of the same provider voices; previewing never records or changes settings.
+@MainActor @Observable final class PipVoicePreview {
+    private(set) var playing: String?
+    private(set) var error: String?
+    private var player: AVAudioPlayer?
+    private var task: Task<Void, Never>?
+    private var owner = UUID()
+    static let voices = ["ballad", "coral", "sage", "ash", "verse"]
+
+    func toggle(_ voice: String) {
+        if playing == voice { stop(); return }
+        stop(); error = nil
+        guard Self.voices.contains(voice),
+              let url = Bundle.main.url(forResource: voice, withExtension: "wav", subdirectory: "VoicePreviews") else {
+            error = "This voice sample is unavailable."; return
+        }
+        let ticket = UUID(); owner = ticket
+        playing = voice
+        task = Task { [weak self] in
+            let activated = await VoiceAudioSession.shared.activateCue(owner: ticket)
+            defer { if activated { VoiceAudioSession.shared.deactivate(owner: ticket) } }
+            guard let self, self.owner == ticket, !Task.isCancelled else { return }
+            guard activated else {
+                self.error = "Finish the current voice session before previewing a voice."
+                self.playing = nil; return
+            }
+            do {
+                let player = try AVAudioPlayer(contentsOf: url)
+                self.player = player
+                guard player.play() else { throw APIClientError.invalidResponse }
+                try await Task.sleep(for: .seconds(player.duration))
+            } catch is CancellationError {
+            } catch {
+                self.error = "The voice sample could not play. Please try again."
+            }
+            guard self.owner == ticket else { return }
+            self.player?.stop(); self.player = nil; self.playing = nil; self.task = nil
+        }
+    }
+
+    func stop() {
+        let ticket = owner; owner = UUID()
+        task?.cancel(); task = nil
+        player?.stop(); player = nil; playing = nil
+        VoiceAudioSession.shared.deactivate(owner: ticket)
+    }
+}
+
 /// The audio tap owns its converter; the main actor owns engine setup and playback.
 final class VoiceAudio: @unchecked Sendable {
     private lazy var engine = AVAudioEngine()
@@ -73,6 +185,7 @@ final class VoiceAudio: @unchecked Sendable {
 
     @MainActor func start() async throws -> AsyncThrowingStream<Data, Error> {
         guard !stopped else { throw CancellationError() }
+        PipStartupSound.shared.stop()
         try await VoiceAudioSession.shared.activate(owner: sessionOwner)
         guard !stopped, !Task.isCancelled else {
             VoiceAudioSession.shared.deactivate(owner: sessionOwner)
@@ -304,6 +417,7 @@ final class LiveVoiceStore {
 
     func start() {
         guard !active else { return }
+        if mode == .pip { PipStartupSound.shared.play() }
         active = true; error = nil; transcript.clear(); places = []
         waitingForWelcome = mode == .pip
         conversationContext = nil; capturingLocation = false
@@ -558,6 +672,7 @@ final class LiveVoiceStore {
     }
 
     func stop(clearCaptions: Bool = false) {
+        if mode == .pip { PipStartupSound.shared.stop() }
         setLookingUp(false)
         epoch = UUID(); active = false; connected = false; capturingLocation = false; waitingForWelcome = false
         worker?.cancel(); worker = nil; sender?.cancel(); sender = nil; watchdog?.cancel(); watchdog = nil
@@ -608,6 +723,8 @@ struct LiveVoiceView: View {
     @Bindable var store: LiveVoiceStore
     var showsControls = true
     var companionStyle = false
+    var translationStyle = false
+    var translationSettings: (() -> Void)? = nil
     @Environment(\.scenePhase) private var scenePhase
     @State private var followsLatest = true
     private var translating: Bool { store.mode.translation != nil }
@@ -618,7 +735,9 @@ struct LiveVoiceView: View {
                 ScrollView {
                     LazyVStack(spacing: 14) {
                         if store.transcript.messages.isEmpty {
-                            if translating {
+                            if translationStyle {
+                                TranslationLanding(store: store)
+                            } else if translating {
                                 ContentUnavailableView("Live Translation", systemImage: "translate",
                                                        description: Text("Tap Start translation once, then speak naturally. Pip translates aloud in real time—no need to hold a button."))
                                     .padding(.top, 32)
@@ -660,7 +779,9 @@ struct LiveVoiceView: View {
             }
         }
         .background(companionStyle ? PipAppearance.cream : Color(.systemGroupedBackground))
-        .safeAreaInset(edge: .bottom, spacing: 0) { if showsControls { controls } }
+        .safeAreaInset(edge: .bottom, spacing: 0) { if showsControls {
+            if translationStyle { translationControls } else { controls }
+        } }
         .environment(\.openURL, OpenURLAction { url in
             guard PipContactLinks.allowed(url) else { return .discarded }
             if url.scheme == "tel" { store.stop() }
@@ -679,6 +800,40 @@ struct LiveVoiceView: View {
                reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.stop() }
         }
         .onDisappear { store.stop(clearCaptions: true) }
+    }
+
+    private var translationControls: some View {
+        VStack(spacing: 10) {
+            if let error = store.error {
+                Text(error).font(.caption).foregroundStyle(.red)
+            }
+            if store.active {
+                Label(store.connected ? (store.microphoneReceiving ? "Translating — take turns speaking" : "Starting microphone…") : "Connecting…", systemImage: "waveform")
+                    .font(.subheadline).foregroundStyle(PipAppearance.secondary)
+                if store.microphoneReceiving {
+                    ProgressView(value: min(1, store.microphoneLevel * 5))
+                        .accessibilityLabel("Microphone input level")
+                }
+                Button("Stop translating", systemImage: "stop.fill") { store.stop() }
+                    .buttonStyle(.borderedProminent).tint(.red).controlSize(.large)
+            } else if !store.transcript.messages.isEmpty {
+                Button("Start translation", systemImage: "mic.fill") { store.start() }
+                    .buttonStyle(.borderedProminent).controlSize(.large)
+            }
+            HStack {
+                TranslationHeadphoneControl(store: store)
+                Spacer()
+                if let translationSettings {
+                    Button(action: translationSettings) {
+                        Image(systemName: "gearshape").frame(width: 44, height: 44)
+                    }
+                    .foregroundStyle(PipAppearance.secondary)
+                    .accessibilityLabel("Translation settings")
+                }
+            }
+        }
+        .padding(.horizontal, 24).padding(.vertical, 12)
+        .background(PipAppearance.cream)
     }
 
     private var controls: some View {

@@ -149,6 +149,7 @@ struct TravelOrganizerView: View {
     let chat: TravelChatStore
     var profilePictureURL: URL? = nil
     let signOut: () -> Void
+    let deleteAccount: () -> Void
     @State private var tab = AppTab.pip
     @State private var pipMode = PipMode.voice
     @State private var editor: OrganizerEditorKind?
@@ -167,7 +168,7 @@ struct TravelOrganizerView: View {
             TranslateTab(store: chat.translator)
                 .tabItem { Label("Translate", systemImage: "translate") }
                 .tag(AppTab.translate)
-            ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, signOut: signOut)
+            ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, signOut: signOut, deleteAccount: deleteAccount)
                 .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                 .tag(AppTab.profile)
         }
@@ -628,85 +629,67 @@ struct ProfileTab: View {
     var profilePictureURL: URL? = nil
     @Binding var editor: OrganizerEditorKind?
     let signOut: () -> Void
+    let deleteAccount: () -> Void
     @State private var confirmSignOut = false
+    @State private var confirmDeleteAccount = false
     @State private var travelStyle = false
+    @State private var voiceChoices = false
+    @State private var choicesSaved = false
     @State private var booking = false
     @State private var calendars = false
+    @State private var destination: ProfileDestination?
+    @ScaledMetric(relativeTo: .subheadline) private var iconColumnWidth = 94.0
     @AppStorage("pip.waitingHum") private var waitingHum = true
 
     var body: some View {
         NavigationStack {
-            List {
-                if let error = store.error, !store.loaded {
-                    Section {
-                        Text(error).foregroundStyle(.red)
-                        Button("Try again") { Task { await store.load() } }
-                    }
-                }
-                if store.loaded {
-                    Section {
-                        Button { editor = .profile } label: {
-                            HStack(spacing: 14) {
-                                AsyncImage(url: profilePictureURL) { phase in
-                                    if let image = phase.image { image.resizable().scaledToFill() }
-                                    else { Image(systemName: "person.crop.circle.fill").resizable().scaledToFit().foregroundStyle(.secondary) }
-                                }
-                                .frame(width: 60, height: 60)
-                                .clipShape(Circle())
-                                .accessibilityHidden(true)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Group {
-                                        if let name = store.data.profile?.name, !name.isEmpty { Text(verbatim: name) }
-                                        else { Text("Add your profile") }
-                                    }
-                                    .font(.title3.weight(.semibold)).foregroundStyle(.primary)
-                                    if let hometown = store.data.profile?.hometown, !hometown.isEmpty {
-                                        Text(verbatim: hometown).font(.subheadline).foregroundStyle(.secondary)
-                                    }
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary)
-                            }
+            ScrollView {
+                VStack(spacing: 28) {
+                    profileCard
+                    if let error = store.error, !store.loaded {
+                        VStack(spacing: 8) {
+                            Text(error).font(.callout).foregroundStyle(.red)
+                            Button("Try again") { Task { await store.load() } }
                         }
                     }
-                    Section("Travel companions") {
-                        ForEach(store.data.companions) { companion in
-                            Button { editor = .person(companion.id) } label: {
-                                HStack {
-                                    Text(verbatim: companion.name).foregroundStyle(.primary)
-                                    Spacer()
-                                    Image(systemName: "chevron.forward").font(.caption).foregroundStyle(.tertiary)
-                                }
-                            }
-                        }
-                        Button("Add companion", systemImage: "person.badge.plus") { editor = .person(UUID()) }
+                    if store.busy && !store.loaded { ProgressView() }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: iconColumnWidth, maximum: max(150, iconColumnWidth)), spacing: 16, alignment: .top)], spacing: 26) {
+                        ProfileIconTile(title: "Pip’s voice", symbol: "waveform", color: .blue) { choicesSaved = false; voiceChoices = true }
+                        ProfileIconTile(title: "Travel style", symbol: "sparkles", color: .purple) { choicesSaved = false; travelStyle = true }
+                        ProfileIconTile(title: "Companions", symbol: "person.2.fill", color: .orange) { destination = .companions }
+                            .disabled(!store.loaded)
+                        ProfileIconTile(title: "Plan a trip", symbol: "suitcase.rolling.fill", color: .teal) { editor = .trip(UUID()) }
+                            .disabled(!store.loaded)
+                        ProfileIconTile(title: "Bookings", symbol: "ticket.fill", color: .pink) { booking = true }
+                        ProfileIconTile(title: "Calendars", symbol: "calendar", color: .red) { calendars = true }
+                        ProfileIconTile(title: "About you", symbol: "folder.fill", color: .indigo) { destination = .memories }
+                        ProfileIconTile(title: "Nearby", symbol: "location.fill", color: .green) { destination = .nearby }
+                        ProfileIconTile(title: "Settings", symbol: "gearshape.fill", color: .gray) { destination = .settings }
                     }
-                } else if store.busy {
-                    ProgressView()
+                    if choicesSaved {
+                        Label("Changes saved", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline).foregroundStyle(.green)
+                    }
                 }
-                Section("Make the most of Pip") {
-                    Text("Help Pip learn how you like to travel for ideas that feel like you.").font(.footnote)
-                    Toggle("Pip’s waiting hum", isOn: $waitingHum)
-                    Button("Travel style & Pip’s voice", systemImage: "slider.horizontal.3") { travelStyle = true }
-                    Button("Plan a trip", systemImage: "suitcase") { editor = .trip(UUID()) }
-                    Button("Upload a booking receipt", systemImage: "doc.badge.plus") { booking = true }
-                    Button("Calendars", systemImage: "calendar") { calendars = true }
-                }
-                GuidePreferencesSection(store: chat)
-                Section {
-                    ConversationLocationView(store: location).buttonStyle(.borderless)
-                }
-                Section {
-                    Button("Sign out", role: .destructive) { confirmSignOut = true }
-                }
-                Section {
-                    AppVersionView()
-                }
+                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 32)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
             }
+            .background(PipAppearance.cream.ignoresSafeArea())
             .id(locale.identifier)
             .refreshable { await store.load() }
             .navigationTitle("Profile")
-            .sheet(isPresented: $travelStyle) { GuideSetupView(store: chat.setup) }
+            .toolbarBackground(PipAppearance.cream, for: .navigationBar)
+            .navigationDestination(item: $destination) { destination in
+                profileDestination(destination)
+            }
+            .sheet(isPresented: $travelStyle) { GuideSetupView(store: chat.setup, onSaved: { choicesSaved = true }) }
+            .sheet(isPresented: $voiceChoices) {
+                GuideSetupView(store: chat.setup, voicesOnly: true, onSaved: {
+                    chat.voice.stop(); chat.translator.stop()
+                    choicesSaved = true
+                })
+            }
             .sheet(isPresented: $booking) { GuideBookingView(setup: chat.setup, organizer: store) }
             .sheet(isPresented: $calendars) { GuideCalendarView() }
             .task { await chat.loadGuide(refresh: true) }
@@ -714,12 +697,131 @@ struct ProfileTab: View {
                 // Stays outside the list so switching language never rebuilds its own menu.
                 ToolbarItem(placement: .topBarTrailing) { AppLanguageMenu() }
             }
-            .confirmationDialog("Sign out of PipPipGo?", isPresented: $confirmSignOut, titleVisibility: .visible) {
-                Button("Sign out", role: .destructive, action: signOut)
+
+        }
+        .alert("Permanently delete your PipPipGo account?", isPresented: $confirmDeleteAccount) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete account", role: .destructive, action: deleteAccount)
+        } message: {
+            Text("This permanently deletes your PipPipGo profile, companions, trips, saved preferences and conversations. You will be signed out and cannot undo this. Your Google account is not deleted.")
+        }
+        .confirmationDialog("Sign out of PipPipGo?", isPresented: $confirmSignOut, titleVisibility: .visible) {
+            Button("Sign out", role: .destructive, action: signOut)
+        }
+    }
+
+    private var profileCard: some View {
+        Button { editor = .profile } label: {
+            HStack(spacing: 16) {
+                AsyncImage(url: profilePictureURL) { phase in
+                    if let image = phase.image { image.resizable().scaledToFill() }
+                    else {
+                        Image(systemName: "person.fill").resizable().scaledToFit()
+                            .padding(20).foregroundStyle(.white)
+                            .background(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+                }
+                .frame(width: 76, height: 76).clipShape(Circle())
+                .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(store.data.profile.flatMap { $0.name.isEmpty ? nil : $0.name } ?? "Your profile")
+                        .font(.title2.weight(.semibold)).foregroundStyle(PipAppearance.navy)
+                        .multilineTextAlignment(.leading)
+                    if let hometown = store.data.profile?.hometown, !hometown.isEmpty {
+                        Text(verbatim: hometown).font(.subheadline).foregroundStyle(PipAppearance.secondary)
+                    }
+                    Label("Edit profile", systemImage: "pencil").font(.caption.weight(.medium))
+                }
+                Spacer(minLength: 0)
+                Image("PipTranslate").resizable().scaledToFit().frame(width: 58)
+                    .accessibilityHidden(true)
             }
+            .padding(20)
+            .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 28))
+            .shadow(color: PipAppearance.navy.opacity(0.04), radius: 14, y: 6)
+        }
+        .buttonStyle(.plain)
+        .disabled(!store.loaded)
+        .accessibilityHint("Edit your traveler profile")
+    }
+
+    @ViewBuilder private func profileDestination(_ destination: ProfileDestination) -> some View {
+        List {
+            switch destination {
+            case .companions:
+                Section {
+                    ForEach(store.data.companions) { companion in
+                        Button { editor = .person(companion.id) } label: {
+                            Label(companion.name, systemImage: "person.crop.circle")
+                                .foregroundStyle(PipAppearance.navy)
+                        }
+                    }
+                    Button("Add companion", systemImage: "person.badge.plus") { editor = .person(UUID()) }
+                }
+            case .memories:
+                GuidePreferencesSection(store: chat)
+            case .nearby:
+                ConversationLocationView(store: location).buttonStyle(.borderless)
+            case .settings:
+                Section {
+                    Toggle("Pip’s waiting hum", isOn: $waitingHum)
+                }
+                Section {
+                    Button("Sign out", role: .destructive) { confirmSignOut = true }
+                    Button("Delete account", role: .destructive) { confirmDeleteAccount = true }
+                        .accessibilityIdentifier("account.delete")
+                }
+                Section { AppVersionView() }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(PipAppearance.cream.ignoresSafeArea())
+        .navigationTitle(destination.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+}
+private enum ProfileDestination: Hashable {
+    case companions, memories, nearby, settings
+    var title: String {
+        switch self {
+        case .companions: "Travel companions"
+        case .memories: "About you"
+        case .nearby: "Nearby"
+        case .settings: "Settings"
         }
     }
 }
+
+private struct ProfileIconTile: View {
+    let title: LocalizedStringKey
+    let symbol: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 10) {
+                Image(systemName: symbol)
+                    .font(.system(size: 29, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 72, height: 72)
+                    .background(LinearGradient(colors: [color.opacity(0.65), color], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 20))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.5), lineWidth: 1))
+                    .shadow(color: color.opacity(0.17), radius: 8, y: 4)
+                    .accessibilityHidden(true)
+                Text(title).font(.subheadline.weight(.medium))
+                    .foregroundStyle(PipAppearance.navy)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1).minimumScaleFactor(0.75)
+            }
+            .frame(maxWidth: .infinity, alignment: .top)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 enum OrganizerEditorKind: Identifiable {
     case profile, person(UUID), trip(UUID)
     var id: String {
@@ -737,6 +839,9 @@ struct OrganizerEditor: View {
     @State private var companionEditor: OrganizerEditorKind?
     @State private var editingStop: OrganizerStop?
     @State private var confirmDelete = false
+    @State private var originalPerson: OrganizerPerson?
+    @State private var confirmDiscard = false
+    private var hasPersonChanges: Bool { !isTrip && originalPerson.map { $0 != person } == true }
     init(store: OrganizerStore, kind: OrganizerEditorKind, initialTrip: OrganizerTrip? = nil, onSaved: @escaping (UUID) -> Void = { _ in }) {
         self.store = store
         self.kind = kind
@@ -782,9 +887,9 @@ struct OrganizerEditor: View {
             }
             .navigationTitle(LocalizedStringKey(isTrip ? "Trip" : isProfile ? "My Profile" : "Companion"))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(store.pending != nil || store.busy) }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if hasPersonChanges { confirmDiscard = true } else { dismiss() } }.disabled(store.pending != nil || store.busy) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await save(deleting: false) } }
+                    Button(isTrip ? "Save" : "Save & Done") { Task { await save(deleting: false) } }
                         .disabled(store.busy || store.pending != nil || (isTrip ? trip.name : person.name).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -795,7 +900,12 @@ struct OrganizerEditor: View {
                     }
                 }
             }
-            .interactiveDismissDisabled(store.pending != nil || store.busy)
+            .interactiveDismissDisabled(hasPersonChanges || store.pending != nil || store.busy)
+            .onAppear { if originalPerson == nil { originalPerson = person } }
+            .confirmationDialog("Discard your changes?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Discard changes", role: .destructive) { dismiss() }
+                Button("Keep editing", role: .cancel) {}
+            }
             .confirmationDialog(LocalizedStringKey(isTrip ? "Delete this trip?" : "Delete this companion?"), isPresented: $confirmDelete) {
                 Button("Delete", role: .destructive) { Task { await save(deleting: true) } }
             }
@@ -1705,28 +1815,58 @@ struct GuideRecapView: View {
 struct GuidePreferencesSection: View {
     @Bindable var store: TravelChatStore
     @State private var editing: GuidePreference?
+    @State private var expanded = false
+    @State private var confirmDiscard = false
     @State private var draft = ""
     var body: some View {
         Section {
-            Text("Pip learns the travel likes, dislikes and preferences you share to offer more personal suggestions. Review, edit or forget them here.")
-                .font(.footnote).foregroundStyle(.secondary)
-            if let preferences = store.guide?.preferences, !preferences.isEmpty {
-                ForEach(preferences) { preference in
-                    Button {
-                        draft = preference.text
-                        editing = preference
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(verbatim: preference.text).foregroundStyle(.primary)
-                            Text(preference.kind == "dislike" ? "Dislike" : preference.kind == "like" ? "Like" : "Preference")
+            DisclosureGroup(isExpanded: $expanded) {
+                if let preferences = store.guide?.preferences, !preferences.isEmpty {
+                    ForEach(preferences) { preference in
+                        Button {
+                            draft = preference.text
+                            editing = preference
+                        } label: {
+                            HStack(alignment: .center, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(verbatim: preference.text)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(2)
+                                    Text(preference.kind == "dislike" ? "Dislike" : preference.kind == "like" ? "Like" : "Preference")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer(minLength: 0)
+                                Label("Edit", systemImage: "pencil")
+                                    .font(.subheadline)
+                                    .fixedSize()
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .disabled(store.refreshingGuide || store.pendingGuideEdit != nil)
+                        .accessibilityHint("Review, correct or delete this detail")
+                    }
+                } else {
+                    Text(store.guide == nil ? "Loading saved details…" : "No saved details yet.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: expanded ? "folder.fill" : "folder")
+                        .foregroundStyle(.tint)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("What Pip knows about you").foregroundStyle(.primary)
+                        if let preferences = store.guide?.preferences {
+                            Text("\(preferences.count) saved details · Review & edit")
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text("Review & edit saved details")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }
-            } else {
-                Text("No learned preferences yet. Tell Pip what you enjoy—or what you'd rather skip.")
-                    .foregroundStyle(.secondary)
             }
+            .accessibilityIdentifier("profile.savedDetails")
             if let error = store.guideError { Text(error).font(.footnote).foregroundStyle(.secondary) }
             if store.guideEditConflict {
                 Button("Load latest preferences") { Task { await store.reloadGuideAfterConflict() } }
@@ -1734,8 +1874,6 @@ struct GuidePreferencesSection: View {
                 Button("Retry preference change") { Task { await store.retryGuideEdit() } }
                     .disabled(store.refreshingGuide)
             }
-        } header: {
-            Text("What Pip knows about you")
         }
         .sheet(item: $editing) { preference in
             NavigationStack {
@@ -1743,7 +1881,7 @@ struct GuidePreferencesSection: View {
                     Section("Preference") { TextField("Preference", text: $draft, axis: .vertical) }
                     Section("Based on what you shared") { Text(verbatim: preference.evidence) }
                     Section {
-                        Button("Forget this preference", role: .destructive) {
+                        Button("Delete this detail", role: .destructive) {
                             Task {
                                 await store.editPreference(preference, text: "", remove: true)
                                 if store.pendingGuideEdit == nil, store.guideError == nil { editing = nil }
@@ -1752,11 +1890,18 @@ struct GuidePreferencesSection: View {
                     }
                     if let error = store.guideError { Text(error).foregroundStyle(.red) }
                 }
+                .interactiveDismissDisabled(draft != preference.text || store.pendingGuideEdit != nil || store.refreshingGuide)
+                .confirmationDialog("Discard your changes?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                    Button("Discard changes", role: .destructive) { editing = nil }
+                    Button("Keep editing", role: .cancel) {}
+                }
                 .navigationTitle("What Pip remembers")
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Close") { editing = nil } }
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") {
+                        if draft != preference.text { confirmDiscard = true } else { editing = nil }
+                    }.disabled(store.refreshingGuide || store.pendingGuideEdit != nil) }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
+                        Button("Save & Done") {
                             Task {
                                 await store.editPreference(preference, text: draft, remove: false)
                                 if store.pendingGuideEdit == nil, store.guideError == nil { editing = nil }
@@ -1856,65 +2001,122 @@ final class GuideSetupStore {
 }
 struct GuideSetupView: View {
     @Bindable var store: GuideSetupStore
+    var voicesOnly = false
+    var onSaved: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     @State private var draft = GuideSetup()
+    @State private var preview = PipVoicePreview()
+    @State private var confirmDiscard = false
+    @Environment(\.scenePhase) private var scenePhase
+    private var hasChanges: Bool { store.loaded && draft != store.data }
+    private var cannotSave: Bool { !store.loaded || store.busy || store.pending != nil }
+    private func saveAndDone() {
+        preview.stop()
+        Task { if await store.save(draft) { onSaved(); dismiss() } }
+    }
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    Text("Help Pip learn how you like to travel, so ideas for destinations, local gems and activities feel more like you. Share in your own words, or skip anything.")
-                    TextField("What should Pip call you?", text: $draft.preferred_name)
-                    TextField("Home city", text: $draft.home_city)
-                    TextField("Hobbies and fun", text: $draft.hobbies, axis: .vertical)
-                    TextField("When you're not working…", text: $draft.free_time, axis: .vertical)
-                    TextField("Work (optional)", text: $draft.work, axis: .vertical)
-                    TextField("What are you curious about?", text: $draft.curiosities, axis: .vertical)
-                    TextField("Your bucket list", text: $draft.bucket_list, axis: .vertical)
-                    TextField("A trip you loved—what made it special?", text: $draft.favorite_travel_memory, axis: .vertical)
-                } header: { Text("A little about you") }
-                .disabled(store.pending != nil)
-                Section("Make Pip your own") {
-                    Picker("Voice", selection: $draft.voice) {
-                        Text("Ballad").tag("ballad"); Text("Coral").tag("coral"); Text("Sage").tag("sage")
-                        Text("Ash").tag("ash"); Text("Verse").tag("verse")
-                    }
-                    Text("Your voice choice takes effect the next time you open voice.").font(.footnote)
-                    Picker("Pip's tone", selection: $draft.personality) {
-                        Text("Warm and friendly").tag("warm"); Text("Playful").tag("playful")
-                        Text("Calm").tag("calm"); Text("Friendly and direct").tag("direct")
-                    }
-                    Picker("Planning feels best when…", selection: $draft.planning_style) {
-                        Text("Let's discover together").tag("not_set"); Text("There's room for spontaneity").tag("spontaneous")
-                        Text("There's a little of both").tag("balanced"); Text("Everything is organized").tag("organized")
-                    }
-                    Toggle("Offer your honest opinion", isOn: $draft.offer_opinions)
-                    Picker("A little sincere encouragement?", selection: $draft.compliments) {
-                        Text("Ask me first").tag("ask"); Text("Yes, occasionally").tag("gentle"); Text("Skip compliments").tag("none")
-                    }
-                    Picker("Fun film and TV references?", selection: $draft.film_references) {
-                        Text("Ask me first").tag("ask"); Text("Yes, please").tag("yes"); Text("No thanks").tag("no")
-                    }
-                    Picker("Getting-to-know-you questions", selection: $draft.interview) {
-                        Text("One at a time is welcome").tag("open"); Text("Maybe later").tag("later"); Text("Don't ask").tag("no")
-                    }
+                if !voicesOnly {
+                    Section {
+                        Text("Help Pip learn how you like to travel, so ideas for destinations, local gems and activities feel more like you. Share in your own words, or skip anything.")
+                        TextField("What should Pip call you?", text: $draft.preferred_name)
+                        TextField("Home city", text: $draft.home_city)
+                        TextField("Hobbies and fun", text: $draft.hobbies, axis: .vertical)
+                        TextField("When you're not working…", text: $draft.free_time, axis: .vertical)
+                        TextField("Work (optional)", text: $draft.work, axis: .vertical)
+                        TextField("What are you curious about?", text: $draft.curiosities, axis: .vertical)
+                        TextField("Your bucket list", text: $draft.bucket_list, axis: .vertical)
+                        TextField("A trip you loved—what made it special?", text: $draft.favorite_travel_memory, axis: .vertical)
+                    } header: { Text("A little about you") }
+                    .disabled(store.pending != nil)
+                }
+                if voicesOnly {
+                    Section("Make Pip your own") {
+                        ForEach(PipVoicePreview.voices, id: \.self) { voice in
+                            HStack {
+                                Button { draft.voice = voice } label: {
+                                    HStack {
+                                        Image(systemName: draft.voice == voice ? "checkmark.circle.fill" : "circle")
+                                        Text(verbatim: voice.capitalized).foregroundStyle(.primary)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel("Select \(voice.capitalized) voice")
+                                .accessibilityAddTraits(draft.voice == voice ? .isSelected : [])
+                                Button { preview.toggle(voice) } label: {
+                                    Label(preview.playing == voice ? "Stop" : "Preview", systemImage: preview.playing == voice ? "stop.fill" : "play.fill")
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel("\(preview.playing == voice ? "Stop" : "Preview") \(voice.capitalized) voice")
+                            }
+                        }
+                        Text("Preview, choose a voice, then Save & Done. Applies to your next Pip or translation session.").font(.footnote)
+                        if let error = preview.error { Text(error).font(.footnote).foregroundStyle(.red) }
+                        Picker("Pip's tone", selection: $draft.personality) {
+                            Text("Warm and friendly").tag("warm"); Text("Playful").tag("playful")
+                            Text("Calm").tag("calm"); Text("Friendly and direct").tag("direct")
+                        }
                 }
                 .disabled(store.pending != nil)
+                } else {
+                    Section("Your preferences") {
+                        Picker("Planning feels best when…", selection: $draft.planning_style) {
+                            Text("Let's discover together").tag("not_set"); Text("There's room for spontaneity").tag("spontaneous")
+                            Text("There's a little of both").tag("balanced"); Text("Everything is organized").tag("organized")
+                        }
+                        Toggle("Offer your honest opinion", isOn: $draft.offer_opinions)
+                        Picker("A little sincere encouragement?", selection: $draft.compliments) {
+                            Text("Ask me first").tag("ask"); Text("Yes, occasionally").tag("gentle"); Text("Skip compliments").tag("none")
+                        }
+                        Picker("Fun film and TV references?", selection: $draft.film_references) {
+                            Text("Ask me first").tag("ask"); Text("Yes, please").tag("yes"); Text("No thanks").tag("no")
+                        }
+                        Picker("Getting-to-know-you questions", selection: $draft.interview) {
+                            Text("One at a time is welcome").tag("open"); Text("Maybe later").tag("later"); Text("Don't ask").tag("no")
+                        }
+                }
+                .disabled(store.pending != nil)
+                }
                 if let error = store.error { Section { Text(error).foregroundStyle(.red) } }
                 if store.conflict {
                     Button("Load latest choices") { Task { await store.loadLatest(); draft = store.data } }
                 } else if store.pending != nil {
-                    Button("Retry saving these choices") { Task { if await store.retry() { dismiss() } } }
+                    Button("Retry saving these choices") { Task { if await store.retry() { onSaved(); dismiss() } } }
                 }
             }
             .disabled(store.busy)
-            .navigationTitle("My travel style")
+            .navigationTitle(voicesOnly ? "Pip’s voice" : "My travel style")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") {
+                        if hasChanges { confirmDiscard = true } else { dismiss() }
+                    }.disabled(store.busy || store.pending != nil) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { if await store.save(draft) { dismiss() } } }
-                        .disabled(!store.loaded || store.busy || store.pending != nil)
+                    Button("Save & Done", action: saveAndDone).disabled(cannotSave)
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                Button(action: saveAndDone) {
+                    HStack {
+                        if store.busy { ProgressView() }
+                        Text(store.busy ? (store.loaded ? "Saving…" : "Loading…") : "Save & Done")
+                    }.frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(cannotSave)
+                .padding()
+                .background(.regularMaterial)
+            }
+            .interactiveDismissDisabled(hasChanges || store.busy || store.pending != nil)
+            .confirmationDialog("Save your changes?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Save & Done", action: saveAndDone)
+                Button("Discard changes", role: .destructive) { dismiss() }
+                Button("Keep editing", role: .cancel) {}
+            }
+            .onDisappear { preview.stop() }
+            .onChange(of: scenePhase) { _, phase in if phase != .active { preview.stop() } }
             .task {
                 await store.load()
                 if let body = store.pending?.body, let frozen = try? APIJSON.decoder().decode(GuideSetup.self, from: body) { draft = frozen }

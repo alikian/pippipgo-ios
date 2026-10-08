@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 /// Languages accepted by the backend interpreter (`/v1/translate/live`). Keep in sync with
 /// backend `app/live_translation.py`.
@@ -8,9 +9,15 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
     let nativeName: String
     var id: String { code }
 
-    static let all: [TranslationLanguage] = [
+    /// Picker order requested by the user. Retained languages still decode saved choices.
+    static let all: [TranslationLanguage] = ["zh", "ja", "ko", "vi", "fil", "tl", "fa", "tr", "ar", "ru", "it", "fr", "en"]
+        .compactMap { code in supported.first { $0.code == code } }
+
+    private static let supported: [TranslationLanguage] = [
+        .init(code: "fil", name: "Filipino", nativeName: "Filipino"),
+        .init(code: "tl", name: "Tagalog", nativeName: "Tagalog"),
         .init(code: "ar", name: "Arabic", nativeName: "العربية"),
-        .init(code: "zh", name: "Chinese (Mandarin)", nativeName: "中文"),
+        .init(code: "zh", name: "Chinese", nativeName: "中文"),
         .init(code: "nl", name: "Dutch", nativeName: "Nederlands"),
         .init(code: "en", name: "English", nativeName: "English"),
         .init(code: "fr", name: "French", nativeName: "Français"),
@@ -22,7 +29,7 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
         .init(code: "it", name: "Italian", nativeName: "Italiano"),
         .init(code: "ja", name: "Japanese", nativeName: "日本語"),
         .init(code: "ko", name: "Korean", nativeName: "한국어"),
-        .init(code: "fa", name: "Persian (Farsi)", nativeName: "فارسی"),
+        .init(code: "fa", name: "Farsi", nativeName: "فارسی"),
         .init(code: "pl", name: "Polish", nativeName: "Polski"),
         .init(code: "pt", name: "Portuguese", nativeName: "Português"),
         .init(code: "ru", name: "Russian", nativeName: "Русский"),
@@ -33,7 +40,7 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
         .init(code: "vi", name: "Vietnamese", nativeName: "Tiếng Việt"),
     ]
 
-    static func language(_ code: String) -> TranslationLanguage? { all.first { $0.code == code } }
+    static func language(_ code: String) -> TranslationLanguage? { supported.first { $0.code == code } }
 }
 
 /// The traveler's language and the other person's language for a two-way interpreter session.
@@ -59,8 +66,8 @@ struct TranslationPair: Equatable, Sendable {
 
     static func defaultPair(locale: Locale = .current) -> TranslationPair {
         let device = locale.language.languageCode?.identifier ?? "en"
-        let mine = TranslationLanguage.language(device) == nil ? "en" : device
-        return TranslationPair(mine: mine, theirs: mine == "es" ? "en" : "es")!
+        let mine = TranslationLanguage.all.contains { $0.code == device } ? device : "en"
+        return TranslationPair(mine: mine, theirs: mine == "en" ? "fa" : "en")!
     }
 
     private static let storageKey = "translationLanguages"
@@ -91,15 +98,37 @@ enum LiveVoiceMode: Equatable, Sendable {
     }
 }
 
-/// Leaving this tab stops the interpreter and clears its captions (see LiveVoiceView.onDisappear).
+/// Reuses the live voice transcript, audio lifecycle and interruption handling.
 struct TranslateTab: View {
     let store: LiveVoiceStore
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationStack {
-            LiveVoiceView(store: store)
-                .safeAreaInset(edge: .top, spacing: 0) { TranslationLanguageBar(store: store) }
-                .toolbar(.hidden, for: .navigationBar)
+            VStack(spacing: 0) {
+                TranslationLanguageBar(store: store).padding(.top, 16)
+                LiveVoiceView(store: store, companionStyle: true, translationStyle: true, translationSettings: { showingSettings = true })
+            }
+            .background(PipAppearance.cream.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showingSettings) {
+                NavigationStack {
+                    Form {
+                        Section {
+                            TranslationHeadphoneControl(store: store, fullLabel: true)
+                        } footer: {
+                            Text("Headphone mode translates their speech into your language. Turn it off to translate both ways. Change languages or mode before starting.")
+                        }
+                        Section("Privacy") {
+                            Text("Speech goes to OpenAI; profile, trips and location don’t.")
+                        }
+                    }
+                    .navigationTitle("Translation settings")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingSettings = false } } }
+                }
+                .presentationDetents([.medium, .large])
+            }
         }
     }
 }
@@ -110,41 +139,26 @@ struct TranslationLanguageBar: View {
     private var pair: TranslationPair { store.mode.translation ?? .saved() }
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                languageMenu(title: "You speak", selection: pair.mine) { code in
-                    update(mine: code, theirs: code == pair.theirs.code ? pair.mine.code : pair.theirs.code)
-                }
+        HStack(spacing: 10) {
+            languageMenu(title: "You speak", selection: pair.mine) { code in
+                update(mine: code, theirs: code == pair.theirs.code ? pair.mine.code : pair.theirs.code)
+            }
+            Button { setPair(pair.swapped) } label: {
                 Image(systemName: pair.listenOnly
                       ? (layoutDirection == .rightToLeft ? "arrow.right" : "arrow.left")
                       : "arrow.left.arrow.right")
-                    .font(.title3)
-                    .foregroundStyle(.tint)
-                    .frame(width: 40, height: 40)
-                    .accessibilityLabel(pair.listenOnly ? "Translation from their language to yours" : "Two-way translation")
-                languageMenu(title: "They speak", selection: pair.theirs) { code in
-                    update(mine: code == pair.mine.code ? pair.theirs.code : pair.mine.code, theirs: code)
-                }
+                    .font(.body.weight(.bold)).foregroundStyle(.blue)
+                    .frame(width: 44, height: 44)
+                    .background(.blue.opacity(0.06), in: Circle())
             }
-            .disabled(store.active)
-            Toggle(isOn: Binding(get: { pair.listenOnly }, set: { enabled in
-                var next = pair
-                next.listenOnly = enabled
-                setPair(next)
-            })) {
-                Label("Headphone mode", systemImage: "headphones")
-                    .font(.subheadline)
+            .accessibilityLabel("Swap languages")
+            .accessibilityValue(pair.listenOnly ? "Translation from their language to yours" : "Two-way translation")
+            languageMenu(title: "They speak", selection: pair.theirs) { code in
+                update(mine: code == pair.mine.code ? pair.theirs.code : pair.mine.code, theirs: code)
             }
-            .disabled(store.active)
-            Text(pair.listenOnly ? "Hear only their translation." : "Translate both ways.")
-                .font(.caption).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Speech goes to OpenAI; profile, trips and location don’t.")
-                .font(.caption2).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(.bar)
+        .disabled(store.active)
+        .padding(.horizontal, 22).padding(.bottom, 4)
     }
 
     private func languageMenu(title: LocalizedStringKey, selection: TranslationLanguage, choose: @escaping (String) -> Void) -> some View {
@@ -156,13 +170,18 @@ struct TranslationLanguageBar: View {
                 }
             }
         } label: {
-            VStack(spacing: 2) {
-                Text(title).font(.caption2).foregroundStyle(.secondary)
-                Text(selection.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
+            VStack(spacing: 5) {
+                HStack(spacing: 6) {
+                    Text(selection.code == "fa" ? "Farsi" : selection.name)
+                        .font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+                    Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+                }
+                Text(selection.symbol).font(.body).accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+            .foregroundStyle(PipAppearance.navy)
+            .frame(maxWidth: .infinity, minHeight: 62)
+            .background(.white, in: RoundedRectangle(cornerRadius: 16))
+            .shadow(color: PipAppearance.navy.opacity(0.04), radius: 10, y: 4)
         }
         .accessibilityLabel(Text(title))
         .accessibilityValue(Text(selection.name))
@@ -176,6 +195,100 @@ struct TranslationLanguageBar: View {
         guard !store.active else { return }
         next.save()
         store.setMode(.translate(next))
+    }
+}
+
+private extension TranslationLanguage {
+    var symbol: String {
+        ["fil": "🇵🇭", "tl": "🇵🇭", "en": "🇺🇸", "fa": "🇮🇷", "ar": "🌐", "zh": "🇨🇳", "nl": "🇳🇱",
+         "fr": "🇫🇷", "de": "🇩🇪", "el": "🇬🇷", "he": "🇮🇱", "hi": "🇮🇳",
+         "id": "🇮🇩", "it": "🇮🇹", "ja": "🇯🇵", "ko": "🇰🇷", "pl": "🇵🇱",
+         "pt": "🇵🇹", "ru": "🇷🇺", "es": "🇪🇸", "sv": "🇸🇪", "th": "🇹🇭",
+         "tr": "🇹🇷", "vi": "🇻🇳"][code] ?? "🌐"
+    }
+}
+
+struct TranslationHeadphoneControl: View {
+    let store: LiveVoiceStore
+    var fullLabel = false
+    @State private var headphonesConnected = false
+    @Environment(\.scenePhase) private var scenePhase
+    private var pair: TranslationPair { store.mode.translation ?? .saved() }
+    private var enabled: Binding<Bool> {
+        Binding(get: { pair.listenOnly }, set: { value in
+            guard !store.active else { return }
+            var next = pair
+            next.listenOnly = value
+            next.save()
+            store.setMode(.translate(next))
+        })
+    }
+
+    var body: some View {
+        Group {
+            if fullLabel {
+                Toggle("Headphone mode", systemImage: "headphones", isOn: enabled)
+            } else {
+                Button { enabled.wrappedValue.toggle() } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "headphones").font(.title2)
+                            .frame(width: 46, height: 46)
+                            .background(pair.listenOnly ? Color.blue.opacity(0.12) : .white, in: Circle())
+                            .overlay(alignment: .topTrailing) {
+                                Circle().fill(headphonesConnected ? Color.green : Color.gray.opacity(0.35))
+                                    .frame(width: 10, height: 10)
+                                    .overlay(Circle().stroke(PipAppearance.cream, lineWidth: 2))
+                                    .accessibilityHidden(true)
+                            }
+                    }
+                    .foregroundStyle(pair.listenOnly ? .blue : PipAppearance.secondary)
+                }
+                .accessibilityLabel("Headphone mode")
+                .accessibilityValue("\(headphonesConnected ? "Headphones or Bluetooth audio connected" : "No headphone output"). Headphone mode \(pair.listenOnly ? "on" : "off")")
+                .accessibilityHint("Translate only their speech into your language")
+            }
+        }
+        .disabled(store.active)
+        .onAppear { updateRoute() }
+        .onChange(of: scenePhase) { _, _ in updateRoute() }
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in updateRoute() }
+    }
+
+    private func updateRoute() {
+        headphonesConnected = Self.hasHeadphoneOutput(AVAudioSession.sharedInstance().currentRoute.outputs.map(\.portType))
+    }
+
+    static func hasHeadphoneOutput(_ ports: [AVAudioSession.Port]) -> Bool {
+        !ports.isEmpty && ports.allSatisfy { [.headphones, .bluetoothA2DP, .bluetoothHFP, .bluetoothLE].contains($0) }
+    }
+}
+
+struct TranslationLanding: View {
+    let store: LiveVoiceStore
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Image("PipTranslate")
+                .resizable().scaledToFit()
+                .frame(width: 125, height: 100)
+                .accessibilityHidden(true)
+                .zIndex(1)
+            Button { store.active ? store.stop() : store.start() } label: {
+                Image(systemName: store.active ? "stop.fill" : "mic.fill")
+                    .font(.system(size: 60, weight: .regular))
+                    .foregroundStyle(.white)
+                    .frame(width: 154, height: 154)
+                    .background(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing), in: Circle())
+                    .padding(12).background(.blue.opacity(0.12), in: Circle())
+                    .padding(12).background(.blue.opacity(0.05), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(store.active ? "Stop translating" : "Start translation")
+            .padding(.top, -20)
+
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
     }
 }
 

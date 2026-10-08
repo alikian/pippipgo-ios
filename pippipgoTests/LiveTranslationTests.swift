@@ -1,8 +1,20 @@
 import Foundation
+import AVFoundation
 import Testing
 @testable import pippipgo
 
 struct LiveTranslationTests {
+    @MainActor @Test func headphoneIndicatorFollowsOutputRouteNotTranslationMode() {
+        #expect(TranslationHeadphoneControl.hasHeadphoneOutput([.headphones]))
+        #expect(TranslationHeadphoneControl.hasHeadphoneOutput([.bluetoothA2DP]))
+        #expect(TranslationHeadphoneControl.hasHeadphoneOutput([.bluetoothHFP]))
+        #expect(!TranslationHeadphoneControl.hasHeadphoneOutput([.builtInSpeaker]))
+        #expect(!TranslationHeadphoneControl.hasHeadphoneOutput([.builtInReceiver]))
+        #expect(!TranslationHeadphoneControl.hasHeadphoneOutput([.airPlay]))
+        #expect(!TranslationHeadphoneControl.hasHeadphoneOutput([.headphones, .builtInSpeaker]))
+        #expect(!TranslationHeadphoneControl.hasHeadphoneOutput([]))
+    }
+
     @Test func pairsRequireDistinctSupportedLanguages() {
         #expect(TranslationPair(mine: "en", theirs: "es")?.headerValue == "en,es")
         #expect(TranslationPair(mine: "en", theirs: "en") == nil)
@@ -16,16 +28,17 @@ struct LiveTranslationTests {
         #expect(TranslationPair(mine: "en", theirs: "es")?.swapped.headerValue == "es,en")
     }
 
-    @Test func languageCodesAreUniqueTwoLetterCodes() {
+    @Test func languagePickerMatchesRequestedOrder() {
         let codes = TranslationLanguage.all.map(\.code)
         #expect(Set(codes).count == codes.count)
-        #expect(codes.allSatisfy { $0.count == 2 && $0 == $0.lowercased() })
+        #expect(codes == ["zh", "ja", "ko", "vi", "fil", "tl", "fa", "tr", "ar", "ru", "it", "fr", "en"])
+        #expect(TranslationPair(headerValue: "fil,tl")?.headerValue == "fil,tl")
     }
 
     @Test func defaultPairFollowsDeviceLanguage() {
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "fr_FR")).headerValue == "fr,es")
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "es_MX")).headerValue == "es,en")
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "sw_KE")).headerValue == "en,es")
+        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "fr_FR")).headerValue == "fr,en")
+        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "es_MX")).headerValue == "en,fa")
+        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "sw_KE")).headerValue == "en,fa")
     }
 
     @Test func savedPairRoundTripsAndIgnoresInvalidValues() throws {

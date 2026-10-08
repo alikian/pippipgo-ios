@@ -13,6 +13,9 @@ final class AuthenticationStore {
         case accountError(String)
         case signInError(String)
         case signingOut
+        case deletingAccount
+        case accountDeletionFailed(String)
+        case accountDeletionCleanupFailed
     }
 
     private(set) var state: State = .restoring
@@ -47,6 +50,7 @@ final class AuthenticationStore {
     }
 
     func signIn() async {
+        guard state != .deletingAccount else { return }
         TalkToPipLaunch.shared.cancel()
         sessionEpoch = UUID()
         profilePictureURL = nil
@@ -72,6 +76,7 @@ final class AuthenticationStore {
     }
 
     func loadAccount() async {
+        guard state != .deletingAccount else { return }
         let ticket = sessionEpoch
         state = .loadingAccount
         do {
@@ -89,6 +94,7 @@ final class AuthenticationStore {
     }
 
     func signOut() async {
+        guard state != .deletingAccount else { return }
         TalkToPipLaunch.shared.cancel()
         sessionEpoch = UUID()
         profilePictureURL = nil
@@ -111,4 +117,45 @@ final class AuthenticationStore {
         }
         state = message.map(State.signInError) ?? .signedOut
     }
+
+    func deleteAccount() async {
+        switch state {
+        case .signedIn, .accountDeletionFailed: break
+        default: return
+        }
+        let ticket = UUID(); sessionEpoch = ticket
+        TalkToPipLaunch.shared.cancel()
+        profilePictureURL = nil
+        intelligence.reset(); organizer.reset(); chat.reset()
+        state = .deletingAccount
+        do {
+            let result: AccountDeletionResult = try await apiClient.send(.deleteAccount(), using: authentication)
+            guard sessionEpoch == ticket else { return }
+            guard result.status == "deleted" else { throw APIClientError.invalidResponse }
+        } catch {
+            guard sessionEpoch == ticket else { return }
+            // A lost response may mean deletion already began. Do not resume ordinary writes.
+            state = .accountDeletionFailed("Deletion could not be confirmed. Your account may already be disabled. Check your connection and retry deletion.")
+            return
+        }
+        await finishAccountDeletion()
+    }
+
+    func finishAccountDeletion() async {
+        guard state == .deletingAccount || state == .accountDeletionCleanupFailed else { return }
+        let ticket = sessionEpoch
+        state = .deletingAccount
+        do {
+            try await authentication.clearLocalSession()
+            guard sessionEpoch == ticket else { return }
+            state = .signedOut
+        } catch {
+            guard sessionEpoch == ticket else { return }
+            state = .accountDeletionCleanupFailed
+        }
+    }
+}
+
+struct AccountDeletionResult: Decodable, Sendable {
+    let status: String
 }
