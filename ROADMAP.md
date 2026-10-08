@@ -345,3 +345,43 @@ Committed and pushed accumulated improvements to develop: iOS 0f6a0b8, backend 0
 ### October 8 — Xcode Cloud archive repair
 
 Build 27 was canceled; build 28 compiled/exported but failed the post-build release validator because a project override named the Prod app PipPipGo Dev. Restored the existing environment-driven display-name setting (Prod PipPipGo, Dev PipPipGo Dev, Local PipPipGo Local). Latest Cloud build 28 verified before setting local fallback 29. Signed Prod build, exact release validator and codesign verification passed locally using the Cloud public identity setup; Cloud rerun and TestFlight acceptance remain pending. No backend deployment required.
+
+### October 8 — Translation inactivity correction
+
+Translation previously closed after only five seconds without transcript/output activity, consistent with the reported disconnect just after the ready introduction. Increased translation-only timeout to two minutes; speech/output reset it and silent microphone frames do not. Five-minute maximum session retained. Backend checks: 476 passed, one skipped; Ruff passed. Local backend restarted; hosted Dev/Prod rollout and physical-device acceptance pending. No iOS rebuild required; deploy backend before hosted acceptance.
+
+October 8 user correction: translation inactivity is **30 seconds**, superseding the two-minute setting above. Input transcript content and output reset it; silent frames do not. All 47 translation tests and Ruff passed; Local backend updated. Hosted Dev/Prod deployment remains pending; no iOS rebuild required.
+
+October 8 microphone diagnosis: speaker/two-way Farsi-English test initially delivered 298 frames but no audible frames or input transcript deltas. After stopping Device Hub screen sharing, the physical retry delivered 302 frames, 91 audible frames and 20 input transcript deltas. This supports a screen-sharing capture conflict; end-to-end translated playback confirmation remains separate. Keep Device Hub screen sharing off for microphone acceptance. Temporary count-only diagnostics are local; no audio recording, iOS rebuild or hosted rollout performed. Translation timeout remains 30 seconds.
+
+### October 8 — Appium QA tooling
+
+User-requested Appium 3.8.0 and official XCUITest driver 12.16.0 installed on the development Mac. Driver doctor: zero required fixes; optional applesimutils/ffmpeg absent. Localhost-only server started, reported ready, then stopped. Physical-device WebDriverAgent setup and app acceptance tests have not yet run. No iOS build or backend deployment required.
+
+October 8 Appium physical-device smoke test passed: Profile opens, five voice/preview controls and Save & Done are accessible, Translate controls and 13-language menu are present, settings opens/closes. No saved selections changed. Voice playback, speech recognition, saving and destructive operations are not covered. Signed WDA helper setup completed; Appium session/server stopped. No app rebuild or backend deployment required. See iOS docs/appium-smoke-test.md.
+
+October 8 extended Appium pass: Profile submenus and close/back flows, Ballad preview playback state, and translation connection/capture/transcript/stop verified on iPhone. Current headphone/listen-only mode remained on. Audible translated playback quality, editing/saving and destructive actions remain outside test coverage. No code/deployment change; see iOS docs/appium-smoke-test.md.
+
+### October 8 — Reusable Full Test
+
+Added iOS scripts/full_test.py and docs/full-test.md: on-demand safe regression coverage, persistent Appium/server/helper reuse, explicit teardown, timestamped reports and separate manual/test-account acceptance requirements. Four offline runner tests passed; the new device suite has not been executed. Runs only when requested; no scheduler or CI trigger. No iOS rebuild or backend deployment required.
+
+### October 8 — Complete interface-language coverage
+
+Filled missing translations across 695 UI catalog entries for the seven existing interface languages; dynamic menus, states, accessibility labels and non-SwiftUI strings follow the selected language. User content preserved. Local build 30 installed after verifying Cloud 29; signing, three catalog checks and five focused physical-device language tests passed (including six parameterized cases). Appium verified all seven core Profile/tab selections, Persian settings/RTL layout and French voice/translation settings; English restored. An older broad configuration test has stale simulator/LAN assertions, documented in iOS docs/interface-localization.md. Full Test not run. No backend deployment required; hosted Dev/Prod unchanged. Native-speaker review remains pending.
+
+### October 8 — All 13 requested interface languages
+
+Added Korean, Vietnamese, Filipino, Tagalog, Turkish, Arabic and Russian across all 695 UI entries. All 13 translation choices now have interface equivalents; Spanish retained as a fourteenth choice. Arabic RTL and separate Filipino/Tagalog resources verified. Cloud 29 rechecked; Local 30 rebuilt/installed. Three catalog checks, six device language tests (13 resource cases), all 13 Appium core menu/tab checks and Arabic screenshot review passed; English restored, focused tests finished. Backend voice-language mapping extended: 490 tests passed/one skipped, Ruff passed, Local restart/readiness passed. Hosted Dev/Prod voice mapping deployment remains pending (backend before hosted app). Full Test not run; native-speaker review remains separate. See iOS docs/interface-localization.md.
+
+### October 8 — Visible backend environment
+
+Restored the existing environment badge above primary iOS screens, showing localized Local/Dev/Production from validated build configuration (not a server-health claim). Signed Local build 30 installed after confirming latest Cloud 29; signature and three catalog checks passed. Appium verified the Local badge across Pip/Profile/Translate/Trips; Translate screenshot checked, Spanish preference preserved. No backend deployment needed; Full Test not run.
+
+### October 8 — Language tab and Profile Trips tile
+
+Moved app language selection into its own globe tab beside Profile; moved Trips into a larger suitcase tile at the top of Profile, reusing the existing trip list/detail/editor flow. Existing settings and saved data retained. Signed Local 30 built and installed after verifying latest Cloud 29. Physical screenshot and accessibility inspection confirmed the new bottom tabs and Trips tile; remaining navigation/language-switch checks were interrupted by device lock. Four offline runner checks and three localization catalog checks passed; Full Test updated for the new navigation but not run. Spanish preference preserved. No backend deployment required.
+
+### October 8 — GitHub synchronization
+
+User authorized committing/pushing accumulated localization, navigation, environment indicator, Appium tooling and translation updates to develop. Pre-push verification: 490 backend tests passed/one skipped, Ruff passed; three catalog/four offline runner checks passed. Existing signed/device acceptance evidence and outstanding checks remain as recorded above. Backend develop push triggers Dev deployment; completion remains pending and Prod is unchanged. Hosted language support requires backend rollout before hosted app acceptance. Full Test was not run.

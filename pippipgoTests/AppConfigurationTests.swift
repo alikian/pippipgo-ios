@@ -152,6 +152,44 @@ struct TalkToPipLaunchTests {
 }
 
 struct AppLanguageTests {
+    @Test func everyTranslationLanguageHasAnInterfaceLanguage() {
+        for translation in TranslationLanguage.all {
+            let interfaceCode = translation.code == "zh" ? "zh-Hans" : translation.code
+            #expect(AppLanguage(rawValue: interfaceCode) != nil, "Missing interface language: \(translation.code)")
+        }
+        #expect(AppLanguage.selected("es") == .spanish) // Preserve existing choices.
+    }
+
+    @Test func interfaceLanguagesHavePackagedMenuTranslations() {
+        for language in AppLanguage.allCases where language != .english {
+            for key in ["Trips", "Translate", "Profile", "Settings", "Save & Done", "Pip’s voice", "My travel style", "Delete account"] {
+                let value = language.bundle.localizedString(forKey: key, value: "__missing__", table: nil)
+                // Some languages use the same loanword (for example Filipino “Profile”).
+                #expect(value != "__missing__", "Missing \(language.rawValue) translation: \(key)")
+                #expect(!value.isEmpty)
+            }
+        }
+    }
+
+    @Test func selectedLanguageFallbackAndDirection() {
+        #expect(AppLanguage.selected("unknown") == .english)
+        #expect(AppLanguage.selected("fa").direction == .rightToLeft)
+        #expect(AppLanguage.selected("ar").direction == .rightToLeft)
+        #expect(AppLanguage.selected("fr").direction == .leftToRight)
+    }
+
+    @Test func localizedInterpolationPreservesUserText() {
+        let name = "Sara" // User content must not be translated.
+        let place = "Kyoto"
+        for language in AppLanguage.allCases {
+            let value = String(localized: "\(name), let's plan \(place)", bundle: language.bundle, locale: Locale(identifier: language.localizationIdentifier))
+            #expect(value.contains(name))
+            #expect(value.contains(place))
+            #expect(!value.contains("%@"))
+        }
+    }
+
+
     @Test func unsupportedPreferenceFallsBackToEnglish() {
         #expect(AppLanguage.selected("unsupported") == .english)
         #expect(AppLanguage.selected("fa") == .persian)
@@ -162,8 +200,8 @@ struct AppLanguageTests {
         #expect(AppLanguage.selected("zh-Hans") == .simplifiedChinese)
     }
 
-    @Test(arguments: ["fa", "ja", "es", "fr", "it", "zh-Hans"]) func packagedTranslationsAreAvailable(language: String) throws {
-        let path = try #require(Bundle.main.path(forResource: language, ofType: "lproj"))
+    @Test(arguments: AppLanguage.allCases.filter { $0 != .english }.map(\.rawValue)) func packagedTranslationsAreAvailable(language: String) throws {
+        let path = try #require(Bundle.main.path(forResource: AppLanguage.selected(language).localizationIdentifier, ofType: "lproj"))
         let bundle = try #require(Bundle(path: path))
         for key in ["Language", "My Profile", "Trips", "Ask Pip", "Talk to Pip", "Save", "Cancel"] {
             #expect(bundle.localizedString(forKey: key, value: nil, table: "Localizable") != key)

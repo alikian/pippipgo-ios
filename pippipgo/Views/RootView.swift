@@ -8,7 +8,12 @@ struct RootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-
+            HStack {
+                Spacer()
+                BuildEnvironmentIndicator(environment: environment)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 3)
             Group {
                 switch store.state {
                 case .restoring:
@@ -73,11 +78,11 @@ struct RootView: View {
 struct BuildEnvironmentIndicator: View {
     let environment: AppEnvironment
 
-    private var title: String {
+    private var title: LocalizedStringKey {
         switch environment {
-        case .local: "Local"
-        case .dev: "Dev"
-        case .prod: "Prod"
+        case .local: "Environment: Local"
+        case .dev: "Environment: Dev"
+        case .prod: "Environment: Production"
         }
     }
 
@@ -92,13 +97,13 @@ struct BuildEnvironmentIndicator: View {
     var body: some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 5, height: 5).accessibilityHidden(true)
-            Text("Build: \(title)").font(.caption2.weight(.medium))
+            Text(title).font(.caption2.weight(.medium))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(.regularMaterial, in: Capsule())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Build environment: \(title)")
+        .accessibilityLabel(Text(title))
         .accessibilityIdentifier("app.buildEnvironment")
     }
 }

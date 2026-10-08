@@ -139,7 +139,7 @@ final class OrganizerStore {
     }
 }
 
-enum AppTab: String, Hashable { case trips, pip, translate, profile }
+enum AppTab: String, Hashable { case pip, translate, profile, language }
 enum PipMode: String, Hashable { case chat, voice }
 
 /// Signed-in shell: one tab per top-level destination. Editors are modal tasks owned here so
@@ -159,18 +159,18 @@ struct TravelOrganizerView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            TripsTab(store: store, editor: $editor, askPip: { pipMode = .chat; tab = .pip })
-                .tabItem { Label("Trips", systemImage: "suitcase") }
-                .tag(AppTab.trips)
             PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
                 .tabItem { Label("Pip", systemImage: "bubble.left.and.bubble.right") }
                 .tag(AppTab.pip)
             TranslateTab(store: chat.translator)
                 .tabItem { Label("Translate", systemImage: "translate") }
                 .tag(AppTab.translate)
-            ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, signOut: signOut, deleteAccount: deleteAccount)
+            ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, askPip: { pipMode = .chat; tab = .pip }, signOut: signOut, deleteAccount: deleteAccount)
                 .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                 .tag(AppTab.profile)
+            AppLanguageSelectionView()
+                .tabItem { Label("Language", systemImage: "globe") }
+                .tag(AppTab.language)
         }
         .tint(.blue)
         .toolbarBackground(PipAppearance.cream, for: .tabBar)
@@ -239,49 +239,53 @@ struct TripsTab: View {
     @Bindable var store: OrganizerStore
     @Binding var editor: OrganizerEditorKind?
     let askPip: () -> Void
+    var embedded = false
 
     var body: some View {
-        NavigationStack {
-            List {
-                if let error = store.error {
-                    Section {
-                        Text(error).foregroundStyle(.red)
-                        if !store.loaded { Button("Try again") { Task { await store.load() } } }
-                    }
-                }
-                if store.loaded {
-                    ForEach(store.data.trips) { trip in
-                        NavigationLink(value: trip.id) { TripRow(trip: trip) }
-                    }
+        if embedded { content }
+        else { NavigationStack { content } }
+    }
+
+    private var content: some View {
+        List {
+            if let error = store.error {
+                Section {
+                    Text(LocalizedStringKey(error)).foregroundStyle(.red)
+                    if !store.loaded { Button("Try again") { Task { await store.load() } } }
                 }
             }
-            // List uses cached UIKit cells. Recreate its presentation on locale changes
-            // so an RTL -> LTR switch cannot retain mirrored row transforms.
-            .id(locale.identifier)
-            .overlay {
-                if !store.loaded {
-                    if store.busy { ProgressView() }
-                } else if store.data.trips.isEmpty && store.error == nil {
-                    ContentUnavailableView {
-                        Label("No trips yet", systemImage: "suitcase")
-                    } description: {
-                        Text("Add a trip yourself, or ask Pip to plan one with you.")
-                    } actions: {
-                        Button("Add trip") { editor = .trip(UUID()) }.buttonStyle(.borderedProminent)
-                        Button("Ask Pip", action: askPip)
-                    }
+            if store.loaded {
+                ForEach(store.data.trips) { trip in
+                    NavigationLink(value: trip.id) { TripRow(trip: trip) }
                 }
             }
-            .refreshable { await store.load() }
-            .navigationTitle("Trips")
-            .navigationDestination(for: UUID.self) { id in
-                TripDetailView(store: store, tripID: id, editor: $editor)
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Add trip", systemImage: "plus") { editor = .trip(UUID()) }
-                        .disabled(!store.loaded)
+        }
+        // List uses cached UIKit cells. Recreate its presentation on locale changes
+        // so an RTL -> LTR switch cannot retain mirrored row transforms.
+        .id(locale.identifier)
+        .overlay {
+            if !store.loaded {
+                if store.busy { ProgressView() }
+            } else if store.data.trips.isEmpty && store.error == nil {
+                ContentUnavailableView {
+                    Label("No trips yet", systemImage: "suitcase")
+                } description: {
+                    Text("Add a trip yourself, or ask Pip to plan one with you.")
+                } actions: {
+                    Button("Add trip") { editor = .trip(UUID()) }.buttonStyle(.borderedProminent)
+                    Button("Ask Pip", action: askPip)
                 }
+            }
+        }
+        .refreshable { await store.load() }
+        .navigationTitle("Trips")
+        .navigationDestination(for: UUID.self) { id in
+            TripDetailView(store: store, tripID: id, editor: $editor)
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Add trip", systemImage: "plus") { editor = .trip(UUID()) }
+                    .disabled(!store.loaded)
             }
         }
     }
@@ -337,7 +341,7 @@ struct TripDetailView: View {
                         LabeledContent("Estimated total", value: budget.formatted(budget.estimatedTotal))
                         LabeledContent("Actual spent", value: budget.formatted(budget.actualTotal))
                         if let remaining = budget.remaining {
-                            LabeledContent(remaining < 0 ? "Over budget" : "Remaining budget", value: budget.formatted(abs(remaining)))
+                            LabeledContent(LocalizedStringKey(remaining < 0 ? "Over budget" : "Remaining budget"), value: budget.formatted(abs(remaining)))
                                 .foregroundStyle(remaining < 0 ? Color.red : Color.primary)
                         }
                     }
@@ -628,6 +632,7 @@ struct ProfileTab: View {
     let location: CurrentLocationStore
     var profilePictureURL: URL? = nil
     @Binding var editor: OrganizerEditorKind?
+    let askPip: () -> Void
     let signOut: () -> Void
     let deleteAccount: () -> Void
     @State private var confirmSignOut = false
@@ -635,6 +640,7 @@ struct ProfileTab: View {
     @State private var travelStyle = false
     @State private var voiceChoices = false
     @State private var choicesSaved = false
+    @State private var showTrips = false
     @State private var booking = false
     @State private var calendars = false
     @State private var destination: ProfileDestination?
@@ -645,10 +651,11 @@ struct ProfileTab: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 28) {
+                    tripsTile
                     profileCard
                     if let error = store.error, !store.loaded {
                         VStack(spacing: 8) {
-                            Text(error).font(.callout).foregroundStyle(.red)
+                            Text(LocalizedStringKey(error)).font(.callout).foregroundStyle(.red)
                             Button("Try again") { Task { await store.load() } }
                         }
                     }
@@ -683,6 +690,9 @@ struct ProfileTab: View {
             .navigationDestination(item: $destination) { destination in
                 profileDestination(destination)
             }
+            .navigationDestination(isPresented: $showTrips) {
+                TripsTab(store: store, editor: $editor, askPip: askPip, embedded: true)
+            }
             .sheet(isPresented: $travelStyle) { GuideSetupView(store: chat.setup, onSaved: { choicesSaved = true }) }
             .sheet(isPresented: $voiceChoices) {
                 GuideSetupView(store: chat.setup, voicesOnly: true, onSaved: {
@@ -693,10 +703,6 @@ struct ProfileTab: View {
             .sheet(isPresented: $booking) { GuideBookingView(setup: chat.setup, organizer: store) }
             .sheet(isPresented: $calendars) { GuideCalendarView() }
             .task { await chat.loadGuide(refresh: true) }
-            .toolbar {
-                // Stays outside the list so switching language never rebuilds its own menu.
-                ToolbarItem(placement: .topBarTrailing) { AppLanguageMenu() }
-            }
 
         }
         .alert("Permanently delete your PipPipGo account?", isPresented: $confirmDeleteAccount) {
@@ -708,6 +714,28 @@ struct ProfileTab: View {
         .confirmationDialog("Sign out of PipPipGo?", isPresented: $confirmSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive, action: signOut)
         }
+    }
+
+    private var tripsTile: some View {
+        Button { showTrips = true } label: {
+            HStack(spacing: 20) {
+                Image(systemName: "suitcase.rolling.fill")
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 88, height: 88)
+                    .background(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 24))
+                    .accessibilityHidden(true)
+                Text("Trips").font(.title2.weight(.semibold))
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.forward").font(.headline).accessibilityHidden(true)
+            }
+            .foregroundStyle(PipAppearance.navy)
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 28))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("profile.trips")
     }
 
     private var profileCard: some View {
@@ -724,7 +752,7 @@ struct ProfileTab: View {
                 .frame(width: 76, height: 76).clipShape(Circle())
                 .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(store.data.profile.flatMap { $0.name.isEmpty ? nil : $0.name } ?? "Your profile")
+                    Text(store.data.profile.flatMap { $0.name.isEmpty ? nil : $0.name } ?? String(localized: "Your profile", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale))
                         .font(.title2.weight(.semibold)).foregroundStyle(PipAppearance.navy)
                         .multilineTextAlignment(.leading)
                     if let hometown = store.data.profile?.hometown, !hometown.isEmpty {
@@ -776,7 +804,7 @@ struct ProfileTab: View {
         }
         .scrollContentBackground(.hidden)
         .background(PipAppearance.cream.ignoresSafeArea())
-        .navigationTitle(destination.title)
+        .navigationTitle(LocalizedStringKey(destination.title))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -871,7 +899,7 @@ struct OrganizerEditor: View {
                     if isTrip { tripFields } else { personFields }
                     if exists { Button("Delete", role: .destructive) { confirmDelete = true } }
                 }.disabled(store.busy || store.pending != nil)
-                if let error = store.error { Section { Text(error).foregroundStyle(.red) } }
+                if let error = store.error { Section { Text(LocalizedStringKey(error)).foregroundStyle(.red) } }
                 if let conflict = store.conflict {
                     Section("Review changes from another device") {
                         Text("Your edit has not overwritten the saved version. Reload the latest version to review and edit it.")
@@ -889,7 +917,7 @@ struct OrganizerEditor: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if hasPersonChanges { confirmDiscard = true } else { dismiss() } }.disabled(store.pending != nil || store.busy) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isTrip ? "Save" : "Save & Done") { Task { await save(deleting: false) } }
+                    Button(LocalizedStringKey(isTrip ? "Save" : "Save & Done")) { Task { await save(deleting: false) } }
                         .disabled(store.busy || store.pending != nil || (isTrip ? trip.name : person.name).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -1314,7 +1342,7 @@ struct TravelChatView: View {
                         }
                         if let savedTripName { Text("Saved \(savedTripName) to your trips.").foregroundStyle(.green) }
                         if store.busy { ProgressView("Pip is thinking…") }
-                        if let error = store.error { Text(error).foregroundStyle(.red) }
+                        if let error = store.error { Text(LocalizedStringKey(error)).foregroundStyle(.red) }
                         if store.conflict != nil {
                             Text("This chat changed elsewhere. Load it to review before sending your draft again.")
                             Button("Load latest chat") { store.useLatest() }
@@ -1372,12 +1400,12 @@ struct PipComposer: View {
     var body: some View {
         VStack(spacing: 8) {
             if let error = speech.error ?? store.voice.error {
-                Text(error).font(.caption).foregroundStyle(.red)
+                Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.red)
             }
             if speech.recording { Text("Dictating… Tap the microphone to stop.").font(.caption).foregroundStyle(.secondary) }
             if store.voice.active {
                 TimelineView(.periodic(from: .now, by: 0.5)) { _ in
-                    Text(store.voice.connected ? (store.voice.isPlayingResponse ? "Pip is speaking…" : (store.voice.lookingUp ? "Pip is finding out more…" : (store.voice.waitingForWelcome ? "Pip is getting ready to welcome you…" : "Listening — you can speak naturally"))) : "Connecting…")
+                    Text(LocalizedStringKey(store.voice.connected ? (store.voice.isPlayingResponse ? "Pip is speaking…" : (store.voice.lookingUp ? "Pip is finding out more…" : (store.voice.waitingForWelcome ? "Pip is getting ready to welcome you…" : "Listening — you can speak naturally"))) : "Connecting…"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -1394,7 +1422,7 @@ struct PipComposer: View {
                         .font(.title2).foregroundStyle(speech.recording ? Color.red : Color.secondary)
                         .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel(speech.recording ? "Stop dictation" : "Dictate message")
+                .accessibilityLabel(LocalizedStringKey(speech.recording ? "Stop dictation" : "Dictate message"))
                 .disabled(unavailable || store.voice.active)
                 TextField("Ask me anything…", text: $store.composer, axis: .vertical)
                     .lineLimit(1...5).focused($composing)
@@ -1411,7 +1439,7 @@ struct PipComposer: View {
                         .background(companionStyle ? Color.blue : (store.voice.active ? Color.red : Color.blue), in: Circle())
                         .symbolEffect(.variableColor, isActive: store.voice.connected && !reduceMotion)
                 }
-                .accessibilityLabel(store.voice.active ? "End voice conversation" : (hasText ? "Send message" : "Talk to Pip"))
+                .accessibilityLabel(LocalizedStringKey(store.voice.active ? "End voice conversation" : (hasText ? "Send message" : "Talk to Pip")))
                 .disabled(!store.voice.active && (unavailable || (hasText && (!store.loaded || store.composer.count > 4000))))
             }
             .padding(8).background(companionStyle ? Color.white : Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 36))
@@ -1599,11 +1627,11 @@ struct OrganizerBudgetView: View {
                 LabeledContent("Estimated total", value: budget.formatted(budget.estimatedTotal))
                 LabeledContent("Actual spent", value: budget.formatted(budget.actualTotal))
                 if let unallocated = budget.unallocated {
-                    LabeledContent(unallocated < 0 ? "Estimates over budget" : "Not yet allocated", value: budget.formatted(abs(unallocated)))
+                    LabeledContent(LocalizedStringKey(unallocated < 0 ? "Estimates over budget" : "Not yet allocated"), value: budget.formatted(abs(unallocated)))
                         .foregroundStyle(unallocated < 0 ? Color.red : Color.primary)
                 }
                 if let remaining = budget.remaining {
-                    LabeledContent(remaining < 0 ? "Over budget" : "Remaining budget", value: budget.formatted(abs(remaining)))
+                    LabeledContent(LocalizedStringKey(remaining < 0 ? "Over budget" : "Remaining budget"), value: budget.formatted(abs(remaining)))
                         .foregroundStyle(remaining < 0 ? Color.red : Color.primary)
                 }
                 Text("Totals include entered costs only. Leave unknown costs blank. Estimates and actual spending are counted separately.")
@@ -1832,7 +1860,7 @@ struct GuidePreferencesSection: View {
                                     Text(verbatim: preference.text)
                                         .foregroundStyle(.primary)
                                         .lineLimit(2)
-                                    Text(preference.kind == "dislike" ? "Dislike" : preference.kind == "like" ? "Like" : "Preference")
+                                    Text(LocalizedStringKey(preference.kind == "dislike" ? "Dislike" : preference.kind == "like" ? "Like" : "Preference"))
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer(minLength: 0)
@@ -1846,7 +1874,7 @@ struct GuidePreferencesSection: View {
                         .accessibilityHint("Review, correct or delete this detail")
                     }
                 } else {
-                    Text(store.guide == nil ? "Loading saved details…" : "No saved details yet.")
+                    Text(LocalizedStringKey(store.guide == nil ? "Loading saved details…" : "No saved details yet."))
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
             } label: {
@@ -1867,7 +1895,7 @@ struct GuidePreferencesSection: View {
                 }
             }
             .accessibilityIdentifier("profile.savedDetails")
-            if let error = store.guideError { Text(error).font(.footnote).foregroundStyle(.secondary) }
+            if let error = store.guideError { Text(LocalizedStringKey(error)).font(.footnote).foregroundStyle(.secondary) }
             if store.guideEditConflict {
                 Button("Load latest preferences") { Task { await store.reloadGuideAfterConflict() } }
             } else if store.pendingGuideEdit != nil {
@@ -1888,7 +1916,7 @@ struct GuidePreferencesSection: View {
                             }
                         }.disabled(store.refreshingGuide || store.pendingGuideEdit != nil)
                     }
-                    if let error = store.guideError { Text(error).foregroundStyle(.red) }
+                    if let error = store.guideError { Text(LocalizedStringKey(error)).foregroundStyle(.red) }
                 }
                 .interactiveDismissDisabled(draft != preference.text || store.pendingGuideEdit != nil || store.refreshingGuide)
                 .confirmationDialog("Discard your changes?", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -2047,14 +2075,14 @@ struct GuideSetupView: View {
                                 .accessibilityLabel("Select \(voice.capitalized) voice")
                                 .accessibilityAddTraits(draft.voice == voice ? .isSelected : [])
                                 Button { preview.toggle(voice) } label: {
-                                    Label(preview.playing == voice ? "Stop" : "Preview", systemImage: preview.playing == voice ? "stop.fill" : "play.fill")
+                                    Label(LocalizedStringKey(preview.playing == voice ? "Stop" : "Preview"), systemImage: preview.playing == voice ? "stop.fill" : "play.fill")
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityLabel("\(preview.playing == voice ? "Stop" : "Preview") \(voice.capitalized) voice")
+                                .accessibilityLabel(preview.playing == voice ? Text("Stop \(voice.capitalized) voice preview") : Text("Preview \(voice.capitalized) voice"))
                             }
                         }
                         Text("Preview, choose a voice, then Save & Done. Applies to your next Pip or translation session.").font(.footnote)
-                        if let error = preview.error { Text(error).font(.footnote).foregroundStyle(.red) }
+                        if let error = preview.error { Text(LocalizedStringKey(error)).font(.footnote).foregroundStyle(.red) }
                         Picker("Pip's tone", selection: $draft.personality) {
                             Text("Warm and friendly").tag("warm"); Text("Playful").tag("playful")
                             Text("Calm").tag("calm"); Text("Friendly and direct").tag("direct")
@@ -2080,7 +2108,7 @@ struct GuideSetupView: View {
                 }
                 .disabled(store.pending != nil)
                 }
-                if let error = store.error { Section { Text(error).foregroundStyle(.red) } }
+                if let error = store.error { Section { Text(LocalizedStringKey(error)).foregroundStyle(.red) } }
                 if store.conflict {
                     Button("Load latest choices") { Task { await store.loadLatest(); draft = store.data } }
                 } else if store.pending != nil {
@@ -2088,7 +2116,7 @@ struct GuideSetupView: View {
                 }
             }
             .disabled(store.busy)
-            .navigationTitle(voicesOnly ? "Pip’s voice" : "My travel style")
+            .navigationTitle(LocalizedStringKey(voicesOnly ? "Pip’s voice" : "My travel style"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") {
                         if hasChanges { confirmDiscard = true } else { dismiss() }
@@ -2101,7 +2129,7 @@ struct GuideSetupView: View {
                 Button(action: saveAndDone) {
                     HStack {
                         if store.busy { ProgressView() }
-                        Text(store.busy ? (store.loaded ? "Saving…" : "Loading…") : "Save & Done")
+                        Text(LocalizedStringKey(store.busy ? (store.loaded ? "Saving…" : "Loading…") : "Save & Done"))
                     }.frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -2158,7 +2186,7 @@ struct GuideBookingView: View {
                         } }.disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || notes.count > 2000 || !organizer.loaded || organizer.busy || organizer.pending != nil)
                     }.disabled(organizer.pending != nil)
                 }
-                if let error = error ?? organizer.error { Text(error).foregroundStyle(.red) }
+                if let error = error ?? organizer.error { Text(LocalizedStringKey(error)).foregroundStyle(.red) }
                 if organizer.pending != nil { Text("The save needs attention. Close this sheet and review the pending change in Trips before trying again.") }
             }
             .navigationTitle("Booking receipt")
@@ -2231,12 +2259,12 @@ struct GuideCalendarView: View {
                             error = events.isEmpty ? "No conflicts found in your selected calendars." : "These events overlap your plans:"
                         }
                         ForEach(events, id: \.eventIdentifier) { event in
-                            VStack(alignment: .leading) { Text(event.title ?? "Busy"); Text(event.startDate, style: .date); Text(event.startDate, style: .time) }
+                            VStack(alignment: .leading) { Text(event.title ?? String(localized: "Busy", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)); Text(event.startDate, style: .date); Text(event.startDate, style: .time) }
                         }
                         Button("Review and add to calendar") { editing = true }.disabled(end <= start || title.isEmpty)
                     }
                 }
-                if let error { Text(error) }
+                if let error { Text(LocalizedStringKey(error)) }
             }
             .onChange(of: start) { events = []; error = nil; if end <= start { end = start.addingTimeInterval(3600) } }
             .onChange(of: end) { events = []; error = nil }
@@ -2364,13 +2392,13 @@ struct PipPlaceCard: View {
     let place: PipPlaceResult
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(place.displayName?.text ?? "Place details").font(.headline)
+            Text(place.displayName?.text ?? String(localized: "Place details", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)).font(.headline)
             if let photo = place.photo, let url = PipPhotoLink.validURL(photo.url) {
                 PipPhotoView(photo: PipPhotoLink(url: url, caption: "Photo · Google Maps"))
                 ForEach(Array(photo.authors.enumerated()), id: \.offset) { _, author in
                     if let raw = author.uri, let url = URL(string: raw), PipContactLinks.allowed(url), url.scheme == "https" {
-                        Link(author.displayName ?? "Photo contributor", destination: url).font(.caption)
-                    } else { Text(author.displayName ?? "Photo contributor").font(.caption) }
+                        Link(author.displayName ?? String(localized: "Photo contributor", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale), destination: url).font(.caption)
+                    } else { Text(author.displayName ?? String(localized: "Photo contributor", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)).font(.caption) }
                 }
             }
             if let phone = place.internationalPhoneNumber, let url = PipContactLinks.phoneURL(phone) {

@@ -265,6 +265,13 @@
 				fr,
 				it,
 				"zh-Hans",
+				ko,
+				vi,
+				fil,
+				"fil-PH",
+				tr,
+				ar,
+				ru,
 			);
 			mainGroup = B28B7AF69320201D1CF206EB;
 			productRefGroup = FBDC4F23F93125BBEEAE800C /* Products */;

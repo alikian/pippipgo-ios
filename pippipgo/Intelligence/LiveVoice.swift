@@ -805,10 +805,10 @@ struct LiveVoiceView: View {
     private var translationControls: some View {
         VStack(spacing: 10) {
             if let error = store.error {
-                Text(error).font(.caption).foregroundStyle(.red)
+                Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.red)
             }
             if store.active {
-                Label(store.connected ? (store.microphoneReceiving ? "Translating — take turns speaking" : "Starting microphone…") : "Connecting…", systemImage: "waveform")
+                Label(LocalizedStringKey(store.connected ? (store.microphoneReceiving ? "Translating — take turns speaking" : "Starting microphone…") : "Connecting…"), systemImage: "waveform")
                     .font(.subheadline).foregroundStyle(PipAppearance.secondary)
                 if store.microphoneReceiving {
                     ProgressView(value: min(1, store.microphoneLevel * 5))
@@ -839,18 +839,18 @@ struct LiveVoiceView: View {
     private var controls: some View {
         VStack(spacing: 10) {
             if let error = store.error {
-                Text(error).font(.caption).foregroundStyle(.red)
+                Text(LocalizedStringKey(error)).font(.caption).foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if store.active {
-                Label(store.connected ? (store.microphoneReceiving ? (translating ? "Translating — take turns speaking" : (store.waitingForWelcome ? "Pip is getting ready to welcome you…" : "Listening — you can speak naturally")) : "Starting microphone…") : "Connecting…", systemImage: "waveform")
+                Label(LocalizedStringKey(store.connected ? (store.microphoneReceiving ? (translating ? "Translating — take turns speaking" : (store.waitingForWelcome ? "Pip is getting ready to welcome you…" : "Listening — you can speak naturally")) : "Starting microphone…") : "Connecting…"), systemImage: "waveform")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if store.microphoneReceiving {
                     ProgressView(value: min(1, store.microphoneLevel * 5))
                         .accessibilityLabel("Microphone input level")
                 }
                 Button(role: .destructive) { store.stop() } label: {
-                    Label(translating ? "Stop translating" : "End voice conversation", systemImage: translating ? "stop.fill" : "phone.down.fill")
+                    Label(LocalizedStringKey(translating ? "Stop translating" : "End voice conversation"), systemImage: translating ? "stop.fill" : "phone.down.fill")
                         .frame(maxWidth: .infinity)
                 }.buttonStyle(.borderedProminent).tint(.red).controlSize(.large)
             } else {

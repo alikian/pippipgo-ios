@@ -75,3 +75,7 @@ Use CloudFormation `Environment=dev` or `prod`. Dev retains its existing pool/ta
 ## Web app — October 4, 2026
 
 The user requested full mobile-friendly web functionality: Prod is `https://pippipgo.com/app`; Dev is `https://dev.pippipgo.com/app`, a separately hosted web app. APIs remain api.pippipgo.com and api-dev.pippipgo.com. The previously removed Dev API alias is now reused solely for the Dev website. Preserve environment isolation and additive mobile/admin callbacks. See backend infra/web-hosting.md for rollout and acceptance boundaries.
+
+## On-demand Full Test
+
+When the user asks to run the **Full Test**, use `python3 scripts/full_test.py run` and `docs/full-test.md`. Never schedule it or run it solely because app code changed. Reuse its local Appium server/session/helper between runs. Explicit `teardown` is for requested cleanup or before rebuilding/reinstalling the tested app. Preserve real user data; report manual/test-account coverage separately. Do not equate automated navigation success with complete acceptance.

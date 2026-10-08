@@ -152,7 +152,7 @@ struct TranslationLanguageBar: View {
                     .background(.blue.opacity(0.06), in: Circle())
             }
             .accessibilityLabel("Swap languages")
-            .accessibilityValue(pair.listenOnly ? "Translation from their language to yours" : "Two-way translation")
+            .accessibilityValue(LocalizedStringKey(pair.listenOnly ? "Translation from their language to yours" : "Two-way translation"))
             languageMenu(title: "They speak", selection: pair.theirs) { code in
                 update(mine: code == pair.mine.code ? pair.theirs.code : pair.mine.code, theirs: code)
             }
@@ -165,14 +165,14 @@ struct TranslationLanguageBar: View {
         Menu {
             ForEach(TranslationLanguage.all) { language in
                 Button { choose(language.code) } label: {
-                    if language == selection { Label(language.name, systemImage: "checkmark") }
-                    else { Text(language.name) }
+                    if language == selection { Label(LocalizedStringKey(language.name), systemImage: "checkmark") }
+                    else { Text(LocalizedStringKey(language.name)) }
                 }
             }
         } label: {
             VStack(spacing: 5) {
                 HStack(spacing: 6) {
-                    Text(selection.code == "fa" ? "Farsi" : selection.name)
+                    Text(LocalizedStringKey(selection.name))
                         .font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
                     Image(systemName: "chevron.down").font(.caption2.weight(.bold))
                 }
@@ -184,7 +184,7 @@ struct TranslationLanguageBar: View {
             .shadow(color: PipAppearance.navy.opacity(0.04), radius: 10, y: 4)
         }
         .accessibilityLabel(Text(title))
-        .accessibilityValue(Text(selection.name))
+        .accessibilityValue(Text(LocalizedStringKey(selection.name)))
     }
 
     private func update(mine: String, theirs: String) {
@@ -244,7 +244,9 @@ struct TranslationHeadphoneControl: View {
                     .foregroundStyle(pair.listenOnly ? .blue : PipAppearance.secondary)
                 }
                 .accessibilityLabel("Headphone mode")
-                .accessibilityValue("\(headphonesConnected ? "Headphones or Bluetooth audio connected" : "No headphone output"). Headphone mode \(pair.listenOnly ? "on" : "off")")
+                .accessibilityValue(LocalizedStringKey(headphonesConnected
+                    ? (pair.listenOnly ? "Headphones connected. Headphone mode on." : "Headphones connected. Headphone mode off.")
+                    : (pair.listenOnly ? "No headphone output. Headphone mode on." : "No headphone output. Headphone mode off.")))
                 .accessibilityHint("Translate only their speech into your language")
             }
         }
@@ -283,7 +285,7 @@ struct TranslationLanding: View {
                     .padding(12).background(.blue.opacity(0.05), in: Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(store.active ? "Stop translating" : "Start translation")
+            .accessibilityLabel(LocalizedStringKey(store.active ? "Stop translating" : "Start translation"))
             .padding(.top, -20)
 
         }

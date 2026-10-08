@@ -162,7 +162,7 @@ struct ConversationLocationView: View {
                         .font(.caption2).foregroundStyle(.secondary)
                 }
             } else {
-                Text(store.isUpdating ? "Finding your nearby address…" : explanation).font(.caption2).foregroundStyle(.secondary)
+                Text(LocalizedStringKey(store.isUpdating ? "Finding your nearby address…" : explanation)).font(.caption2).foregroundStyle(.secondary)
             }
             if ["permission_denied", "approximate"].contains(store.context?.location_status ?? "") {
                 Button("Open location settings") {

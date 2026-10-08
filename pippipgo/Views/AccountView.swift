@@ -9,7 +9,7 @@ struct AccountDeletionErrorView: View {
         ContentUnavailableView {
             Label("Account deletion incomplete", systemImage: "exclamationmark.triangle")
         } description: {
-            Text(message)
+            Text(LocalizedStringKey(message))
         } actions: {
             Button("Retry deletion", role: .destructive, action: retry)
                 .accessibilityIdentifier("account.retryDeletion")
@@ -34,7 +34,7 @@ struct AccountErrorView: View {
             ContentUnavailableView {
                 Label("Account unavailable", systemImage: "wifi.exclamationmark")
             } description: {
-                Text(message)
+                Text(LocalizedStringKey(message))
             } actions: {
                 Button("Try again", action: retry).buttonStyle(.borderedProminent)
                 Button("Sign out", role: .destructive, action: signOut)

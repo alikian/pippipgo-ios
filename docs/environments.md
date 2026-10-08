@@ -3,15 +3,15 @@
 # Local, Dev and Prod builds
 
 Choose **Local**, **Dev** or **Prod** in Xcode's scheme picker, choose a device,
-then Run. A compact badge at the top of the app shows **Build: Local**, **Build: Dev** or **Build: Prod**,
-including before sign-in. The label describes the build, not server availability. Each scheme uses its matching configuration for Run, Test, Profile,
+then Run. A compact badge at the top of the app shows **Environment: Local**, **Environment: Dev** or **Environment: Production**,
+including before sign-in. The localized label identifies the configured backend environment; it is not a live server-availability indicator. Each scheme uses its matching configuration for Run, Test, Profile,
 Analyze and Archive. This is a build-time choice; switching requires rebuilding
 and installing. The old `pippipgo` scheme and Debug/Release configuration names
 have been replaced. The project, target and Swift module remain `pippipgo`.
 
 | Scheme | Home-screen name | API base URL | Status |
 | --- | --- | --- | --- |
-| Local | PipPipGo Local | Simulator: `http://localhost:8765`; device: `http://192.168.0.156:8765` | Uses the Mac backend, existing Cognito and development DynamoDB |
+| Local | PipPipGo Local | Simulator: `http://localhost:8765`; device: `http://192.168.0.208:8765` | Uses the Mac backend, existing Cognito and development DynamoDB |
 | Dev | PipPipGo Dev | `https://api-dev.pippipgo.com` | Hosted Dev API deployed |
 | Prod | PipPipGo | `https://api.pippipgo.com` | Hosted Prod deployed; generated identity configured |
 
@@ -105,3 +105,11 @@ and matching Cognito settings before release. Both repositories default to `deve
 Production was provisioned September 30. Generated public client `23sk8qfmpotjj40jbnl9tn33em` is configured locally; the signed Prod build and eight Prod simulator configuration tests pass. See backend `infra/prod-deployment.md`. No physical installation was performed. Independent Prod provider secrets still require keys.
 
 Xcode Cloud setup, automatic build numbers and Prod identity generation in fresh checkouts are documented in [iOS CI/CD](ios-ci-cd.md).
+
+October 8 environment-badge restoration: reused `BuildEnvironmentIndicator` at the
+root above primary screens, including before sign-in. It reads the validated
+`AppConfiguration.live.environment` and shows Local, Dev or Production with localized
+labels. Signed Local build 30 installed after rechecking Cloud 29. Signing and three
+catalog checks passed; Appium confirmed the Local badge in Pip, Profile, Translate
+and Trips, and a Translate screenshot was inspected. Current Spanish selection
+preserved. No backend deployment required. Full Test was not run.

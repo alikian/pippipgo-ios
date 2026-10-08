@@ -27,7 +27,7 @@ struct PipHomeView: View {
                                 Text("Hi there").font(.title2.bold()).accessibilityIdentifier("pip.greeting")
                                 Button("Add your preferred name") { showMemory = true }.font(.subheadline)
                             }
-                            Text(store.loaded && store.needsIntroduction ? "Let's get to know you" : "A little less planning.\nA little more exploring.").font(.largeTitle.bold())
+                            Text(LocalizedStringKey(store.loaded && store.needsIntroduction ? "Let's get to know you" : "A little less planning.\nA little more exploring.")).font(.largeTitle.bold())
                             Text("I'm Pip. Let's make this trip feel like you.").foregroundStyle(.secondary)
                         }
                     }.padding(.top, 16)
@@ -146,11 +146,11 @@ struct TravelerIntroductionView: View {
                     } else {
                         TextField("Type or speak…", text: $store.introductionAnswer, axis: .vertical)
                             .lineLimit(3...8).disabled(store.busy || store.hasPending).padding().background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
-                        Button(speech.recording ? "Stop" : "Speak", systemImage: speech.recording ? "stop.circle" : "mic") {
+                        Button(LocalizedStringKey(speech.recording ? "Stop" : "Speak"), systemImage: speech.recording ? "stop.circle" : "mic") {
                             if speech.recording { speech.stop() }
                             else { let prefix = store.introductionAnswer; Task { await speech.start(language: language) { store.introductionAnswer = prefix.isEmpty ? $0 : prefix + " " + $0 } } }
                         }
-                        if let error = speech.error { Text(error).font(.caption) }
+                        if let error = speech.error { Text(LocalizedStringKey(error)).font(.caption) }
                         Button("Continue") { speech.stop(); Task { await store.introduce(language: language) } }
                             .buttonStyle(.borderedProminent).disabled(store.busy || store.hasPending || store.introduction == nil || store.introductionAnswer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         Button("Skip for now") {
@@ -190,7 +190,7 @@ struct PipErrorView: View {
     var body: some View {
         if let error = store.error {
             VStack(alignment: .leading, spacing: 12) {
-                Text(error).foregroundStyle(.red)
+                Text(LocalizedStringKey(error)).foregroundStyle(.red)
                 if let conflict = store.conflict {
                     Text("This trip changed elsewhere. Your draft is still here.").font(.headline)
                     Text("Saved destination: \(conflict.data.intake.destination)")
@@ -231,9 +231,9 @@ struct TripIntakeView: View {
     private var locked: Bool { store.busy || store.hasPending }
     private var destination: String { store.draft.destination.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var heading: String {
-        let place = destination.isEmpty ? String(localized: "your next trip") : destination
-        if let name = store.preferredName { return String(localized: "\(name), let's plan \(place)") }
-        return String(localized: "Let's plan \(place)")
+        let place = destination.isEmpty ? String(localized: "your next trip", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale) : destination
+        if let name = store.preferredName { return String(localized: "\(name), let's plan \(place)", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale) }
+        return String(localized: "Let's plan \(place)", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)
     }
     private var activeAnswer: Binding<String> {
         Binding(get: { answeringFollowup ? answer : store.draft.existing_plans }, set: { text in
@@ -278,17 +278,17 @@ struct TripIntakeView: View {
                                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
                                 .accessibilityIdentifier("intake.answer")
                             inputLayout {
-                                Button(speech.recording ? "Stop" : "Speak", systemImage: speech.recording ? "stop.circle" : "mic") {
+                                Button(LocalizedStringKey(speech.recording ? "Stop" : "Speak"), systemImage: speech.recording ? "stop.circle" : "mic") {
                                     if speech.recording { speech.stop() }
                                     else { let prefix = activeAnswer.wrappedValue; Task { await speech.start(language: store.draft.language) { activeAnswer.wrappedValue = prefix.isEmpty ? $0 : prefix + " " + $0 } } }
                                 }
                                 Button("Upload", systemImage: "paperclip") { Task { await upload() } }
                                 if !answeringFollowup {
-                                    Button("Nothing yet") { store.draft.existing_plans = String(localized: "Nothing booked or decided yet."); Task { await continueConversation() } }.foregroundStyle(.secondary)
+                                    Button("Nothing yet") { store.draft.existing_plans = String(localized: "Nothing booked or decided yet.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); Task { await continueConversation() } }.foregroundStyle(.secondary)
                                 }
                             }.font(.subheadline)
                             }
-                            if let message = speech.error { Text(message).font(.caption).foregroundStyle(.secondary) }
+                            if let message = speech.error { Text(LocalizedStringKey(message)).font(.caption).foregroundStyle(.secondary) }
                             if answeringFollowup && needsTravelMode {
                                 ViewThatFits(in: .horizontal) {
                                     HStack { travelChoices }
@@ -309,7 +309,7 @@ struct TripIntakeView: View {
                             }
                         }.disabled(locked)
                     }
-                    if let inputNotice { Text(inputNotice).font(.caption).foregroundStyle(.secondary) }
+                    if let inputNotice { Text(LocalizedStringKey(inputNotice)).font(.caption).foregroundStyle(.secondary) }
                     PipErrorView(store: store)
                     if store.busy { ProgressView("Pip is thinking…") }
                 }.padding(22)
@@ -321,7 +321,7 @@ struct TripIntakeView: View {
                 Button {
                     Task { if let item = proposedImports.first { review = item } else if readyToPlan { await makePlan() } else { await continueConversation() } }
                 } label: {
-                    Text(!proposedImports.isEmpty ? "Review imported details" : readyToPlan ? "Create a lightweight plan" : "Continue").font(.headline).frame(maxWidth: .infinity).padding(12)
+                    Text(LocalizedStringKey(!proposedImports.isEmpty ? "Review imported details" : readyToPlan ? "Create a lightweight plan" : "Continue")).font(.headline).frame(maxWidth: .infinity).padding(12)
                 }.buttonStyle(.borderedProminent)
                     .disabled(locked || destination.isEmpty)
                     .padding(.horizontal, 22).padding(.vertical, 10).background(.regularMaterial)
@@ -364,7 +364,7 @@ struct TripIntakeView: View {
     private var tripTiming: String {
         let timing = [store.draft.start_date, store.draft.end_date].compactMap { $0 }.joined(separator: " – ")
         let when = timing.isEmpty ? store.draft.approximate_dates : timing
-        let days = store.draft.duration_days.map { String(localized: "\($0) days") } ?? ""
+        let days = store.draft.duration_days.map { String(localized: "\($0) days", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale) } ?? ""
         return [when, days].filter { !$0.isEmpty }.joined(separator: " · ")
     }
     @ViewBuilder private var travelChoices: some View {
@@ -416,7 +416,7 @@ struct TripIntakeView: View {
         speech.stop()
         let response = activeAnswer.wrappedValue.isEmpty && !answeringFollowup && hasReviewedBooking ? "Use the booking details I reviewed and confirmed." : activeAnswer.wrappedValue
         guard !response.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            inputNotice = String(localized: "Tell Pip a little, add a booking, or choose Nothing yet."); return
+            inputNotice = String(localized: "Tell Pip a little, add a booking, or choose Nothing yet.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); return
         }
         inputNotice = nil
         if store.draft.start_date == nil && store.draft.approximate_dates.localizedCaseInsensitiveContains("long weekend") {
@@ -494,11 +494,11 @@ final class IntakeSpeech {
         let ticket = generation
         let speechPermission = await withCheckedContinuation { continuation in SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) } }
         guard ticket == generation else { return }
-        guard speechPermission == .authorized else { error = String(localized: "Allow speech recognition in Settings, or type your answer."); return }
+        guard speechPermission == .authorized else { error = String(localized: "Allow speech recognition in Settings, or type your answer.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); return }
         let microphone = await withCheckedContinuation { continuation in AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) } }
         guard ticket == generation else { return }
-        guard speechPermission == .authorized && microphone else { error = String(localized: "Allow microphone and speech recognition in Settings, or type your answer."); return }
-        guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)), recognizer.isAvailable else { error = String(localized: "Speech isn't available right now. You can still type."); return }
+        guard speechPermission == .authorized && microphone else { error = String(localized: "Allow microphone and speech recognition in Settings, or type your answer.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); return }
+        guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)), recognizer.isAvailable else { error = String(localized: "Speech isn't available right now. You can still type.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); return }
         do {
             let session = AVAudioSession.sharedInstance(); try session.setCategory(.record, mode: .measurement); try session.setActive(true)
             let engine = AVAudioEngine(); let request = SFSpeechAudioBufferRecognitionRequest(); request.shouldReportPartialResults = true
@@ -514,7 +514,7 @@ final class IntakeSpeech {
                 }
             }
             engine.prepare(); try engine.start(); recording = true
-        } catch { self.error = String(localized: "Couldn't start the microphone. You can still type."); stop() }
+        } catch { self.error = String(localized: "Couldn't start the microphone. You can still type.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); stop() }
     }
     func stop() {
         generation = UUID(); recording = false
@@ -551,7 +551,7 @@ struct PipTripView: View {
                             }
                             if tab == "conversation" {
                                 if let progress = trip.data.conversation, trip.data.plan.isEmpty && trip.data.proposal == nil {
-                                    Button(progress.next_step == "review_import" ? "Review imported details" : "Continue planning") { store.edit(trip); showIntake = true }
+                                    Button(LocalizedStringKey(progress.next_step == "review_import" ? "Review imported details" : "Continue planning")) { store.edit(trip); showIntake = true }
                                 }
                                 if trip.data.messages.isEmpty {
                                     Text("🦆 Hi, I'm Pip.").font(.title2.bold())
@@ -562,7 +562,7 @@ struct PipTripView: View {
                                 }
                                 ForEach(trip.data.messages) { message in
                                     VStack(alignment: .leading, spacing: 8) {
-                                        Text(message.role == "pip" ? "Pip 🦆" : "You").font(.caption.bold()).foregroundStyle(.secondary)
+                                        Text(LocalizedStringKey(message.role == "pip" ? "Pip 🦆" : "You")).font(.caption.bold()).foregroundStyle(.secondary)
                                         Text(message.text).textSelection(.enabled)
                                         ForEach(message.memory_observations ?? [], id: \.self) { observation in
                                             Button { memorySuggestion = observation; showMemory = true } label: { Text("Remember this? \(observation)") }.font(.caption)
@@ -684,7 +684,7 @@ struct ImportView: View {
                     PhotosPicker(selection: $photo, matching: .images) { Label("Choose photo", systemImage: "photo") }
                     Button("Choose PDF or DOCX", systemImage: "doc") { pickFile = true }
                     if let file { Text(file.filename) }
-                    if let message { Text(message).foregroundStyle(.red) }
+                    if let message { Text(LocalizedStringKey(message)).foregroundStyle(.red) }
                 }
                 Button("Extract for review") {
                     Task {
@@ -701,7 +701,7 @@ struct ImportView: View {
                         let url = try result.get(); let access = url.startAccessingSecurityScopedResource()
                         defer { if access { url.stopAccessingSecurityScopedResource() } }
                         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-                        guard size <= 5_000_000 else { message = String(localized: "Please use a file smaller than 5 MB."); return }
+                        guard size <= 5_000_000 else { message = String(localized: "Please use a file smaller than 5 MB.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); return }
                         let data = try Data(contentsOf: url)
                         file = PipImportRequest(filename: url.lastPathComponent, content_base64: data.base64EncodedString())
                     } catch { message = error.localizedDescription }
@@ -710,7 +710,7 @@ struct ImportView: View {
                     Task {
                         do {
                             if let data = try await selection?.loadTransferable(type: Data.self), let image = UIImage(data: data), let jpeg = image.jpegData(compressionQuality: 0.7) {
-                                guard jpeg.count <= 5_000_000 else { message = String(localized: "Please use a file smaller than 5 MB."); return }
+                                guard jpeg.count <= 5_000_000 else { message = String(localized: "Please use a file smaller than 5 MB.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale); return }
                                 file = PipImportRequest(filename: "Photo.jpg", content_base64: jpeg.base64EncodedString())
                             }
                         } catch { message = error.localizedDescription }
@@ -889,7 +889,7 @@ struct DoorToDoorView: View {
                         Text("Review local dates, times and time zones before saving. Leave unknown fields blank; your plan will stay provisional.").font(.caption)
                     }
                     Section {
-                        Button(showTransfers ? "Hide transfers for now" : "Next: airport transfers") { showTransfers.toggle() }
+                        Button(LocalizedStringKey(showTransfers ? "Hide transfers for now" : "Next: airport transfers")) { showTransfers.toggle() }
                     }
                     if showTransfers {
                     Section("What ground transportation is already arranged?") {
@@ -1022,7 +1022,7 @@ struct DetailedTripContextView: View {
                         }
                         Button("Add traveler", systemImage: "person.badge.plus") { store.draft.travelers.append(TripTraveler()) }
                         ForEach(store.travelers) { saved in
-                            Button(saved.data.name.isEmpty ? String(localized: "Saved traveler") : saved.data.name) {
+                            Button(saved.data.name.isEmpty ? String(localized: "Saved traveler", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale) : saved.data.name) {
                                 var person = saved.data; person.id = UUID(); person.saved_traveler_id = UUID(uuidString: saved.id)
                                 store.draft.travelers.append(person)
                             }
@@ -1058,7 +1058,7 @@ struct DetailedTripContextView: View {
                     if step < 2 {
                         Button("Continue") { step += 1 }.disabled(store.draft.destination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    Button(step < 2 ? "Save trip; add details later" : "Save trip") {
+                    Button(LocalizedStringKey(step < 2 ? "Save trip; add details later" : "Save trip")) {
                         Task { await store.saveIntake(); if store.pending == nil && store.error == nil { dismiss() } }
                     }.disabled(store.draft.destination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
@@ -1067,7 +1067,7 @@ struct DetailedTripContextView: View {
             }
             .disabled(locked)
             .safeAreaInset(edge: .bottom) { if store.error != nil { PipErrorView(store: store).padding() } }
-            .navigationTitle(step == 0 ? "Your trip" : step == 1 ? "Traveling together" : "Make room for what matters")
+            .navigationTitle(LocalizedStringKey(step == 0 ? "Your trip" : step == 1 ? "Traveling together" : "Make room for what matters"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
                 if step > 1 { ToolbarItem(placement: .topBarLeading) { Button("Back") { step -= 1 } } }

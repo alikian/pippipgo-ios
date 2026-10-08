@@ -22,7 +22,7 @@ struct WelcomeView: View {
                             .multilineTextAlignment(.center)
                     }
                     if let errorMessage {
-                        Text(errorMessage)
+                        Text(LocalizedStringKey(errorMessage))
                             .font(.callout)
                             .foregroundStyle(.red)
                             .multilineTextAlignment(.center)
