@@ -384,7 +384,7 @@
 				DEVELOPMENT_TEAM = U47SMLD234;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "pippipgo/Resources/Release-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "PipPipGo Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PIPPIPGO_DISPLAY_NAME)";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PipPipGo uses your location, including precise coordinates when allowed, for nearby travel suggestions and conversation context shared with OpenAI.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.";
@@ -476,7 +476,7 @@
 				DEVELOPMENT_TEAM = U47SMLD234;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "pippipgo/Resources/Debug-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "PipPipGo Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PIPPIPGO_DISPLAY_NAME)";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PipPipGo uses your location, including precise coordinates when allowed, for nearby travel suggestions and conversation context shared with OpenAI.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.";
@@ -505,7 +505,7 @@
 				DEVELOPMENT_TEAM = U47SMLD234;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "pippipgo/Resources/Release-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "PipPipGo Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PIPPIPGO_DISPLAY_NAME)";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "PipPipGo uses your location, including precise coordinates when allowed, for nearby travel suggestions and conversation context shared with OpenAI.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.";

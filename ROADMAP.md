@@ -341,3 +341,7 @@ October 8 visual Profile: replaced the industrial list with a cream photo/name/P
 ### October 8 — GitHub synchronization
 
 Committed and pushed accumulated improvements to develop: iOS 0f6a0b8, backend 0fde3b1. Both branches matched origin after push; web was clean. Latest local validation remains recorded above; backend push triggers automatic Dev deployment, whose result has not been verified. Hosted rollout completion and physical acceptance remain separate. Prod is unchanged.
+
+### October 8 — Xcode Cloud archive repair
+
+Build 27 was canceled; build 28 compiled/exported but failed the post-build release validator because a project override named the Prod app PipPipGo Dev. Restored the existing environment-driven display-name setting (Prod PipPipGo, Dev PipPipGo Dev, Local PipPipGo Local). Latest Cloud build 28 verified before setting local fallback 29. Signed Prod build, exact release validator and codesign verification passed locally using the Cloud public identity setup; Cloud rerun and TestFlight acceptance remain pending. No backend deployment required.
