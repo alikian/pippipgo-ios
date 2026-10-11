@@ -139,7 +139,7 @@ final class OrganizerStore {
     }
 }
 
-enum AppTab: String, Hashable { case pip, translate, profile, language }
+enum AppTab: String, Hashable { case pip, guide, translate, profile }
 enum PipMode: String, Hashable { case chat, voice }
 
 /// Signed-in shell: one tab per top-level destination. Editors are modal tasks owned here so
@@ -162,15 +162,15 @@ struct TravelOrganizerView: View {
             PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
                 .tabItem { Label("Pip", systemImage: "bubble.left.and.bubble.right") }
                 .tag(AppTab.pip)
+            LiveGuideTab(guide: chat.liveGuide)
+                .tabItem { Label("Live Guide", systemImage: "binoculars") }
+                .tag(AppTab.guide)
             TranslateTab(store: chat.translator)
                 .tabItem { Label("Translate", systemImage: "translate") }
                 .tag(AppTab.translate)
             ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, askPip: { pipMode = .chat; tab = .pip }, signOut: signOut, deleteAccount: deleteAccount)
                 .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                 .tag(AppTab.profile)
-            AppLanguageSelectionView()
-                .tabItem { Label("Language", systemImage: "globe") }
-                .tag(AppTab.language)
         }
         .tint(.blue)
         .toolbarBackground(PipAppearance.cream, for: .tabBar)
@@ -179,6 +179,12 @@ struct TravelOrganizerView: View {
         .sheet(item: $editor) { kind in OrganizerEditor(store: store, kind: kind) }
         .onChange(of: TalkToPipLaunch.shared.requestID, initial: true) { _, _ in handleVoiceLaunch() }
         .onChange(of: scenePhase) { _, _ in handleVoiceLaunch() }
+        // A live session (billed while open) never carries over into or out of the Live Guide;
+        // there it starts only from the Talk button.
+        .onChange(of: tab) { old, new in
+            if chat.voice.active && (old == .guide || new == .guide) { chat.voice.stop() }
+        }
+        .onChange(of: scenePhase, initial: true) { _, phase in chat.liveGuide.setForeground(phase == .active) }
         .onChange(of: editor?.id) { _, _ in handleVoiceLaunch() }
         .onChange(of: reviewingTrip?.id) { _, _ in handleVoiceLaunch() }
         .onChange(of: chat.busy) { _, _ in handleVoiceLaunch() }
@@ -186,7 +192,7 @@ struct TravelOrganizerView: View {
         .onChange(of: chat.translator.active) { _, _ in handleVoiceLaunch() }
         // The microphone is only ever live while the Talk to Pip page is on screen.
         .onChange(of: chat.voice.active) { _, active in
-            if active && !(tab == .pip && pipMode == .voice) { chat.voice.stop(clearCaptions: true) }
+            if active && !((tab == .pip && pipMode == .voice) || tab == .guide) { chat.voice.stop(clearCaptions: true) }
         }
     }
     private func handleVoiceLaunch() {
@@ -492,25 +498,13 @@ struct PipTab: View {
                         lastVoiceEntry = Date()
                         chat.voice.start()
                     }
-                    if !editingText {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                suggestion("Plan a trip", icon: "suitcase", action: planTrip)
-                                suggestion("Translate for me", icon: "translate", action: openTranslation)
-                                suggestion("Find something fun nearby", icon: "sparkles") {
-                                    mode = .chat
-                                    chat.composer = "Find something fun nearby"
-                                }
-                                .disabled(chat.busy || chat.pending != nil || chat.translator.active || !chat.composer.isEmpty)
-                            }.padding(.horizontal, 16)
-                        }
-                        .padding(.bottom, 12)
-                    }
+                    // Trips, Translate and the Live Guide have their own tabs; no duplicate shortcuts.
+                    Color.clear.frame(height: 8)
                 }.background(PipAppearance.cream)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Text("PipPipGo").font(.subheadline.weight(.semibold)).fixedSize().foregroundStyle(PipAppearance.navy)
+                    AppLanguageMenu()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
@@ -665,12 +659,9 @@ struct ProfileTab: View {
                         ProfileIconTile(title: "Travel style", symbol: "sparkles", color: .purple) { choicesSaved = false; travelStyle = true }
                         ProfileIconTile(title: "Companions", symbol: "person.2.fill", color: .orange) { destination = .companions }
                             .disabled(!store.loaded)
-                        ProfileIconTile(title: "Plan a trip", symbol: "suitcase.rolling.fill", color: .teal) { editor = .trip(UUID()) }
-                            .disabled(!store.loaded)
                         ProfileIconTile(title: "Bookings", symbol: "ticket.fill", color: .pink) { booking = true }
                         ProfileIconTile(title: "Calendars", symbol: "calendar", color: .red) { calendars = true }
                         ProfileIconTile(title: "About you", symbol: "folder.fill", color: .indigo) { destination = .memories }
-                        ProfileIconTile(title: "Nearby", symbol: "location.fill", color: .green) { destination = .nearby }
                         ProfileIconTile(title: "Settings", symbol: "gearshape.fill", color: .gray) { destination = .settings }
                     }
                     if choicesSaved {
@@ -1132,6 +1123,8 @@ final class TravelChatStore {
     /// Two-way interpreter; shares no traveler context with the backend session.
     let translator: LiveVoiceStore
     let locationDisplay: CurrentLocationStore
+    /// Opt-in live local guide; speaks through Talk to Pip when a session is open.
+    let liveGuide: LiveGuideStore
     var messages: [TravelChatMessage] = []
     var guide: GuideData?
     var guideError: String?
@@ -1164,13 +1157,17 @@ final class TravelChatStore {
         self.client = client; self.authentication = authentication
         let display = CurrentLocationStore(capture: captureContext)
         self.locationDisplay = display
-        self.voice = LiveVoiceStore(client: client, authentication: authentication, locationDisplay: display)
-        self.translator = LiveVoiceStore(client: client, authentication: authentication, mode: .translate(.saved()))
+        let voice = LiveVoiceStore(client: client, authentication: authentication, locationDisplay: display)
+        let translator = LiveVoiceStore(client: client, authentication: authentication, mode: .translate(.saved()))
+        self.voice = voice
+        self.translator = translator
+        self.liveGuide = LiveGuideStore(client: client, authentication: authentication, voice: voice, translator: translator)
     }
     func reset() {
         setup.reset()
         voice.stop(clearCaptions: true)
         translator.stop(clearCaptions: true)
+        liveGuide.reset()
         locationDisplay.reset()
         conversationContext = nil; capturingLocation = false
         guide = nil; guideError = nil; refreshingGuide = false; pendingGuideEdit = nil; guideEditConflict = false; displaySince = Date()
@@ -1540,7 +1537,13 @@ struct ChatMarkdownBlock: Identifiable, Equatable {
 struct ChatMarkdownView: View {
     let text: String
     private var displayText: String {
-        text.replacingOccurrences(of: "According to Google Maps, ", with: "")
+        text.components(separatedBy: "\n")
+            .filter { line in
+                let plain = line.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "*_()[]"))
+                return !(plain.hasPrefix("Place data: Google") || plain.hasPrefix("Source: Google") || plain.hasPrefix("Photo: Google"))
+            }
+            .joined(separator: "\n")
+            .replacingOccurrences(of: "According to Google Maps, ", with: "")
             .replacingOccurrences(of: "According to Google Maps", with: "")
             .replacingOccurrences(of: "Google Maps directions", with: "Apple Maps directions")
     }
@@ -2048,9 +2051,6 @@ struct GuideSetupView: View {
                 if !voicesOnly {
                     Section {
                         Text("Help Pip learn how you like to travel, so ideas for destinations, local gems and activities feel more like you. Share in your own words, or skip anything.")
-                        TextField("What should Pip call you?", text: $draft.preferred_name)
-                        TextField("Home city", text: $draft.home_city)
-                        TextField("Hobbies and fun", text: $draft.hobbies, axis: .vertical)
                         TextField("When you're not working…", text: $draft.free_time, axis: .vertical)
                         TextField("Work (optional)", text: $draft.work, axis: .vertical)
                         TextField("What are you curious about?", text: $draft.curiosities, axis: .vertical)
@@ -2371,7 +2371,7 @@ struct PipPhotoView: View {
                     Text("Photo unavailable").font(.caption).foregroundStyle(.secondary)
                 } else { ProgressView().frame(height: 60) }
             }
-            Text(photo.caption).font(.caption).foregroundStyle(.secondary)
+            if !photo.caption.isEmpty { Text(photo.caption).font(.caption).foregroundStyle(.secondary) }
         }
     }
 }
@@ -2390,28 +2390,52 @@ struct PipPlaceResult: Decodable, Identifiable {
 
 struct PipPlaceCard: View {
     let place: PipPlaceResult
+    private var phone: URL? { place.internationalPhoneNumber.flatMap(PipContactLinks.phoneURL) }
+    private var website: URL? {
+        guard let raw = place.websiteUri, let url = URL(string: raw), ["https", "http"].contains(url.scheme ?? ""), PipContactLinks.allowed(url) else { return nil }
+        return url
+    }
+    /// Opens the place in Google Maps; also the compact attribution Google's terms ask for.
+    private var map: URL? {
+        guard let raw = place.googleMapsUri, let url = URL(string: raw), url.scheme == "https", PipContactLinks.allowed(url) else { return nil }
+        return url
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(place.displayName?.text ?? String(localized: "Place details", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)).font(.headline)
             if let photo = place.photo, let url = PipPhotoLink.validURL(photo.url) {
-                PipPhotoView(photo: PipPhotoLink(url: url, caption: "Photo · Google Maps"))
-                ForEach(Array(photo.authors.enumerated()), id: \.offset) { _, author in
-                    if let raw = author.uri, let url = URL(string: raw), PipContactLinks.allowed(url), url.scheme == "https" {
-                        Link(author.displayName ?? String(localized: "Photo contributor", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale), destination: url).font(.caption)
-                    } else { Text(author.displayName ?? String(localized: "Photo contributor", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)).font(.caption) }
+                PipPhotoView(photo: PipPhotoLink(url: url, caption: ""))
+                // Google requires the photographer's credit to stay with the photo.
+                if let author = photo.authors.first?.displayName {
+                    Text(verbatim: author).font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            if let phone = place.internationalPhoneNumber, let url = PipContactLinks.phoneURL(phone) {
-                Link(destination: url) { Label(phone, systemImage: "phone") }.font(.subheadline)
-            }
-            if let raw = place.websiteUri, let url = URL(string: raw), ["https", "http"].contains(url.scheme ?? ""), PipContactLinks.allowed(url) {
-                Link("Website", destination: url)
-            }
-            if let raw = place.googleMapsUri, let url = URL(string: raw), url.scheme == "https", PipContactLinks.allowed(url) {
-                Link("Source: Google Maps", destination: url).font(.caption)
+            if phone != nil || website != nil || map != nil {
+                HStack(spacing: 14) {
+                    if let phone { PipContactIcon(symbol: "phone.fill", label: "Call", url: phone) }
+                    if let website { PipContactIcon(symbol: "globe", label: "Website", url: website) }
+                    if let map { PipContactIcon(symbol: "map.fill", label: "Open in Maps", url: map) }
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading).padding(14)
         .background(.background, in: RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+/// One large, tappable contact icon (call, website, map) instead of spelled-out details.
+struct PipContactIcon: View {
+    let symbol: String
+    let label: LocalizedStringKey
+    let url: URL
+    var body: some View {
+        Link(destination: url) {
+            Image(systemName: symbol)
+                .font(.title2)
+                .frame(width: 52, height: 52)
+                .background(PipAppearance.navy.opacity(0.08), in: Circle())
+                .foregroundStyle(PipAppearance.navy)
+        }
+        .accessibilityLabel(label)
     }
 }

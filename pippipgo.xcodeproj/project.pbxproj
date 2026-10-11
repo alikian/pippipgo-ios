@@ -7,11 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AB1070000000000000000001 /* VoicePreviews in Resources */ = {isa = PBXBuildFile; fileRef = AB1070000000000000000002 /* VoicePreviews */; };
-		AB1060000000000000000001 /* PipStartup.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1060000000000000000002 /* PipStartup.wav */; };
 		079A596F004B80CE9ACD0DFB /* pippipgo/Views/WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCE157C7AAA02B8867AD4C2 /* pippipgo/Views/WelcomeView.swift */; };
 		115C62EF751601B1BEB250C6 /* pippipgo/Networking/APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0FB40147CE94E8F6D0F626A /* pippipgo/Networking/APIClient.swift */; };
 		13942DEE7CC5ED9161D3E70E /* pippipgoTests/OAuthCallbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29707B315ECB0F7B45832291 /* pippipgoTests/OAuthCallbackTests.swift */; };
+		1A7E5C0D2B3F4A5B6C7D8E01 /* pippipgo/Intelligence/LiveGuideEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7E5C0D2B3F4A5B6C7D8E02 /* pippipgo/Intelligence/LiveGuideEngine.swift */; };
+		1A7E5C0D2B3F4A5B6C7D8E03 /* pippipgo/Intelligence/LiveGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7E5C0D2B3F4A5B6C7D8E04 /* pippipgo/Intelligence/LiveGuide.swift */; };
+		1A7E5C0D2B3F4A5B6C7D8E05 /* pippipgoTests/LiveGuideEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7E5C0D2B3F4A5B6C7D8E06 /* pippipgoTests/LiveGuideEngineTests.swift */; };
 		524E5E91DE125A8D0B37CD8B /* pippipgo/Models/APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4D02ED4FA0119EDDAEB31A /* pippipgo/Models/APIModels.swift */; };
 		5DEBF9C2EB36134EF49CF6D2 /* pippipgo/Authentication/WebAuthenticationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5827A3A67014C66A24897F1D /* pippipgo/Authentication/WebAuthenticationSession.swift */; };
 		600834F9F70DBB19E2CB3C51 /* pippipgo/App/pippipgoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E7947F88D00B53FB6BE799 /* pippipgo/App/pippipgoApp.swift */; };
@@ -26,6 +27,8 @@
 		9CE9C45DDE146537EF2B33C5 /* pippipgoTests/TokenSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54AE6BF7A17282BD9447BE2 /* pippipgoTests/TokenSetTests.swift */; };
 		A4E59977254D493A953F2190 /* pippipgo/Intelligence/CurrentLocationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4E59977254D493A953F2191 /* pippipgo/Intelligence/CurrentLocationStore.swift */; };
 		AABB00112233445566778800 /* pippipgo/Intelligence/TravelOrganizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566778801 /* pippipgo/Intelligence/TravelOrganizer.swift */; };
+		AB1060000000000000000001 /* pippipgo/Resources/PipStartup.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1060000000000000000002 /* pippipgo/Resources/PipStartup.wav */; };
+		AB1070000000000000000001 /* pippipgo/Resources/VoicePreviews in Resources */ = {isa = PBXBuildFile; fileRef = AB1070000000000000000002 /* pippipgo/Resources/VoicePreviews */; };
 		AED50F1272344B44A096F419 /* pippipgoTests/AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09AAADA0DD1E499C8E85EA37 /* pippipgoTests/AppConfigurationTests.swift */; };
 		BBB91D69F28837490217694D /* pippipgo/App/AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56969A1272136C594F4850CE /* pippipgo/App/AppConfiguration.swift */; };
 		BBCC00112233445566778800 /* pippipgo/Intelligence/LiveVoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCC00112233445566778801 /* pippipgo/Intelligence/LiveVoice.swift */; };
@@ -54,12 +57,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AB1070000000000000000002 /* VoicePreviews */ = {isa = PBXFileReference; lastKnownFileType = folder; path = pippipgo/Resources/VoicePreviews; sourceTree = SOURCE_ROOT; };
-		AB1060000000000000000002 /* PipStartup.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = pippipgo/Resources/PipStartup.wav; sourceTree = SOURCE_ROOT; };
 		04B5A7AB86A3EEBC6072BDB7 /* pippipgo/Authentication/CognitoClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Authentication/CognitoClient.swift; sourceTree = SOURCE_ROOT; };
 		09AAADA0DD1E499C8E85EA37 /* pippipgoTests/AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/AppConfigurationTests.swift; sourceTree = SOURCE_ROOT; };
 		0CD180DAD3324907BA95633D /* pippipgo/Authentication/KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Authentication/KeychainStore.swift; sourceTree = SOURCE_ROOT; };
 		0DCF3D26A0C5089D31AC26BA /* pippipgoTests/APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/APIClientTests.swift; sourceTree = SOURCE_ROOT; };
+		1A7E5C0D2B3F4A5B6C7D8E02 /* pippipgo/Intelligence/LiveGuideEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/LiveGuideEngine.swift; sourceTree = SOURCE_ROOT; };
+		1A7E5C0D2B3F4A5B6C7D8E04 /* pippipgo/Intelligence/LiveGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/LiveGuide.swift; sourceTree = SOURCE_ROOT; };
+		1A7E5C0D2B3F4A5B6C7D8E06 /* pippipgoTests/LiveGuideEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/LiveGuideEngineTests.swift; sourceTree = SOURCE_ROOT; };
 		23BD9DA4DCDC4906A1C22714 /* Configurations/Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configurations/Local.xcconfig; sourceTree = SOURCE_ROOT; };
 		29707B315ECB0F7B45832291 /* pippipgoTests/OAuthCallbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/OAuthCallbackTests.swift; sourceTree = SOURCE_ROOT; };
 		2C068222C123F0F3E07E5C90 /* pippipgo/Views/AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Views/AccountView.swift; sourceTree = SOURCE_ROOT; };
@@ -82,6 +86,8 @@
 		93AA7315E4B3C8D10B7E618A /* pippipgo/Views/RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Views/RootView.swift; sourceTree = SOURCE_ROOT; };
 		A4E59977254D493A953F2191 /* pippipgo/Intelligence/CurrentLocationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/CurrentLocationStore.swift; sourceTree = SOURCE_ROOT; };
 		AABB00112233445566778801 /* pippipgo/Intelligence/TravelOrganizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/TravelOrganizer.swift; sourceTree = SOURCE_ROOT; };
+		AB1060000000000000000002 /* pippipgo/Resources/PipStartup.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = pippipgo/Resources/PipStartup.wav; sourceTree = SOURCE_ROOT; };
+		AB1070000000000000000002 /* pippipgo/Resources/VoicePreviews */ = {isa = PBXFileReference; lastKnownFileType = folder; path = pippipgo/Resources/VoicePreviews; sourceTree = SOURCE_ROOT; };
 		B54AE6BF7A17282BD9447BE2 /* pippipgoTests/TokenSetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/TokenSetTests.swift; sourceTree = SOURCE_ROOT; };
 		BBCC00112233445566778801 /* pippipgo/Intelligence/LiveVoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/LiveVoice.swift; sourceTree = SOURCE_ROOT; };
 		BBCC00112233445566779901 /* pippipgo/Intelligence/LiveTranslation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/LiveTranslation.swift; sourceTree = SOURCE_ROOT; };
@@ -124,6 +130,8 @@
 				CCDDEE001122334455667701 /* pippipgo/App/TalkToPipIntent.swift */,
 				DDEE00112233445566778801 /* pippipgo/Intelligence/ConversationContext.swift */,
 				A4E59977254D493A953F2191 /* pippipgo/Intelligence/CurrentLocationStore.swift */,
+				1A7E5C0D2B3F4A5B6C7D8E04 /* pippipgo/Intelligence/LiveGuide.swift */,
+				1A7E5C0D2B3F4A5B6C7D8E02 /* pippipgo/Intelligence/LiveGuideEngine.swift */,
 				BBCC00112233445566778801 /* pippipgo/Intelligence/LiveVoice.swift */,
 				BBCC00112233445566779901 /* pippipgo/Intelligence/LiveTranslation.swift */,
 				F7432E3FE07086621256F7BE /* pippipgo/Intelligence/TravelerIntelligence.swift */,
@@ -166,8 +174,8 @@
 			isa = PBXGroup;
 			children = (
 				BCC6E64B306792BD007721AD /* Assets.xcassets */,
-				AB1060000000000000000002 /* PipStartup.wav */,
-				AB1070000000000000000002 /* VoicePreviews */,
+				AB1060000000000000000002 /* pippipgo/Resources/PipStartup.wav */,
+				AB1070000000000000000002 /* pippipgo/Resources/VoicePreviews */,
 				E33000000000000000000002 /* LaunchScreen.storyboard */,
 				C12345678901234567890123A /* pippipgo/Resources/Localizable.xcstrings */,
 			);
@@ -179,6 +187,7 @@
 			children = (
 				09AAADA0DD1E499C8E85EA37 /* pippipgoTests/AppConfigurationTests.swift */,
 				EEFF00112233445566778801 /* pippipgoTests/ConversationContextTests.swift */,
+				1A7E5C0D2B3F4A5B6C7D8E06 /* pippipgoTests/LiveGuideEngineTests.swift */,
 				EEFF00112233445566779901 /* pippipgoTests/LiveTranslationTests.swift */,
 				0DCF3D26A0C5089D31AC26BA /* pippipgoTests/APIClientTests.swift */,
 				29707B315ECB0F7B45832291 /* pippipgoTests/OAuthCallbackTests.swift */,
@@ -290,8 +299,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				BCC6E64C306792BD007721AD /* Assets.xcassets in Resources */,
-				AB1060000000000000000001 /* PipStartup.wav in Resources */,
-				AB1070000000000000000001 /* VoicePreviews in Resources */,
+				AB1060000000000000000001 /* pippipgo/Resources/PipStartup.wav in Resources */,
+				AB1070000000000000000001 /* pippipgo/Resources/VoicePreviews in Resources */,
 				E33000000000000000000001 /* LaunchScreen.storyboard in Resources */,
 				C12345678901234567890123B /* pippipgo/Resources/Localizable.xcstrings in Resources */,
 			);
@@ -316,6 +325,8 @@
 				CCDDEE001122334455667700 /* pippipgo/App/TalkToPipIntent.swift in Sources */,
 				DDEE00112233445566778800 /* pippipgo/Intelligence/ConversationContext.swift in Sources */,
 				A4E59977254D493A953F2190 /* pippipgo/Intelligence/CurrentLocationStore.swift in Sources */,
+				1A7E5C0D2B3F4A5B6C7D8E03 /* pippipgo/Intelligence/LiveGuide.swift in Sources */,
+				1A7E5C0D2B3F4A5B6C7D8E01 /* pippipgo/Intelligence/LiveGuideEngine.swift in Sources */,
 				BBCC00112233445566778800 /* pippipgo/Intelligence/LiveVoice.swift in Sources */,
 				BBCC00112233445566779900 /* pippipgo/Intelligence/LiveTranslation.swift in Sources */,
 				FE92C7C39C5007460E9702EA /* pippipgo/Intelligence/TravelerIntelligence.swift in Sources */,
@@ -343,6 +354,7 @@
 			files = (
 				AED50F1272344B44A096F419 /* pippipgoTests/AppConfigurationTests.swift in Sources */,
 				EEFF00112233445566778800 /* pippipgoTests/ConversationContextTests.swift in Sources */,
+				1A7E5C0D2B3F4A5B6C7D8E05 /* pippipgoTests/LiveGuideEngineTests.swift in Sources */,
 				EEFF00112233445566779900 /* pippipgoTests/LiveTranslationTests.swift in Sources */,
 				61CD483D2A54398A61F34769 /* pippipgoTests/APIClientTests.swift in Sources */,
 				13942DEE7CC5ED9161D3E70E /* pippipgoTests/OAuthCallbackTests.swift in Sources */,

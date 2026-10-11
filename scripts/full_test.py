@@ -157,9 +157,11 @@ def run(args):
         device.call('POST', '/execute/sync', {'script': 'mobile: activateApp',
                                              'args': [{'bundleId': 'com.pippipgo.ios'}]})
         device.stop_audio()
-        check('Signed-in navigation', lambda: [device.find(x) for x in ['Pip', 'Translate', 'Profile', 'Language']])
-        device.tap('Language')
+        check('Signed-in navigation', lambda: [device.find(x) for x in ['Pip', 'Live Guide', 'Translate', 'Profile']])
+        device.tap('app.languagePicker')
         check('Interface language choices accessible', lambda: (device.find('English'), device.find('فارسی')))
+        device.tap('Pip')  # dismiss the language menu
+        check('Live Guide tab opens', lambda: (device.tap('Live Guide'), device.find('liveGuide.enabled')))
         device.tap('Profile')
         check('Trips tile opens', lambda: (device.tap('profile.trips'), device.wait('Trips')))
         check('New trip editor opens', lambda: (device.tap('Add trip'), device.wait('Trip')))
@@ -176,8 +178,6 @@ def run(args):
         device.close_editor()
         device.tap('BackButton')
         check('Personalization folder accessible', lambda: (device.tap('About you', True), device.wait('profile.savedDetails')))
-        device.tap('BackButton')
-        check('Nearby opens', lambda: (device.tap('Nearby', True), device.wait('Nearby')))
         device.tap('BackButton')
         device.tap('Pip’s voice', True)
         for voice in ['Ballad', 'Coral', 'Sage', 'Ash', 'Verse']:

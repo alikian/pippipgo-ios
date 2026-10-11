@@ -79,3 +79,13 @@ The user requested full mobile-friendly web functionality: Prod is `https://pipp
 ## On-demand Full Test
 
 When the user asks to run the **Full Test**, use `python3 scripts/full_test.py run` and `docs/full-test.md`. Never schedule it or run it solely because app code changed. Reuse its local Appium server/session/helper between runs. Explicit `teardown` is for requested cleanup or before rebuilding/reinstalling the tested app. Preserve real user data; report manual/test-account coverage separately. Do not equate automated navigation success with complete acceptance.
+
+## Design rule — October 10, 2026
+
+User-requested standing rule for every iOS, web and admin screen: design must be simplified, clean and user friendly for all ages and cultures.
+
+- One clear primary action per screen; remove nonessential controls, text and decoration rather than adding more.
+- Plain, short language without jargon, slang, idioms or culture-specific humor; localize every user-facing string.
+- Readable, accessible defaults: support Dynamic Type/browser zoom, sufficient contrast, large touch targets, VoiceOver/screen-reader labels, and never rely on color alone.
+- Culturally neutral: use universally understood icons and imagery, locale-aware dates, times, numbers, currencies and names, and layouts that work right-to-left.
+- Consistent, forgiving interactions: familiar platform patterns, clear feedback, confirmation before destructive actions, and easy undo or back.

@@ -91,6 +91,8 @@ struct AppLanguageMenu: View {
             }
         } label: {
             Label("Language", systemImage: "globe")
+                .labelStyle(.iconOnly)
+                .font(.title3)
         }
         .accessibilityIdentifier("app.languagePicker")
         .accessibilityValue(AppLanguage.selected(language).nativeName)

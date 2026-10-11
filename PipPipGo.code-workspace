@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../pippipgo-backend"
+		},
+		{
+			"path": "../pippipgo-parent"
+		}
+	],
+	"settings": {}
+}

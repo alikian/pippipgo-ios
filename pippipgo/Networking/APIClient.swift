@@ -6,13 +6,16 @@ protocol AccessTokenProviding: Sendable {
 
 /// Fixed routes prevent accidentally sending a bearer token to a caller-supplied host.
 enum APIEndpoint: Sendable, Equatable {
-    case introduction, organizer, travelChat, guide, guideSetup, guideBooking
+    case introduction, organizer, travelChat, guide, guideSetup, guideBooking, guideNearby, guideMention, guideSpeech
     case account, accountExport, journeys, journey(UUID), journeyAction(UUID), journeyImport(UUID)
     case memory, memoryItem(UUID), travelers, traveler(UUID), preferences, sync(after: Int)
     var path: String {
         switch self {
         case .guideSetup: "/v1/guide/setup"
         case .guideBooking: "/v1/guide/booking"
+        case .guideNearby: "/v1/guide/nearby"
+        case .guideMention: "/v1/guide/mention"
+        case .guideSpeech: "/v1/guide/speech"
         case .guide: "/v1/guide"
         case .travelChat: "/v1/travel-chat"
         case .organizer: "/v1/travel-organizer"
@@ -32,12 +35,12 @@ enum APIEndpoint: Sendable, Equatable {
         }
     }
     var canRead: Bool {
-        switch self { case .guideBooking, .journeyAction, .journeyImport: false; default: true }
+        switch self { case .guideBooking, .guideNearby, .guideMention, .guideSpeech, .journeyAction, .journeyImport: false; default: true }
     }
     var canPut: Bool {
         switch self { case .guideSetup, .guide, .travelChat, .organizer, .introduction, .journey, .journeyAction, .journeyImport, .memoryItem, .traveler, .preferences: true; default: false }
     }
-    var canPost: Bool { self == .guide || self == .guideBooking }
+    var canPost: Bool { [.guide, .guideBooking, .guideNearby, .guideMention, .guideSpeech].contains(self) }
     var canDelete: Bool {
         switch self { case .journey, .memoryItem, .traveler: true; default: false }
     }

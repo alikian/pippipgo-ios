@@ -385,3 +385,45 @@ Moved app language selection into its own globe tab beside Profile; moved Trips 
 ### October 8 — GitHub synchronization
 
 User authorized committing/pushing accumulated localization, navigation, environment indicator, Appium tooling and translation updates to develop. Pre-push verification: 490 backend tests passed/one skipped, Ruff passed; three catalog/four offline runner checks passed. Existing signed/device acceptance evidence and outstanding checks remain as recorded above. Backend develop push triggers Dev deployment; completion remains pending and Prod is unchanged. Hosted language support requires backend rollout before hosted app acceptance. Full Test was not run.
+
+### October 8 — Live local guide, phase 1 (walking guide)
+
+Implemented from the "PipPipGo Live Local Guide: Design" document; San Diego is the walk-test pilot. Backend: `POST /v1/guide/nearby` (Google Places Nearby with a slim field mask + Wikipedia, tiered), `POST /v1/guide/mention` (short spoken mention, Wikipedia fallback), `whats_nearby` chat/voice tool, `guide.mention`/`guide.shortlist` live-voice events; 515 backend tests passed/one skipped, Ruff passed. iOS: on-device guide engine (stop trigger, tiers, talk budget, grouping, area entry, driving look-ahead preview), opt-in Pip-tab card with "What’s this?", Profile → Nearby settings, 21 strings in all 13 languages; three catalog checks passed. Signed Local build compiled and launched on Sara’s iPhone after one type-check fix; engine tests (⌘U) and Dev build pending. Backend Dev/Prod deployment pending and must precede the app. No location is stored. See backend `docs/live-local-guide.md`.
+
+October 9 Live Guide controls/map update: text Start/Stop controls and persistent Talk microphone; backend prompt explains map markers and route preview. Destination radius and actual walking route limited to two miles; unavailable routes no longer fabricate walking estimates. Local backend restarted/readiness passed; hosted Dev/Prod deployment required before hosted app rollout. Build/test evidence is recorded in docs/live-local-guide.md.
+
+## October 10 — plain-language guide frequency
+
+Replaced the speaker-wave selector with “How often should Pip talk?” and a menu of
+“Only major highlights”, “Occasionally”, and “Often”. The current choice and a short
+explanation are visible on the map while the guide is enabled; the control is hidden
+after Stop and is not added to ordinary chat. The info panel uses the same choices.
+Saved raw values and all existing timing/selection rules are preserved. Labels support
+Dynamic Type, VoiceOver and all 14 interface language resources. The new startup
+intent conversation and spoken preference-setting remain separate, unimplemented work.
+
+Xcode Cloud showed successful build 30; local version is now 31. No backend deployment
+is required for this UI change. Existing guide backend rollout remains separate.
+
+Validation: Local build 31 passed for the iPhone 17 simulator and signed generic iOS device; strict device signature verification passed outside the sandbox. All 17 existing LiveGuideEngineTests and all three catalog checks passed. Simulator UI inspection confirmed the frequency menu appears after Start, lists all three named choices with a selection checkmark, and hides after Stop. Physical-device installation, exhaustive Dynamic Type/RTL visual checks and spoken preference changes were not performed.
+
+## October 10 — tour mode and preferences before Start
+
+The speaking-frequency menu is now available before, during and after a tour, including
+in the info panel. Added labelled Walking tour / Driving tour buttons with person/car icons.
+The map marker matches the explicit choice and can be tapped to switch modes. MapKit's
+cached user annotation is refreshed on mode changes while retaining the camera binding.
+The mode is saved locally and resets to walking on account reset. Driving remains driving
+at traffic lights; speed still distinguishes city/highway driving. Switching cancels stale
+guide requests/speech, clears old stop/area observations and a walking route when entering
+driving, refreshes the candidate area, and preserves mention history and talk budget.
+All three new labels have all 14 interface language resources.
+
+Validation: Cloud build 30 rechecked; local version remains 31. All 19 guide simulator tests
+(including two new mode regressions), three catalog checks, simulator and signed device builds,
+and strict signature verification passed. Simulator inspection verified changing frequency
+before Start, both named mode buttons, persisted driving selection after relaunch, immediate
+car/person marker updates and switching by tapping the marker. Original simulator speaking
+preference restored and guide left stopped in walking mode. No physical phone install or
+backend deployment; no Full Test. This UI/engine update requires only an app update; previous
+hosted guide backend rollout remains separate.

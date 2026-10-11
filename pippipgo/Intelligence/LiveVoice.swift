@@ -385,6 +385,8 @@ final class LiveVoiceStore {
     private(set) var waitingForWelcome = false
     private(set) var lookingUp = false
     private(set) var places: [PipPlaceResult] = []
+    /// Walking route Pip found for the traveler ("take me to the penguins").
+    private(set) var route: GuideRoute?
     private var humTask: Task<Void, Never>?
     private var lastInputAt: Date?
     private(set) var transcript = VoiceTranscript()
@@ -415,10 +417,32 @@ final class LiveVoiceStore {
         self.mode = mode
     }
 
-    func start() {
+    /// True while a Talk to Pip session can take live-guide events (never translation).
+    var acceptsGuideEvents: Bool { connected && mode.translation == nil && socket != nil }
+    /// Pip is greeting or still speaking; the live guide waits rather than talk over her.
+    var guideShouldWait: Bool { waitingForWelcome || lookingUp || isPlayingResponse }
+
+    /// Sends a validated live-guide event (`guide.mention` or `guide.shortlist`) on the open
+    /// voice socket. Returns false when no Talk to Pip session is connected.
+    @discardableResult
+    func sendGuideEvent(_ event: [String: Any]) async -> Bool {
+        guard acceptsGuideEvents, let socket,
+              let type = event["type"] as? String, ["guide.mention", "guide.shortlist"].contains(type),
+              let payload = try? JSONSerialization.data(withJSONObject: event) else { return false }
+        let ticket = epoch
+        do {
+            try await socket.send(.string(String(decoding: payload, as: UTF8.self)))
+            return epoch == ticket
+        } catch { return false }
+    }
+
+    func clearRoute() { route = nil }
+
+    /// `guide`: where the traveler is (venue, nearest places), when started from the Live Guide.
+    func start(guide: Data? = nil) {
         guard !active else { return }
         if mode == .pip { PipStartupSound.shared.play() }
-        active = true; error = nil; transcript.clear(); places = []
+        active = true; error = nil; transcript.clear(); places = []; route = nil
         waitingForWelcome = mode == .pip
         conversationContext = nil; capturingLocation = false
         microphoneReceiving = false; microphoneLevel = 0; lastInputAt = nil
@@ -451,6 +475,9 @@ final class LiveVoiceStore {
                     guard self.epoch == ticket, !Task.isCancelled else { return }
                     conversationContext = context; capturingLocation = false
                     request.setValue(try JSONEncoder().encode(context).base64EncodedString(), forHTTPHeaderField: "X-Pip-Context")
+                    if let guide, guide.count <= 6000 {
+                        request.setValue(guide.base64EncodedString(), forHTTPHeaderField: "X-Pip-Guide")
+                    }
                 }
                 let session = URLSession(configuration: .ephemeral, delegate: VoiceSessionDelegate(), delegateQueue: nil)
                 self.session = session
@@ -514,6 +541,8 @@ final class LiveVoiceStore {
                            let results = try? JSONDecoder().decode([PipPlaceResult].self, from: encoded) {
                             places = Array(results.prefix(3))
                         }
+                    case "pip.route":
+                        if mode == .pip { route = GuideRoute(event: event) }
                     case "navigation.open":
                         if mode == .pip { scheduleNavigation(event, ticket: ticket) }
                     case "session.output_audio.delta":
@@ -684,7 +713,7 @@ final class LiveVoiceStore {
         socket = nil; session = nil
         ending?.cancel(with: .normalClosure, reason: nil)
         endingSession?.invalidateAndCancel()
-        if clearCaptions { transcript.clear(); places = []; error = nil; conversationContext = nil }
+        if clearCaptions { transcript.clear(); places = []; route = nil; error = nil; conversationContext = nil }
     }
 }
 

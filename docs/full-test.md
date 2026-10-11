@@ -23,7 +23,7 @@ Server, session ID, helper build and timestamped JSON reports live in ignored `.
 
 ## Automated scope
 
-- Signed-in Pip/Translate/Profile/Language tabs; language choices are inspected without changing selection.
+- Signed-in Pip/Live Guide/Translate/Profile tabs; the top globe language menu is inspected without changing selection; Live Guide tab opens.
 - Profile’s large Trips tile, existing trip list, new trip editor and cancel/back navigation.
 - Profile travel style, companions/new companion editor, bookings, calendars, personalization folder, nearby and account settings navigation.
 - All five voice preview start/finish states; Save & Done control availability.
