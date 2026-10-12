@@ -541,7 +541,7 @@ struct PipTripView: View {
             if let trip = store.journeys.first(where: { $0.id == tripID.uuidString.lowercased() }) {
                 VStack(spacing: 0) {
                     Picker("View", selection: $tab) {
-                        Text("Talk to Pip").tag("conversation"); Text("Our plan").tag("plan"); Text("Trip details").tag("details")
+                        Text("Ask Pip").tag("conversation"); Text("Our plan").tag("plan"); Text("Trip details").tag("details")
                     }.pickerStyle(.segmented).padding()
                     ScrollView {
                         VStack(alignment: .leading, spacing: 18) {

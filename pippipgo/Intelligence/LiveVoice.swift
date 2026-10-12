@@ -936,7 +936,7 @@ private struct VoicePreviewTokens: AccessTokenProviding {
 #Preview("Voice conversation") {
     NavigationStack {
         VoiceConversationView(store: .preview, startRequest: .constant(nil))
-            .navigationTitle("Talk to Pip")
+            .navigationTitle("Ask Pip")
             .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -712,7 +712,7 @@ struct LiveGuideTab: View {
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 Form { LiveGuideSettingsSection(guide: guide) }
-                    .navigationTitle("Live Guide").navigationBarTitleDisplayMode(.inline)
+                    .navigationTitle("Tour Guide").navigationBarTitleDisplayMode(.inline)
                     .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showSettings = false } } }
             }
             .presentationDetents([.medium, .large])
@@ -918,7 +918,7 @@ struct LiveGuideTab: View {
         if guide.enabled {
             Button { guide.toggleConversation() } label: {
                 Label {
-                    Text(guide.talking ? "End" : "Talk")
+                    Text(guide.talking ? "End" : "Ask")
                 } icon: {
                     Image(systemName: "mic.fill").symbolEffect(.variableColor.iterative, isActive: guide.listening)
                 }

@@ -157,11 +157,11 @@ def run(args):
         device.call('POST', '/execute/sync', {'script': 'mobile: activateApp',
                                              'args': [{'bundleId': 'com.pippipgo.ios'}]})
         device.stop_audio()
-        check('Signed-in navigation', lambda: [device.find(x) for x in ['Pip', 'Live Guide', 'Translate', 'Profile']])
+        check('Signed-in navigation', lambda: [device.find(x) for x in ['Pip', 'Tour Guide', 'Translate', 'Profile']])
         device.tap('app.languagePicker')
         check('Interface language choices accessible', lambda: (device.find('English'), device.find('فارسی')))
         device.tap('Pip')  # dismiss the language menu
-        check('Live Guide tab opens', lambda: (device.tap('Live Guide'), device.find('liveGuide.enabled')))
+        check('Tour Guide tab opens', lambda: (device.tap('Tour Guide'), device.find('liveGuide.enabled')))
         device.tap('Profile')
         check('Trips tile opens', lambda: (device.tap('profile.trips'), device.wait('Trips')))
         check('New trip editor opens', lambda: (device.tap('Add trip'), device.wait('Trip')))

@@ -192,7 +192,7 @@ struct TravelOrganizerView: View {
             // extend underneath navigation when the keyboard reduces the screen.
             HStack(spacing: 0) {
                 navigationButton(.pip, title: "Pip", icon: "bubble.left.and.bubble.right")
-                navigationButton(.guide, title: "Live Guide", icon: "binoculars")
+                navigationButton(.guide, title: "Tour Guide", icon: "binoculars")
                 navigationButton(.translate, title: "Translate", icon: "translate")
                 navigationButton(.profile, title: "Profile", icon: "person.crop.circle")
             }
@@ -1460,7 +1460,7 @@ struct PipComposer: View {
                         .background(companionStyle ? Color.blue : (store.voice.active ? Color.red : Color.blue), in: Circle())
                         .symbolEffect(.variableColor, isActive: store.voice.connected && !reduceMotion)
                 }
-                .accessibilityLabel(LocalizedStringKey(store.voice.active ? "End voice conversation" : (hasText ? "Send message" : "Talk to Pip")))
+                .accessibilityLabel(LocalizedStringKey(store.voice.active ? "End voice conversation" : (hasText ? "Send message" : "Ask Pip")))
                 .disabled(!store.voice.active && (unavailable || (hasText && (!store.loaded || store.composer.count > 4000))))
             }
             .padding(8).background(companionStyle ? Color.white : Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 36))
