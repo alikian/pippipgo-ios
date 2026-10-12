@@ -1,17 +1,14 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../pippipgo-backend"
-		},
-		{
-			"path": "../pippipgo-parent"
-		},
-		{
-			"path": "../pippipgo-ios-sim"
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": ".",
+    },
+    {
+      "path": "../pippipgo-backend",
+    },
+    {
+      "path": "../pippipgo-ios-sim",
+    },
+  ],
+  "settings": {},
 }
