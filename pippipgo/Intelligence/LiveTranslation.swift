@@ -106,6 +106,11 @@ struct TranslateTab: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                HStack {
+                    AppLanguageMenu()
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
                 TranslationLanguageBar(store: store).padding(.top, 16)
                 LiveVoiceView(store: store, companionStyle: true, translationStyle: true, translationSettings: { showingSettings = true })
             }

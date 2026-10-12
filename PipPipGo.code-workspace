@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../pippipgo-parent"
+		},
+		{
+			"path": "../pippipgo-ios-sim"
 		}
 	],
 	"settings": {}

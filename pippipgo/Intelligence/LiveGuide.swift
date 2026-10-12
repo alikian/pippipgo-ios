@@ -5,7 +5,7 @@ import MapKit
 import Observation
 import SwiftUI
 
-// Live local guide, phase 1: app open (or a live Talk to Pip session), online, walking first.
+// A started guide continues location-triggered TTS with the screen locked.
 // Location stays on the phone. Only the area being looked up is sent to the backend, once per
 // area, and only the chosen place is sent back when Pip should say something about it.
 
@@ -49,8 +49,10 @@ struct LiveGuideOption: Identifiable, Equatable {
 
     var authorization: CLAuthorizationStatus { manager.authorizationStatus }
 
-    func start() {
+    func start(background: Bool = false) {
         manager.delegate = self
+        manager.allowsBackgroundLocationUpdates = background
+        manager.showsBackgroundLocationIndicator = background
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.distanceFilter = kCLDistanceFilterNone
         manager.activityType = .other
@@ -84,12 +86,29 @@ struct LiveGuideOption: Identifiable, Equatable {
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        guard newHeading.headingAccuracy >= 0 else { return }
+        guard (0...25).contains(newHeading.headingAccuracy), abs(newHeading.timestamp.timeIntervalSinceNow) < 10 else { return }
         onHeading(newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         if (error as? CLError)?.code == .denied { onAuthorization(.denied) }
+    }
+}
+
+/// Give location-triggered network requests time to finish after screen lock.
+@MainActor private final class GuideBackgroundRequest {
+    private var identifier: UIBackgroundTaskIdentifier = .invalid
+
+    init() {
+        identifier = UIApplication.shared.beginBackgroundTask(withName: "Live Guide announcement") { [weak self] in
+            Task { @MainActor in self?.end() }
+        }
+    }
+
+    func end() {
+        guard identifier != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(identifier)
+        identifier = .invalid
     }
 }
 
@@ -130,6 +149,8 @@ struct LiveGuideOption: Identifiable, Equatable {
 
 @MainActor @Observable
 final class LiveGuideStore {
+    private(set) var isWalking = false
+    private(set) var movingMapFix: GuideFix?
     static let enabledKey = "pip.liveGuide.enabled"
     static let tourModeKey = "pip.liveGuide.tourMode"
     static let chattinessKey = "pip.liveGuide.chattiness"
@@ -181,7 +202,12 @@ final class LiveGuideStore {
     @ObservationIgnored private var engine: GuideEngine
     @ObservationIgnored private var feed: LiveGuideLocationFeed?
     @ObservationIgnored private var foreground = false
-    @ObservationIgnored private var heading: Double?
+    @ObservationIgnored private var rawHeading: Double?
+    @ObservationIgnored private var headingReceivedAt: Date?
+    private var heading: Double? {
+        guard let headingReceivedAt, Date().timeIntervalSince(headingReceivedAt) < 10 else { return nil }
+        return rawHeading
+    }
     @ObservationIgnored private var fetchTask: Task<Void, Never>?
     @ObservationIgnored private var deliverTask: Task<Void, Never>?
     @ObservationIgnored private var ticker: Task<Void, Never>?
@@ -190,6 +216,7 @@ final class LiveGuideStore {
     /// Speak once as soon as the guide starts, so pressing Start always gets an answer.
     @ObservationIgnored private var greetPending = false
     @ObservationIgnored private var startedAt: Date?
+    @ObservationIgnored private var lastMovementFix: GuideFix?
     @ObservationIgnored private var lastSharedFix: GuideFix?
     private let speech = AVSpeechSynthesizer()
     private let voicePlayer = GuideVoicePlayer()
@@ -224,8 +251,14 @@ final class LiveGuideStore {
         refreshActivity()
     }
 
+    func useTTSInBackground() {
+        if enabled, voice.active { voice.stop() }
+    }
+
     private func refreshActivity() {
-        let shouldRun = enabled && foreground
+        // A tour started in the foreground continues through screen lock. Never
+        // start a restored tour in the background without a foreground start.
+        let shouldRun = enabled && (foreground || feed != nil)
         if shouldRun, feed == nil { start() } else if !shouldRun, feed != nil { stop() }
         if !enabled {
             status = .off
@@ -240,11 +273,11 @@ final class LiveGuideStore {
         startedAt = Date()
         let feed = LiveGuideLocationFeed()
         feed.onLocation = { [weak self] location in self?.handle(location, ticket: ticket) }
-        feed.onHeading = { [weak self] value in self?.heading = value }
+        feed.onHeading = { [weak self] value in self?.rawHeading = value; self?.headingReceivedAt = Date() }
         feed.onAuthorization = { [weak self] value in self?.authorizationChanged(value) }
         self.feed = feed
         authorizationChanged(feed.authorization)
-        feed.start()
+        feed.start(background: true)
         ticker = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
@@ -255,6 +288,10 @@ final class LiveGuideStore {
     }
 
     private func stop() {
+        rawHeading = nil; headingReceivedAt = nil
+        isWalking = false
+        lastMovementFix = nil
+        movingMapFix = nil
         epoch = UUID()
         feed?.stop(); feed = nil
         ticker?.cancel(); ticker = nil
@@ -297,6 +334,9 @@ final class LiveGuideStore {
                            accuracy: location.horizontalAccuracy, speed: location.speed, course: location.course,
                            timestamp: location.timestamp)
         guard engine.ingest(fix) else { return }
+        lastMovementFix = fix
+        isWalking = fix.isMoving(at: Date())
+        if isWalking { movingMapFix = fix }
         motion = engine.motion
         if status != .unavailable { status = .listening }
         advance(now: Date())
@@ -305,6 +345,8 @@ final class LiveGuideStore {
     /// Core Location may go quiet when the traveler stands still; a still traveler is stopped.
     private func tick() {
         let now = Date()
+        // Synthetic stationary fixes below must never refresh movement freshness.
+        isWalking = lastMovementFix?.isMoving(at: now) ?? false
         if let last = engine.latest, (4..<30).contains(now.timeIntervalSince(last.timestamp)), last.speed < 0.5 {
             var copy = last; copy.timestamp = now
             engine.ingest(copy)
@@ -316,13 +358,15 @@ final class LiveGuideStore {
         if engine.needsFetch(at: now) { fetch(now: now) }
         shareShortlistIfNeeded(now: now)
         let waitedForPlaces = startedAt.map { now.timeIntervalSince($0) > 6 } ?? false
-        if greetPending, deliverTask == nil, !asking, engine.fetchedAt != nil || waitedForPlaces {
+        if greetPending, deliverTask == nil, !asking, !busyElsewhere, engine.fetchedAt != nil || waitedForPlaces {
             greetPending = false
-            if !voice.active, !translator.active {
-                // Pip greets from where the traveler is, then listens: a real conversation.
-                startConversation()
-            } else if !busyElsewhere, let opening = engine.opening(heading: heading) {
+            // Starting the tour only requests text-to-speech. Talk is the explicit
+            // opt-in to a microphone and a billed live conversation.
+            if let opening = engine.opening(heading: heading) {
                 deliver(opening, asked: false)
+            } else {
+                sayInPipsVoice(String(localized: "I’m looking around. I’ll tell you when we pass something interesting.",
+                                      bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale))
             }
             return
         }
@@ -333,7 +377,10 @@ final class LiveGuideStore {
 
     /// A Talk to Pip session is open; guide mentions are then spoken in Pip's own voice.
     var talking: Bool { voice.active }
+    /// Includes downloaded TTS and the on-device fallback voice.
+    var announcementSpeaking: Bool { voicePlayer.isPlaying || speech.isSpeaking }
     var listening: Bool { voice.connected }
+    var conversationError: String? { voice.error }
     /// Pip's latest spoken line in the current conversation, for a caption over the map.
     var latestPipLine: String? {
         voice.transcript.messages.last(where: { $0.speaker == .pip })?.text
@@ -350,8 +397,12 @@ final class LiveGuideStore {
     func clearRoute() { voice.clearRoute() }
 
     private func startConversation() {
-        if speech.isSpeaking { speech.stopSpeaking(at: .word) }
+        greetPending = false
+        deliverTask?.cancel()
+        asking = false
+        if speech.isSpeaking { speech.stopSpeaking(at: .immediate) }
         voicePlayer.stop()
+        translator.stop()
         let venue = engine.enclosingVenue()
         let nearby = engine.whatsThis(heading: heading)
             .filter { $0.candidate.id != venue?.id }
@@ -372,6 +423,8 @@ final class LiveGuideStore {
         let ticket = epoch
         fetchTask = Task { [weak self] in
             guard let self else { return }
+            let backgroundRequest = GuideBackgroundRequest()
+            defer { backgroundRequest.end() }
             defer { if self.epoch == ticket { self.fetchTask = nil } }
             do {
                 let response: GuideNearbyResponse = try await client.send(.post(.guideNearby, body: plan), using: authentication)
@@ -413,6 +466,8 @@ final class LiveGuideStore {
         let request = decision.request(language: language)
         deliverTask = Task { [weak self] in
             guard let self else { return }
+            let backgroundRequest = GuideBackgroundRequest()
+            defer { backgroundRequest.end() }
             defer { if self.epoch == ticket { self.deliverTask = nil; self.asking = false } }
             if voice.acceptsGuideEvents, let mention = try? JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) {
                 // Pip says it herself in the live session, in her own voice.
@@ -558,11 +613,14 @@ final class LiveGuideStore {
     /// A short line (no place behind it) in Pip's voice, falling back to the iPhone voice.
     private func sayInPipsVoice(_ line: String) {
         let ticket = epoch
-        Task { [weak self] in
+        deliverTask = Task { [weak self] in
             guard let self else { return }
+            let backgroundRequest = GuideBackgroundRequest()
+            defer { backgroundRequest.end() }
+            defer { if self.epoch == ticket { self.deliverTask = nil } }
             let reply: GuideMentionResponse? = try? await client.send(
                 .post(.guideSpeech, body: GuideSpeechRequest(text: line, language: language)), using: authentication)
-            guard self.epoch == ticket, !voice.active, !translator.active else { return }
+            guard self.epoch == ticket, !Task.isCancelled, !voice.active, !translator.active else { return }
             speak(line, audio: reply?.audio)
         }
     }
@@ -613,6 +671,9 @@ struct LiveGuideTab: View {
     @Bindable var guide: LiveGuideStore
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     @State private var showSettings = false
+    @State private var mapLocationFeed: LiveGuideLocationFeed?
+    @State private var didSetInitialLocation = false
+    @State private var currentMapCamera: MapCamera?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -627,6 +688,11 @@ struct LiveGuideTab: View {
             }
             .padding(.horizontal, 16).padding(.bottom, 16)
         }
+        .onAppear { locateMapInitially() }
+        .onDisappear {
+            mapLocationFeed?.stop()
+            mapLocationFeed = nil
+        }
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 Form { LiveGuideSettingsSection(guide: guide) }
@@ -637,13 +703,40 @@ struct LiveGuideTab: View {
         }
     }
 
+    /// Resolve the initial camera independently of whether the traveler starts the tour.
+    /// Stop this short-lived feed after a fresh fix; MapKit continues drawing the user marker.
+    private func locateMapInitially() {
+        guard !didSetInitialLocation, mapLocationFeed == nil else { return }
+        let feed = LiveGuideLocationFeed()
+        mapLocationFeed = feed
+        feed.onLocation = { location in
+            guard !didSetInitialLocation,
+                  location.horizontalAccuracy >= 0,
+                  abs(location.timestamp.timeIntervalSinceNow) < 15,
+                  CLLocationCoordinate2DIsValid(location.coordinate) else { return }
+            didSetInitialLocation = true
+            // Do not override a route or a camera the traveler has already moved.
+            if guide.route == nil, !position.positionedByUser {
+                withAnimation {
+                    position = .camera(MapCamera(centerCoordinate: location.coordinate,
+                                                 distance: max(800, location.horizontalAccuracy * 4),
+                                                 heading: 0, pitch: 0))
+                }
+            }
+            mapLocationFeed?.stop()
+            mapLocationFeed = nil
+        }
+        feed.start()
+    }
+
     private var map: some View {
         Map(position: $position) {
             UserAnnotation { _ in
                 Button {
                     guide.tourMode = guide.tourMode == .walking ? .driving : .walking
                 } label: {
-                    LiveGuideUserMarker(active: guide.enabled, driving: guide.tourMode == .driving)
+                    LiveGuideUserMarker(active: guide.enabled, driving: guide.tourMode == .driving, walking: guide.isWalking)
+                        .id("\(guide.tourMode.rawValue)-\(guide.enabled)-\(guide.isWalking)")
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(LocalizedStringKey(guide.tourMode.title)))
@@ -671,6 +764,20 @@ struct LiveGuideTab: View {
             // Show the whole walk: traveler and destination together.
             if route != nil { withAnimation { position = .automatic } }
         }
+        .onMapCameraChange(frequency: .onEnd) { context in
+            currentMapCamera = context.camera
+        }
+        .onChange(of: guide.movingMapFix) { _, fix in
+            guard guide.enabled, let fix,
+                  abs(fix.timestamp.timeIntervalSinceNow) < 15 else { return }
+            // Resume following on each accepted movement fix, preserving the user's
+            // zoom and orientation rather than resetting the entire camera.
+            var camera = currentMapCamera ?? MapCamera(
+                centerCoordinate: CLLocationCoordinate2D(latitude: fix.latitude, longitude: fix.longitude),
+                distance: 800, heading: 0, pitch: 0)
+            camera.centerCoordinate = CLLocationCoordinate2D(latitude: fix.latitude, longitude: fix.longitude)
+            withAnimation(.linear(duration: 0.5)) { position = .camera(camera) }
+        }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .ignoresSafeArea(edges: .top)
     }
@@ -678,6 +785,9 @@ struct LiveGuideTab: View {
     /// Walking or driving, and the one settings button.
     private var topBar: some View {
         HStack(alignment: .top, spacing: 8) {
+            AppLanguageMenu()
+                .foregroundStyle(.blue)
+                .background(.regularMaterial, in: Circle())
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) { modeButtons }
                 VStack(alignment: .leading, spacing: 6) { modeButtons }
@@ -741,6 +851,11 @@ struct LiveGuideTab: View {
                 Label(LocalizedStringKey(notice), systemImage: "exclamationmark.circle")
                     .font(.subheadline).foregroundStyle(.secondary)
             }
+            if let error = guide.conversationError {
+                Label(LocalizedStringKey(error), systemImage: "exclamationmark.circle")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("liveGuide.voiceError")
+            }
             if guide.talking, let line = guide.latestPipLine, !line.isEmpty {
                 // What Pip is saying right now in the conversation.
                 Text(verbatim: line).font(.body).foregroundStyle(.primary).lineLimit(5)
@@ -776,7 +891,7 @@ struct LiveGuideTab: View {
         if guide.enabled {
             Button { guide.toggleConversation() } label: {
                 Label {
-                    Text(guide.talking ? "Listening… tap to end" : "Tap to talk")
+                    Text(guide.talking ? (guide.listening ? "Listening… tap to end" : "Connecting…") : "Tap to talk")
                 } icon: {
                     Image(systemName: "mic.fill").symbolEffect(.variableColor.iterative, isActive: guide.listening)
                 }
@@ -820,15 +935,17 @@ private struct LiveGuidePrimaryLabel: ViewModifier {
     }
 }
 
-/// The traveler on the map: a walking (or driving) figure with rings pulsing while the guide runs.
+/// The traveler on the map; walking motion follows accepted location updates.
 struct LiveGuideUserMarker: View {
     let active: Bool
     let driving: Bool
+    let walking: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     var body: some View {
         ZStack {
-            if active {
+            if active && !reduceMotion && walking {
                 ForEach(0..<2) { ring in
                     Circle()
                         .stroke(Color.green.opacity(0.6), lineWidth: 3)
@@ -840,10 +957,10 @@ struct LiveGuideUserMarker: View {
             }
             Circle().fill(.white).frame(width: 62, height: 62).shadow(radius: 6)
             Circle().fill(active ? Color.green : Color.blue).frame(width: 54, height: 54)
-            Image(systemName: driving ? "car.fill" : "figure.walk")
+            Image(systemName: driving ? "car.fill" : (active && walking ? "figure.walk" : "figure.stand"))
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(.white)
-                .symbolEffect(.bounce, options: .repeating, value: active)
+                .symbolEffect(.bounce, options: .repeating, isActive: active && !driving && walking && !reduceMotion)
         }
         .onAppear { pulse = true }
         .accessibilityHidden(true)
@@ -855,18 +972,23 @@ struct LiveGuideMentionView: View {
     let mention: LiveGuideMention
     @Bindable var guide: LiveGuideStore
     @Environment(\.openURL) private var openURL
+    @State private var expanded = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(verbatim: mention.placeName).font(.headline).foregroundStyle(.primary)
-            if !mention.text.isEmpty {
-                Text(verbatim: mention.text).font(.body).foregroundStyle(.secondary).lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let url = mention.wikipediaURL {
-                Button { openURL(url) } label: { Label("Read more", systemImage: "book") }
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minHeight: 44)
+            DisclosureGroup(isExpanded: $expanded) {
+                if !mention.text.isEmpty {
+                    Text(verbatim: mention.text).font(.body).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let url = mention.wikipediaURL {
+                    Button { openURL(url) } label: { Label("Read more", systemImage: "book") }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: 44)
+                }
+            } label: {
+                Text(verbatim: mention.placeName).font(.headline).foregroundStyle(.primary)
+                    .frame(minHeight: 44, alignment: .leading)
             }
             if guide.options.count > 1 {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -878,6 +1000,17 @@ struct LiveGuideMentionView: View {
                     }
                 }
             }
+        }
+        .task(id: mention.id) {
+            expanded = true
+            // AVAudioPlayer and AVSpeechSynthesizer expose playback state without
+            // observation. Follow both so fallback audio also collapses on completion.
+            while guide.announcementSpeaking {
+                do { try await Task.sleep(for: .milliseconds(200)) }
+                catch { return }
+            }
+            guard !Task.isCancelled else { return }
+            withAnimation { expanded = false }
         }
     }
 }

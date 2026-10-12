@@ -120,6 +120,12 @@ struct GuideFix: Sendable, Equatable {
     /// Direction of travel in degrees; negative when unknown.
     var course: Double = -1
     var timestamp: Date
+
+    /// Animate only confirmed, recent movement; unknown speed is not evidence of walking.
+    func isMoving(at now: Date) -> Bool {
+        let age = now.timeIntervalSince(timestamp)
+        return age >= 0 && age < 15 && speed.isFinite && speed >= 0.5
+    }
 }
 
 enum GuideSituation: String, Sendable { case stoppedNearby = "stopped_nearby", approaching, enteredArea = "entered_area", asked }
@@ -209,9 +215,13 @@ struct GuideEngine {
     static let highwayMinSpeed = 22.0         // ≈ 50 mph
     static let stopWindow: TimeInterval = 20
     static let stopSpread = 15.0
-    static let notableWalkingRange = 45.0
+    static let notableWalkingRange = 10.0
     static let mustSeeWalkingRange = 125.0
     static let minorWalkingRange = 25.0
+    static let cityDrivingCorridor = 200.0
+    static let highwayDrivingCorridor = 400.0
+    static let cityDrivingLookahead: TimeInterval = 18
+    static let highwayDrivingLookahead: TimeInterval = 30
     static let groupRadius = 60.0
     static let minimumGap: TimeInterval = 45  // never talk over the previous mention
     static let fetchInterval: TimeInterval = 20
@@ -288,9 +298,10 @@ struct GuideEngine {
         return .cityDriving
     }
 
-    /// Driving uses the direction of travel; walking only when a compass heading is supplied.
+    /// Prefer travel direction while moving: phone orientation may differ from walking direction.
     func direction(heading: Double?) -> Double? {
         if motion.isDriving, let course = latest?.course, course >= 0 { return course }
+        if let fix = latest, fix.speed >= 0.5, fix.course >= 0 { return fix.course }
         if let heading, heading >= 0 { return heading }
         if let course = latest?.course, course >= 0, speed > 0.8 { return course }
         return nil
@@ -418,7 +429,7 @@ struct GuideEngine {
 
     private func score(_ candidate: GuideCandidate, distance: Double, range: Double, stopped: Bool) -> Double {
         let proximity = max(0, 1 - distance / max(range, 1))
-        return candidate.prominence * 0.45 + proximity * 0.25 + candidate.profile_match * 0.2 + (stopped ? 0.1 : 0)
+        return candidate.prominence * 0.25 + proximity * 0.25 + candidate.profile_match * 0.4 + (stopped ? 0.1 : 0)
     }
 
     /// Keeps `insideAreas` current. An area is announced on entry (within two minutes of it),
@@ -485,9 +496,9 @@ struct GuideEngine {
                                  within: within)
         case .cityDriving, .highway:
             guard let course = travelDirection else { return nil }
-            let lookahead: Double = motion == .highway ? 30 : 18
+            let lookahead = motion == .highway ? Self.highwayDrivingLookahead : Self.cityDrivingLookahead
             let reach = speed * lookahead
-            let corridor: Double = motion == .highway ? 400 : 200
+            let corridor = motion == .highway ? Self.highwayDrivingCorridor : Self.cityDrivingCorridor
             var best: (GuideCandidate, Double, Double, Double)?
             for candidate in candidates where eligible(candidate) {
                 let distance = GuideGeo.distance(fix.latitude, fix.longitude, candidate.latitude, candidate.longitude)

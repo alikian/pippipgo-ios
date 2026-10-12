@@ -43,6 +43,24 @@ private func stand(_ engine: inout GuideEngine, north: Double = 0, from start: D
 struct LiveGuideEngineTests {
     let t0 = Date(timeIntervalSince1970: 1_000)
 
+    @Test func markerStopsForStationaryUnknownAndStaleSpeed() {
+        #expect(fix(at: t0, speed: 1.2).isMoving(at: t0))
+        #expect(!fix(at: t0, speed: 0).isMoving(at: t0))
+        #expect(!fix(at: t0, speed: 0.49).isMoving(at: t0))
+        #expect(!fix(at: t0, speed: -1).isMoving(at: t0))
+        #expect(!fix(at: t0, speed: 1.2).isMoving(at: t0.addingTimeInterval(15)))
+        #expect(!fix(at: t0, speed: .nan).isMoving(at: t0))
+    }
+
+    @Test func personalHighlightCanOutrankMoreFamousNearbyPlace() {
+        var e = engine([
+            place("small gallery", tier: .notable, north: 5, match: 1, prominence: 0.3),
+            place("popular church", tier: .notable, north: 5, match: 0.5, prominence: 0.8)
+        ])
+        let now = stand(&e, from: t0, seconds: 21)
+        #expect(e.decide(at: now)?.place.id == "small gallery")
+    }
+
     @Test func ignoresInaccurateAndOutOfOrderFixes() {
         var e = engine([])
         let inaccurateAccepted = e.ingest(fix(at: t0, accuracy: 80))

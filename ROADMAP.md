@@ -427,3 +427,69 @@ car/person marker updates and switching by tapping the marker. Original simulato
 preference restored and guide left stopped in walking mode. No physical phone install or
 backend deployment; no Full Test. This UI/engine update requires only an app update; previous
 hosted guide backend rollout remains separate.
+
+## October 11 — local walking simulation tool
+
+Created sibling `pippipgo-ios-sim` and added it to the iOS workspace. Python standard-library backend and browser frontend define a start, multiple stops, walking speed and dwell durations. Native `simctl location start` interpolates straight-line segments; stop cancels playback and clears location. Default local port 8766 avoids the existing service on 8765. Six mocked backend tests and JS syntax checks passed. Live API verification on booted iPhone 17 completed a short route and cleared location; browser interface opened successfully. Spoken guide/app acceptance remains separate. No hosted backend deployment, iOS code change or build required.
+
+## October 11 — Google map for local walking simulator
+
+Local simulator now uses Google Maps with start/stop pins, clickable route editing and a blue estimated playback position. Backend reads dedicated `pippipgo/dev/google-maps-browser` JSON through AWS CLI, caches only in memory and returns no-store config; existing backend Places keys remain private. Dev CloudFormation stack `pippipgo-dev-simulator-maps` deployed the empty secret container using `infra/simulator-google-maps-secret.yaml` in the backend repository. User will supply a Maps JavaScript API key restricted to local website referrers. Nine mocked tests and JS syntax check passed; browser missing-key behavior verified. Live Google map rendering/clicks remain pending the key. No app rebuild or hosted API deployment required.
+
+October 11 simulator secret follow-up: user requested using the existing backend Dev secret directly after browser exposure was explained. Simulator default is now `pippipgo/dev/google-places`, accepting `GOOGLE_PLACES_API_KEY`. Live secret read succeeded; Maps JavaScript rejected the key in the browser. Google restrictions/billing were not changed; rendered map acceptance remains blocked by Google-side configuration. Nine mocked tests passed. No hosted API deployment or iOS rebuild required.
+
+October 11 live map repair completed: with explicit user approval, Maps JavaScript API was enabled in Google project `pipgogo` and added to `PipPipGo Dev Backend Places` API restrictions. Existing Map Tiles, Places (New), Routes and Weather permissions and application restriction setting were retained. Prod key was not modified. Live browser verified Google map rendering with start/two stop pins and zero console messages. No hosted backend deployment or iOS rebuild required. Route click/edit and moving marker acceptance remain separate.
+
+October 11 simulator new-walk flow: New walk creates an empty draft, first map click sets the start and switches to add-stop mode; further clicks add multiple points. Coordinate entry remains available; Start requires a start and one stop. Restore previous walk undoes a new draft. JS syntax and browser new/start/multiple-point/restore checks passed; original draft restored. No backend deployment or iOS rebuild required.
+
+October 11 simulator walk naming: optional walk-name field persists with the route in browser storage. New walk clears the name; Restore previous walk restores the prior name and points. JS syntax check passed. No backend deployment or iOS rebuild required.
+
+October 11 simulator start search: added place/address search above map using existing Places New API permission. Results show name/address; selection sets start, retains stops and centers map. JS syntax passed; live Balboa Park San Diego search returned five results. No hosted backend deployment or iOS rebuild required.
+
+October 11 simulator start movement: S marker is draggable while playback is inactive. Drop updates start coordinates, route and browser draft while retaining stops. JS syntax passed; live drag acceptance remains unverified. No backend deployment or iOS rebuild required.
+
+October 11 simulator zoom: enabled explicit Google map plus/minus controls at bottom right in place of combined camera menu. JS syntax passed. No backend deployment or iOS rebuild required.
+
+October 11 simulator saved walks: added browser-local named walk list with Save and Load. Includes coordinates, stop pauses and speed; requires a name and start plus stop. Saving a loaded walk updates its entry; New walk creates a separate walk. Loading is blocked during playback. JS syntax passed; browser persistence acceptance remains separate. No backend deployment or iOS rebuild required.
+
+October 11 simulator map layers: added top-left dropdown for road, satellite, hybrid and terrain views. Route pins remain on the selected view. JS syntax passed; visual layer acceptance not performed. No backend deployment or iOS rebuild required.
+
+October 11 simulator stop fields: hid stop coordinate inputs, preserving map positions, pause and removal controls. Start coordinate fields remain. JS syntax passed. No backend deployment or iOS rebuild required.
+
+October 11 simulator pause/resume: local API and UI pause at the current estimated position or freeze stop dwell, then resume remaining travel/dwell. Stop cancels paused walks. Eleven mocked tests and JS syntax passed. Local backend restart completed; live pause acceptance remains separate. No Dev/Prod backend deployment or iOS rebuild required.
+
+October 11 simulator reload behavior: opening/reloading stops previously started playback and clears simulated location before permitting Start. Draft and saved walks remain. JS syntax passed; live reload acceptance not performed. No backend deployment or iOS rebuild required.
+
+October 11 iOS person marker: repeating bounce now runs only while walking at accepted speed >=0.5 m/s with guide enabled. Stopped or stale location leaves the person/rings still; Reduce Motion disables animation. Swift syntax parse and diff check passed. Simulator build and live motion acceptance pending; no build number changed. No backend deployment required; app update needed.
+
+October 11 iOS build 32: latest Cloud build 31 verified in Xcode Cloud navigator, local version set to 32. Local scheme build for iPhone 17 Simulator passed, including motion-aware person marker. No installation, signed physical-device build or live walking-animation acceptance in this build session. No backend deployment required.
+
+October 11 directional guide announcements: walking direction prefers Core Location course at speed >=0.5 m/s over phone compass orientation. Compass fixes need accuracy <=25 degrees and expire after ten seconds; stop clears heading context. Existing side calculation is passed to announcements; backend prompt now requests translated left/right/in-front/behind wording when supplied and forbids guessing missing sides. Swift parse and Ruff checks passed; app build/live motion acceptance remain pending. Backend deployment to Dev/Prod is pending and required before hosted app rollout.
+
+Directional announcement backend verification: 587 tests passed, one skipped; Ruff lint/format passed. Mocked tests do not establish live speech or walking acceptance.
+
+October 11 guide proximity: notable walking radius changed from 45 m to requested 10 m; walking must-see 125 m/minor 25 m retained. Driving is a forward corridor, not a circle: city width threshold 200 m and 18s lookahead, highway 400 m and 30s. Existing driving behavior retained with explicit mode constants. Swift parse/diff checks passed; app rebuild and live acceptance pending. No backend deployment required for proximity change; earlier directional-prompt backend deployment remains pending.
+
+October 11 tour follow-up: local discovery now includes distance-ranked interest-matching places alongside landmarks. Well-reviewed smaller matching places qualify as notable; iOS profile weight increased to 40%. No unsupported hidden-gem/local-ownership claims. Dev/Prod backend deployment, app rebuild and live acceptance pending.
+
+October 11 Live Guide camera fix: first fresh valid location centers and zooms the map before tour start; approximate access uses a wider camera. Manual pan/zoom and active routes are preserved. No backend deployment needed; app rebuild/install and visual acceptance required.
+
+October 11 explicit Live Guide Talk: Start uses GPT-4o Mini TTS for opening audio; only Talk starts `gpt-live-1`. Pending TTS is canceled during the switch. Existing backend routes suffice; no Dev/Prod backend deployment required for this fix. iOS rebuild/install and device acceptance pending. See docs/live-local-guide.md.
+
+October 11 compact finished guide announcement: details collapse after speech; tap title/chevron to expand full paragraph and Read more. Swift parse/diff checks passed; iOS rebuild and visual/device acceptance pending. No Dev/Prod backend deployment required.
+
+October 11 follow moving traveler: Live Guide recenters on each accepted moving fix, preserving camera zoom/orientation. Manual panning is recentered on subsequent movement; stationary viewing remains available. Swift parse/diff checks passed; rebuild/device acceptance pending. No Dev/Prod backend deployment required.
+
+October 11 stopped-marker fix: standing icon and no animation for stopped/unknown-speed/stale movement; real-fix freshness tracked separately from synthetic stationary engine updates; marker cache refreshed on state change. Swift parse/diff passed; simulator rebuild/device acceptance pending. No Dev/Prod backend deployment required.
+
+October 11 Talk failure investigation: local backend recorded accepted voice connections followed by provider error. Guide now shows voice errors and Connecting state; Talk immediately stops fallback speech/translation. Swift parse/diff passed. Provider rejection cause and device acceptance remain unresolved; app rebuild required. No Dev/Prod backend deployment required for these iOS changes.
+
+October 11 Talk follow-up: synthetic Dev gpt-live-1 startup, silent PCM input and spoken output passed using existing server credentials; exact installed-app disconnect unresolved. Provider error-code logging added; 87 voice tests and Ruff passed. Diagnostics require local backend restart and Dev/Prod deployment (pending); no backend-before-app API dependency.
+
+October 11 Live Guide Talk resolved locally: provider rejected greeting content; structured place facts moved into initial session input, greeting kept short. 590 backend tests passed, one skipped; Ruff and synthetic Dev audio passed. Local API restarted and user confirmed fixed. Hosted Dev/Prod backend deployment pending; no additional app rebuild/API dependency for this backend fix.
+
+October 11 language access: shared application-language globe menu now available on all four tabs (Pip, Live Guide, Translate, Profile), with minimum 44-point touch target and existing native-language choices/accessibility value. Swift parse/diff passed; rebuild/visual/device acceptance pending. No Dev/Prod backend deployment required.
+
+October 11 locked-screen Live Guide: started tour keeps background location and TTS audio; bounded network requests; background transition ends guide Talk; Stop/reset still stop guide. Swift/plist/diff checks passed; rebuild/install and physical locked-device acceptance pending. No Dev/Prod backend deployment required.
+
+October 11 detailed TTS: target 70–90 words/max 100, more supported place detail; live mentions remain short. Local backend restarted/readiness passed; hosted Dev/Prod backend deployment required and pending. No iOS rebuild needed; listening acceptance pending.

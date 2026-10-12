@@ -184,7 +184,10 @@ struct TravelOrganizerView: View {
         .onChange(of: tab) { old, new in
             if chat.voice.active && (old == .guide || new == .guide) { chat.voice.stop() }
         }
-        .onChange(of: scenePhase, initial: true) { _, phase in chat.liveGuide.setForeground(phase == .active) }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            chat.liveGuide.setForeground(phase == .active)
+            if phase == .background { chat.liveGuide.useTTSInBackground() }
+        }
         .onChange(of: editor?.id) { _, _ in handleVoiceLaunch() }
         .onChange(of: reviewingTrip?.id) { _, _ in handleVoiceLaunch() }
         .onChange(of: chat.busy) { _, _ in handleVoiceLaunch() }
@@ -677,6 +680,9 @@ struct ProfileTab: View {
             .id(locale.identifier)
             .refreshable { await store.load() }
             .navigationTitle("Profile")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { AppLanguageMenu() }
+            }
             .toolbarBackground(PipAppearance.cream, for: .navigationBar)
             .navigationDestination(item: $destination) { destination in
                 profileDestination(destination)

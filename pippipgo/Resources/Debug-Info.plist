@@ -18,6 +18,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>location</string>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Talk to Pip or translate conversations live. Audio is shared with OpenAI while voice or translation is active.</string>
