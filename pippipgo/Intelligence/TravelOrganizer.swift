@@ -157,24 +157,50 @@ struct TravelOrganizerView: View {
     @State private var voiceStartRequest: UUID?
     @Environment(\.scenePhase) private var scenePhase
 
+    private func navigationButton(_ destination: AppTab, title: LocalizedStringKey, icon: String) -> some View {
+        Button { tab = destination } label: {
+            VStack(spacing: 3) {
+                Image(systemName: icon).font(.system(size: 20))
+                Text(title).font(.caption).multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(tab == destination ? Color.blue : PipAppearance.secondary)
+        .accessibilityLabel(Text(title))
+        .accessibilityAddTraits(tab == destination ? [.isSelected] : [])
+        .accessibilityIdentifier("navigation.\(destination.rawValue)")
+    }
+
     var body: some View {
-        TabView(selection: $tab) {
-            PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
-                .tabItem { Label("Pip", systemImage: "bubble.left.and.bubble.right") }
-                .tag(AppTab.pip)
-            LiveGuideTab(guide: chat.liveGuide)
-                .tabItem { Label("Live Guide", systemImage: "binoculars") }
-                .tag(AppTab.guide)
-            TranslateTab(store: chat.translator)
-                .tabItem { Label("Translate", systemImage: "translate") }
-                .tag(AppTab.translate)
-            ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, askPip: { pipMode = .chat; tab = .pip }, signOut: signOut, deleteAccount: deleteAccount)
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
-                .tag(AppTab.profile)
+        VStack(spacing: 0) {
+        Group {
+            switch tab {
+            case .pip:
+                PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
+            case .guide:
+                LiveGuideTab(guide: chat.liveGuide)
+            case .translate:
+                TranslateTab(store: chat.translator)
+            case .profile:
+                ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, askPip: { pipMode = .chat; tab = .pip }, signOut: signOut, deleteAccount: deleteAccount)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Reserve real layout height so tab content and composer cannot
+            // extend underneath navigation when the keyboard reduces the screen.
+            HStack(spacing: 0) {
+                navigationButton(.pip, title: "Pip", icon: "bubble.left.and.bubble.right")
+                navigationButton(.guide, title: "Live Guide", icon: "binoculars")
+                navigationButton(.translate, title: "Translate", icon: "translate")
+                navigationButton(.profile, title: "Profile", icon: "person.crop.circle")
+            }
+            .padding(.vertical, 4)
+            .background(PipAppearance.cream)
+            .fixedSize(horizontal: false, vertical: true)
         }
         .tint(.blue)
-        .toolbarBackground(PipAppearance.cream, for: .tabBar)
-        .toolbarBackground(.visible, for: .tabBar)
         .task { if !store.loaded { await store.load() } }
         .sheet(item: $editor) { kind in OrganizerEditor(store: store, kind: kind) }
         .onChange(of: TalkToPipLaunch.shared.requestID, initial: true) { _, _ in handleVoiceLaunch() }
@@ -1366,15 +1392,7 @@ struct TravelChatView: View {
                 PipComposer(store: store) { store.voice.start() }
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if showsComposer { Button("New conversation", systemImage: "square.and.pencil") {
-                    Task { if await store.newConversation() { composing = true } }
-                }
-                .disabled(!store.loaded || store.busy || store.pending != nil || store.voice.active || store.translator.active || !store.composer.isEmpty)
-                }
-            }
-        }
+
         // Runs whenever this page appears, so talks held on the voice page show up here.
         .task { await store.load() }
         .sheet(item: $reviewingTrip) { draft in
@@ -1450,15 +1468,7 @@ struct PipComposer: View {
             if store.composer.count > 4000 { Text("Keep your message under 4,000 characters.").font(.caption).foregroundStyle(.red) }
         }
         .padding(.horizontal, 16).padding(.vertical, 12).background(companionStyle ? PipAppearance.cream : Color(.systemGroupedBackground))
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("New conversation", systemImage: "square.and.pencil") {
-                    speech.stop()
-                    Task { if await store.newConversation() { composing = true } }
-                }
-                .disabled(!store.loaded || unavailable || store.voice.active || speech.recording || !store.composer.isEmpty)
-            }
-        }
+
         .task { if !store.loaded { await store.load() } }
         .onChange(of: composing) { _, focused in
             editingChanged(focused)

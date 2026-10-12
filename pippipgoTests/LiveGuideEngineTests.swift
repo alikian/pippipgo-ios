@@ -197,6 +197,28 @@ struct LiveGuideEngineTests {
         #expect(decision.request(language: "en").mode == "driving")
     }
 
+    @Test func drivingLeadScalesWithSpeed() {
+        // At 25 mph, a 400 m landmark is within the 45 s window. At 10 mph it is not.
+        for (speed, shouldAnnounce) in [(11.176, true), (4.4704, false)] {
+            var e = engine([place("ahead", tier: .mustSee, north: 400)])
+            e.selectTourMode(.driving)
+            for second in 0...4 {
+                e.ingest(fix(at: t0.addingTimeInterval(Double(second)), speed: speed, course: 0))
+            }
+            #expect((e.decide(at: t0.addingTimeInterval(4)) != nil) == shouldAnnounce)
+        }
+    }
+
+    @Test func drivingLeadRejectsBehindAndOutsideCorridor() {
+        var e = engine([place("behind", tier: .mustSee, north: -300),
+                        place("off road", tier: .mustSee, north: 300, east: 250)])
+        e.selectTourMode(.driving)
+        for second in 0...4 {
+            e.ingest(fix(at: t0.addingTimeInterval(Double(second)), speed: 11.176, course: 0))
+        }
+        #expect(e.decide(at: t0.addingTimeInterval(4)) == nil)
+    }
+
     @Test func highwayOnlyMentionsMustSees() {
         var e = engine([place("museum", tier: .notable, north: 500), place("landmark", tier: .mustSee, north: 700, east: -150)])
         for second in 0...4 {

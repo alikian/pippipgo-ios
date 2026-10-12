@@ -254,3 +254,7 @@ Swift syntax parse, both plist validations and diff checks passed. No release bu
 At the user's request, audio-enabled TTS place announcements now target 70–90 words in three or four short sentences, with a 100-word cap (roughly 30–45 seconds depending on language/voice). They can add supported history, architecture, art or natural details. The writer response ceiling is now 1500 characters. Summary fallback also retains more sentences up to the TTS word cap. Live conversation mentions keep their previous 35-word cap. No additional model calls are introduced; longer generated text/audio consumes more usage per announcement.
 
 Local backend restarted and readiness passed. Hosted Dev/Prod deployment remains pending and is required for hosted users. No iOS rebuild/API rollout dependency for this backend behavior. Subjective live announcement quality/device acceptance remains pending.
+
+## October 11 — speed-based driving lead
+
+City driving and highway announcements now use the existing 15-second median GPS speed multiplied by a 45-second lookahead (estimated 40-second TTS plus five-second lead). At 25 mph, reach is 503 m. This is an estimate before generation, not measured audio duration or routed arrival time. Existing forward-direction, corridor, tier and speech-budget rules remain. Walking thresholds and discovery radii are unchanged. No Dev/Prod backend deployment required; iOS rebuild and live driving acceptance pending.

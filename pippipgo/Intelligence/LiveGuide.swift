@@ -696,6 +696,15 @@ struct LiveGuideTab: View {
             .padding(.horizontal, 16).padding(.bottom, 16)
         }
         .onAppear { locateMapInitially() }
+        .onChange(of: guide.enabled) { _, enabled in
+            if !enabled {
+                // Restore MapKit's continuous user tracking when the tour ends.
+                // A fixed camera would otherwise retain the last tour position.
+                position = .userLocation(followsHeading: false,
+                                         fallback: currentMapCamera.map { .camera($0) } ?? .automatic)
+                locateMapInitially()
+            }
+        }
         .onDisappear {
             mapLocationFeed?.stop()
             mapLocationFeed = nil
@@ -724,7 +733,12 @@ struct LiveGuideTab: View {
                 centerCoordinate: location.coordinate,
                 distance: max(800, location.horizontalAccuracy * 4), heading: 0, pitch: 0)
             camera.centerCoordinate = location.coordinate
-            withAnimation(.linear(duration: 0.5)) { position = .camera(camera) }
+            if guide.enabled {
+                withAnimation(.linear(duration: 0.5)) { position = .camera(camera) }
+            } else {
+                // Keep native tracking enabled, including zero-speed coordinate updates.
+                position = .userLocation(followsHeading: false, fallback: .camera(camera))
+            }
         }
         feed.start()
     }

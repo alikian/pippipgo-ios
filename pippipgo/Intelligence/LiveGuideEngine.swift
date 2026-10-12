@@ -220,8 +220,9 @@ struct GuideEngine {
     static let minorWalkingRange = 25.0
     static let cityDrivingCorridor = 200.0
     static let highwayDrivingCorridor = 400.0
-    static let cityDrivingLookahead: TimeInterval = 18
-    static let highwayDrivingLookahead: TimeInterval = 30
+    // TTS currently targets 70–90 words, approximately 40 seconds of audio.
+    static let drivingAnnouncementDuration: TimeInterval = 40
+    static let drivingAnnouncementLead: TimeInterval = 5
     static let groupRadius = 60.0
     static let minimumGap: TimeInterval = 45  // never talk over the previous mention
     static let fetchInterval: TimeInterval = 20
@@ -496,8 +497,7 @@ struct GuideEngine {
                                  within: within)
         case .cityDriving, .highway:
             guard let course = travelDirection else { return nil }
-            let lookahead = motion == .highway ? Self.highwayDrivingLookahead : Self.cityDrivingLookahead
-            let reach = speed * lookahead
+            let reach = speed * (Self.drivingAnnouncementDuration + Self.drivingAnnouncementLead)
             let corridor = motion == .highway ? Self.highwayDrivingCorridor : Self.cityDrivingCorridor
             var best: (GuideCandidate, Double, Double, Double)?
             for candidate in candidates where eligible(candidate) {
