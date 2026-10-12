@@ -379,6 +379,14 @@ final class LiveGuideStore {
     var talking: Bool { voice.active }
     /// Includes downloaded TTS and the on-device fallback voice.
     var announcementSpeaking: Bool { voicePlayer.isPlaying || speech.isSpeaking }
+
+    func skipAnnouncement() {
+        // Cancel pending audio too; canceled responses must not restart playback.
+        deliverTask?.cancel()
+        if speech.isSpeaking { speech.stopSpeaking(at: .immediate) }
+        voicePlayer.stop()
+        asking = false
+    }
     var listening: Bool { voice.connected }
     var conversationError: String? { voice.error }
     /// Pip's latest spoken line in the current conversation, for a caption over the map.
@@ -672,7 +680,6 @@ struct LiveGuideTab: View {
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     @State private var showSettings = false
     @State private var mapLocationFeed: LiveGuideLocationFeed?
-    @State private var didSetInitialLocation = false
     @State private var currentMapCamera: MapCamera?
     @Environment(\.openURL) private var openURL
 
@@ -703,28 +710,21 @@ struct LiveGuideTab: View {
         }
     }
 
-    /// Resolve the initial camera independently of whether the traveler starts the tour.
-    /// Stop this short-lived feed after a fresh fix; MapKit continues drawing the user marker.
+    /// Keep map location separate from the tour so Stop still allows GPS following.
+    /// This foreground-only feed stops when the Live Guide tab disappears.
     private func locateMapInitially() {
-        guard !didSetInitialLocation, mapLocationFeed == nil else { return }
+        guard mapLocationFeed == nil else { return }
         let feed = LiveGuideLocationFeed()
         mapLocationFeed = feed
         feed.onLocation = { location in
-            guard !didSetInitialLocation,
-                  location.horizontalAccuracy >= 0,
+            guard location.horizontalAccuracy >= 0,
                   abs(location.timestamp.timeIntervalSinceNow) < 15,
                   CLLocationCoordinate2DIsValid(location.coordinate) else { return }
-            didSetInitialLocation = true
-            // Do not override a route or a camera the traveler has already moved.
-            if guide.route == nil, !position.positionedByUser {
-                withAnimation {
-                    position = .camera(MapCamera(centerCoordinate: location.coordinate,
-                                                 distance: max(800, location.horizontalAccuracy * 4),
-                                                 heading: 0, pitch: 0))
-                }
-            }
-            mapLocationFeed?.stop()
-            mapLocationFeed = nil
+            var camera = currentMapCamera ?? MapCamera(
+                centerCoordinate: location.coordinate,
+                distance: max(800, location.horizontalAccuracy * 4), heading: 0, pitch: 0)
+            camera.centerCoordinate = location.coordinate
+            withAnimation(.linear(duration: 0.5)) { position = .camera(camera) }
         }
         feed.start()
     }
@@ -766,17 +766,6 @@ struct LiveGuideTab: View {
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             currentMapCamera = context.camera
-        }
-        .onChange(of: guide.movingMapFix) { _, fix in
-            guard guide.enabled, let fix,
-                  abs(fix.timestamp.timeIntervalSinceNow) < 15 else { return }
-            // Resume following on each accepted movement fix, preserving the user's
-            // zoom and orientation rather than resetting the entire camera.
-            var camera = currentMapCamera ?? MapCamera(
-                centerCoordinate: CLLocationCoordinate2D(latitude: fix.latitude, longitude: fix.longitude),
-                distance: 800, heading: 0, pitch: 0)
-            camera.centerCoordinate = CLLocationCoordinate2D(latitude: fix.latitude, longitude: fix.longitude)
-            withAnimation(.linear(duration: 0.5)) { position = .camera(camera) }
         }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .ignoresSafeArea(edges: .top)
@@ -869,15 +858,11 @@ struct LiveGuideTab: View {
                 }
                 .buttonStyle(.bordered).controlSize(.large)
             }
-            primaryButton
-            if guide.enabled {
-                Button(role: .destructive) {
-                    withAnimation(.spring) { guide.enabled = false }
-                } label: {
-                    Text("Stop").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+            TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) { guideActions }
+                    VStack(alignment: .leading, spacing: 8) { guideActions }
                 }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("liveGuide.enabled")
             }
         }
         .padding(16)
@@ -886,16 +871,48 @@ struct LiveGuideTab: View {
         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
     }
 
+    @ViewBuilder private var guideActions: some View {
+        primaryButton
+        if guide.enabled {
+            Button { guide.skipAnnouncement() } label: {
+                Text("Skip").font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background(Color.blue.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .disabled(guide.talking || !guide.announcementSpeaking)
+            .opacity(guide.talking || !guide.announcementSpeaking ? 0 : 1)
+            .accessibilityHidden(guide.talking || !guide.announcementSpeaking)
+            .accessibilityLabel(Text("Skip announcement"))
+            .accessibilityIdentifier("liveGuide.skipAnnouncement")
+        }
+        if guide.enabled {
+            Button(role: .destructive) {
+                withAnimation(.spring) { guide.enabled = false }
+            } label: {
+                Text("Stop").font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background(Color.blue.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("liveGuide.enabled")
+        }
+    }
+
     /// Start when the guide is off; talk to Pip while it runs.
     @ViewBuilder private var primaryButton: some View {
         if guide.enabled {
             Button { guide.toggleConversation() } label: {
                 Label {
-                    Text(guide.talking ? (guide.listening ? "Listening… tap to end" : "Connecting…") : "Tap to talk")
+                    Text(guide.talking ? "End" : "Talk")
                 } icon: {
                     Image(systemName: "mic.fill").symbolEffect(.variableColor.iterative, isActive: guide.listening)
                 }
-                .modifier(LiveGuidePrimaryLabel(color: guide.talking ? Color(red: 0, green: 0.45, blue: 0.2) : PipAppearance.navy))
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .background(guide.talking ? Color(red: 0, green: 0.45, blue: 0.2) : PipAppearance.navy,
+                            in: RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("liveGuide.talk")
@@ -977,19 +994,24 @@ struct LiveGuideMentionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             DisclosureGroup(isExpanded: $expanded) {
-                if !mention.text.isEmpty {
-                    Text(verbatim: mention.text).font(.body).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 8) {
+                    if !mention.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(verbatim: mention.text.trimmingCharacters(in: .whitespacesAndNewlines))
+                            .font(.body).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let url = mention.wikipediaURL {
+                        Button { openURL(url) } label: { Label("Read more", systemImage: "book") }
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minHeight: 44)
+                    }
                 }
-                if let url = mention.wikipediaURL {
-                    Button { openURL(url) } label: { Label("Read more", systemImage: "book") }
-                        .font(.subheadline.weight(.semibold))
-                        .frame(minHeight: 44)
-                }
+                .fixedSize(horizontal: false, vertical: true)
             } label: {
                 Text(verbatim: mention.placeName).font(.headline).foregroundStyle(.primary)
                     .frame(minHeight: 44, alignment: .leading)
             }
+            .fixedSize(horizontal: false, vertical: true)
             if guide.options.count > 1 {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {

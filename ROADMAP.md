@@ -493,3 +493,7 @@ October 11 language access: shared application-language globe menu now available
 October 11 locked-screen Live Guide: started tour keeps background location and TTS audio; bounded network requests; background transition ends guide Talk; Stop/reset still stop guide. Swift/plist/diff checks passed; rebuild/install and physical locked-device acceptance pending. No Dev/Prod backend deployment required.
 
 October 11 detailed TTS: target 70–90 words/max 100, more supported place detail; live mentions remain short. Local backend restarted/readiness passed; hosted Dev/Prod backend deployment required and pending. No iOS rebuild needed; listening acceptance pending.
+
+October 11 Live Guide compact disclosure: grouped announcement text and Read more in a content-sized vertical stack; trimmed surrounding whitespace and prevented disclosure from stretching vertically. Swift syntax parse and diff check passed; simulator rebuild and visual acceptance pending. No Dev/Prod backend deployment required; iOS app update required.
+
+October 11 Skip announcement: secondary localized button visible during guide TTS/fallback playback; immediately stops audio and cancels pending delivery without stopping tour. Swift syntax/diff checks passed; rebuild and simulator/device acceptance pending. No Dev/Prod backend deployment required.
