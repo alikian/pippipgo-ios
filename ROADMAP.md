@@ -502,4 +502,6 @@ October 11 speed-based driving announcements: 15-second median GPS speed × 45 s
 
 October 11 Pip navigation and GPS follow: removed new-conversation toolbar controls; replaced native tab container with selected-page content and one custom navigation row reserving layout height above keyboard; stopped guide restores MapKit user tracking. Swift parse/diff checks passed; simulator/signed rebuild and keyboard/GPS visual acceptance pending. No backend deployment required.
 
+October 12 simulator DynamoDB persistence: separate Dev table/CloudFormation stack pippipgo-dev-simulator-walks deployed; saved tours/current draft use conditional revisions through loopback API; existing browser data imported only into empty cloud state and retained locally. Fifteen mocked tests, JS syntax and live read passed (three tours/current Hollywood). Local tool restarted; no hosted Dev/Prod API deployment or iOS rebuild required.
+
 October 12 iOS feature inventory: [featured.md](../pippipgo-backend/featured.md) records current full/partial source implementation, outstanding rollout/device acceptance and suggested additions. Proposals do not alter the approved scope or mark product milestones complete. Documentation only; no backend deployment or app build required.
