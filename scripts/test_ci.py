@@ -37,7 +37,8 @@ class CloudHookTests(unittest.TestCase):
     def test_fresh_checkout_gets_cloud_number_and_prod_identity(self):
         self.run_hook("ci_post_clone.sh")
         self.assertIn("CURRENT_PROJECT_VERSION = 42", self.overrides())
-        self.assertIn(PROD_CLIENT, (self.root / "Configurations/ProdIdentity.xcconfig").read_text())
+        self.assertIn(PROD_CLIENT, (self.root / "Configurations/Prod.xcconfig").read_text())
+        self.assertFalse((self.root / "Configurations/ProdIdentity.xcconfig").exists())
         self.env["CI_BUILD_NUMBER"] = "43"
         self.run_hook("ci_post_clone.sh")
         self.assertIn("CURRENT_PROJECT_VERSION = 43", self.overrides())
@@ -46,11 +47,21 @@ class CloudHookTests(unittest.TestCase):
     def overrides(self):
         return (self.root / "Configurations/CIOverrides.xcconfig").read_text()
 
-    def test_missing_or_dev_identity_cannot_build_prod(self):
-        for value in ("", "5ungc4grbiid7de7rjbh0jn2ff", "invalid\nSETTING = value"):
+    def test_dev_or_invalid_workflow_identity_cannot_build_prod(self):
+        for value in ("5ungc4grbiid7de7rjbh0jn2ff", "invalid\nSETTING = value"):
             with self.subTest(value=value):
                 self.env["PIPPIPGO_PROD_COGNITO_CLIENT_ID"] = value
                 self.run_hook("ci_post_clone.sh", success=False)
+
+    def test_prod_builds_without_workflow_identity(self):
+        self.env.pop("PIPPIPGO_PROD_COGNITO_CLIENT_ID")
+        self.run_hook("ci_post_clone.sh")
+        self.assertIn("CURRENT_PROJECT_VERSION = 42", self.overrides())
+
+    def test_wrong_checked_in_prod_identity_is_rejected(self):
+        path = self.root / "Configurations/Prod.xcconfig"
+        path.write_text(path.read_text().replace(PROD_CLIENT, "5ungc4grbiid7de7rjbh0jn2ff"))
+        self.run_hook("ci_post_clone.sh", success=False)
 
     def test_invalid_build_numbers_are_rejected(self):
         for number in ("", "0", "01", "-1", "1.2", "42\nSETTING = value"):

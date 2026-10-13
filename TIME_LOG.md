@@ -669,3 +669,7 @@ Longer-TTS final validation: 592 backend tests passed, one skipped; Ruff lint/fo
 
 
 | 2026-10-12-dev-cloud-archive | October 12, 2026 | Codex | Repair Dev Xcode Cloud archive | Allow Dev/Prod archive schemes; verify actual archive identity/API/display name against selected scheme; Local still blocked; 11 CI-hook tests passed including cross-environment rejection; commit/push and Cloud rerun pending; no backend deployment | Start not measured; end 2026-10-13T06:57:10+00:00; no known pauses | Exact duration unknown | Counted once across repositories; Codex elapsed time is not human labor |
+
+| 2026-10-13-prod-local-identity-recovery | October 13, 2026 | Codex | Restore missing public Prod identity | Live CloudFormation validation and generated ignored identity file; resolved Xcode Prod settings verified; rebuild/runtime acceptance pending, no backend deployment or build-number change | Start not measured; end 2026-10-13T07:23:20+00:00; no known pauses | Exact duration unknown | Codex elapsed time is not human labor; counted once across repositories |
+
+| 2026-10-13-bundled-prod-identity | October 13, 2026 | Codex | Remove Prod public identity environment dependency | Checked-in Prod public client; cloud validation without required variable/generated include; 13 CI tests passed; app rebuild/Cloud acceptance pending; no backend deployment | Start not measured; end 2026-10-13T07:24:47+00:00; no known pauses | Exact duration unknown | Codex elapsed time is not human labor; counted once across repositories |

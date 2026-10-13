@@ -572,3 +572,7 @@ October 12 correction: default translation is Spanish to the traveler’s device
 
 
 October 12: Dev Xcode Cloud archives enabled with scheme-specific archive validation; Local remains blocked, Prod isolation retained. 11 CI-hook tests passed; push/Cloud rerun pending, no backend deployment required.
+
+Prod local configuration recovery (October 13, 2026): Missing ignored Configurations/ProdIdentity.xcconfig left CognitoClientID empty, triggering the startup configuration precondition. Regenerated public identity using backend scripts/export_prod_ios_config.py after live validation of pippipgo-prod-foundation. Xcode Prod build settings resolve the exact Prod client, auth/API hosts and environment; Dev identities remain separate. Rebuild/run and device acceptance pending; no release build number changed and no backend deployment required.
+
+Bundled Prod public identity (October 13, 2026): User requested removing the workflow/generated-file dependency. Verified Prod public Cognito client ID is now checked into Prod.xcconfig; no generated identity include or required workflow identity variable. Cloud hook validates the checked-in Prod ID and rejects a mismatching optional legacy workflow variable. 13 CI-hook tests passed, including fresh checkout without the variable and Dev identity rejection. No secrets bundled, release build number unchanged, no backend deployment required; app/Cloud rebuild acceptance pending.

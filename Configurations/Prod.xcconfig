@@ -3,6 +3,5 @@ PIPPIPGO_APP_ENVIRONMENT = prod
 PIPPIPGO_DISPLAY_NAME = PipPipGo
 PIPPIPGO_BACKEND_BASE_URL = https:$(PIPPIPGO_URL_SLASH)$(PIPPIPGO_URL_SLASH)api.pippipgo.com
 PIPPIPGO_COGNITO_DOMAIN = https:$(PIPPIPGO_URL_SLASH)$(PIPPIPGO_URL_SLASH)auth.pippipgo.com
-// Intentionally unavailable until an isolated Prod foundation exists. Never inherit Dev.
-PIPPIPGO_COGNITO_CLIENT_ID =
-#include? "ProdIdentity.xcconfig"
+// Verified Prod public client identity. This is not a secret.
+PIPPIPGO_COGNITO_CLIENT_ID = 23sk8qfmpotjj40jbnl9tn33em

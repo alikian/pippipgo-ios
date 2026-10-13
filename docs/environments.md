@@ -31,7 +31,7 @@ set. Browser Google sessions can still be shared.
 - `Configurations/Prod.xcconfig`: production API origin and app label.
 - `Configurations/Common.xcconfig`: shared URL syntax and version includes; no authentication identity.
 - `Configurations/DevIdentity.xcconfig`: retained Dev Cognito identity, included by Local and Dev.
-- `Configurations/ProdIdentity.xcconfig`: ignored/generated public Prod client ID. Generate it using backend `scripts/export_prod_ios_config.py` after provisioning the isolated Prod foundation. Never put secrets in these files.
+- `Configurations/Prod.xcconfig` includes the verified public Prod client ID. Local and Xcode Cloud builds do not require a workflow identity variable or generated `ProdIdentity.xcconfig`. The optional legacy workflow variable must match the checked-in ID. Never put secrets in these files.
 
 Local includes the local-network usage description and narrowly scoped HTTP
 exceptions. Dev and Prod use the hosted plist with no HTTP exception or local

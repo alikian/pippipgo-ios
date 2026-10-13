@@ -67,8 +67,7 @@ in these scripts.
 
 - Start condition: changes to `main`, plus manual runs. `develop` stays development.
 - Scheme: `Prod` for both Test and Archive; configuration: use scheme settings.
-- Workflow environment variable (public, not a secret):
-  `PIPPIPGO_PROD_COGNITO_CLIENT_ID=23sk8qfmpotjj40jbnl9tn33em`.
+- Prod public identity is checked into `Configurations/Prod.xcconfig`; no workflow identity variable is required. If the legacy `PIPPIPGO_PROD_COGNITO_CLIENT_ID` variable remains set, it must match `23sk8qfmpotjj40jbnl9tn33em`.
 - Actions: Test on one iPhone simulator; Archive for iOS with distribution set to
   **TestFlight and App Store** so the tested build remains eligible for App Review.
   Do not select an internal-testing-only distribution option for release candidates.
@@ -77,8 +76,7 @@ in these scripts.
 - Keep public release manual in App Store Connect. Do not add automatic App Review
   submission as part of this initial workflow.
 
-The generated, ignored `ProdIdentity.xcconfig` contains only the verified public
-Cognito client ID. A missing, development or unexpected identity stops the build.
+The checked-in `Prod.xcconfig` contains only the verified public Cognito client ID. A missing, development or unexpected identity stops the build; generated `ProdIdentity.xcconfig` is no longer included.
 The hooks reject Local cloud archives. Dev archives are allowed for development TestFlight testing and validate the Dev API, identity and display name; Prod archives validate Production configuration. Production unit-test actions enable
 `@testable` support; archive actions explicitly disable it. The post-archive hook
 checks the actual app plist for the Prod API, Prod authentication identity, bundle
