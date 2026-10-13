@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		079A596F004B80CE9ACD0DFB /* pippipgo/Views/WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCE157C7AAA02B8867AD4C2 /* pippipgo/Views/WelcomeView.swift */; };
+		AB1090000000000000000001 /* pippipgo/Views/GuestExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1090000000000000000002 /* pippipgo/Views/GuestExploreView.swift */; };
 		115C62EF751601B1BEB250C6 /* pippipgo/Networking/APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0FB40147CE94E8F6D0F626A /* pippipgo/Networking/APIClient.swift */; };
 		13942DEE7CC5ED9161D3E70E /* pippipgoTests/OAuthCallbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29707B315ECB0F7B45832291 /* pippipgoTests/OAuthCallbackTests.swift */; };
 		1A7E5C0D2B3F4A5B6C7D8E01 /* pippipgo/Intelligence/LiveGuideEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7E5C0D2B3F4A5B6C7D8E02 /* pippipgo/Intelligence/LiveGuideEngine.swift */; };
@@ -35,6 +36,7 @@
 		BBCC00112233445566779900 /* pippipgo/Intelligence/LiveTranslation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCC00112233445566779901 /* pippipgo/Intelligence/LiveTranslation.swift */; };
 		BCC6E64C306792BD007721AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BCC6E64B306792BD007721AD /* Assets.xcassets */; };
 		C12345678901234567890123B /* pippipgo/Resources/Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C12345678901234567890123A /* pippipgo/Resources/Localizable.xcstrings */; };
+		AB1080000000000000000001 /* pippipgo/Resources/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AB1080000000000000000002 /* pippipgo/Resources/PrivacyInfo.xcprivacy */; };
 		C3403EA2321FDDD7B221862B /* pippipgo/Views/AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C068222C123F0F3E07E5C90 /* pippipgo/Views/AccountView.swift */; };
 		CCDDEE001122334455667700 /* pippipgo/App/TalkToPipIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDDEE001122334455667701 /* pippipgo/App/TalkToPipIntent.swift */; };
 		DDEE00112233445566778800 /* pippipgo/Intelligence/ConversationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDEE00112233445566778801 /* pippipgo/Intelligence/ConversationContext.swift */; };
@@ -93,9 +95,11 @@
 		BBCC00112233445566779901 /* pippipgo/Intelligence/LiveTranslation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/LiveTranslation.swift; sourceTree = SOURCE_ROOT; };
 		BCC6E64B306792BD007721AD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C12345678901234567890123A /* pippipgo/Resources/Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = pippipgo/Resources/Localizable.xcstrings; sourceTree = SOURCE_ROOT; };
+		AB1080000000000000000002 /* pippipgo/Resources/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = pippipgo/Resources/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
 		CCDDEE001122334455667701 /* pippipgo/App/TalkToPipIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/App/TalkToPipIntent.swift; sourceTree = SOURCE_ROOT; };
 		D7FC6594536B92CBDD9A9AB8 /* pippipgo/Authentication/AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Authentication/AuthModels.swift; sourceTree = SOURCE_ROOT; };
 		DCCE157C7AAA02B8867AD4C2 /* pippipgo/Views/WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Views/WelcomeView.swift; sourceTree = SOURCE_ROOT; };
+		AB1090000000000000000002 /* pippipgo/Views/GuestExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Views/GuestExploreView.swift; sourceTree = SOURCE_ROOT; };
 		DDEE00112233445566778801 /* pippipgo/Intelligence/ConversationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/ConversationContext.swift; sourceTree = SOURCE_ROOT; };
 		E33000000000000000000002 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EEFF00112233445566778801 /* pippipgoTests/ConversationContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/ConversationContextTests.swift; sourceTree = SOURCE_ROOT; };
@@ -152,6 +156,7 @@
 				2C068222C123F0F3E07E5C90 /* pippipgo/Views/AccountView.swift */,
 				93AA7315E4B3C8D10B7E618A /* pippipgo/Views/RootView.swift */,
 				DCCE157C7AAA02B8867AD4C2 /* pippipgo/Views/WelcomeView.swift */,
+				AB1090000000000000000002 /* pippipgo/Views/GuestExploreView.swift */,
 				BCC6E64A306792B8007721AD /* Resources */,
 			);
 			name = pippipgo;
@@ -178,6 +183,7 @@
 				AB1070000000000000000002 /* pippipgo/Resources/VoicePreviews */,
 				E33000000000000000000002 /* LaunchScreen.storyboard */,
 				C12345678901234567890123A /* pippipgo/Resources/Localizable.xcstrings */,
+				AB1080000000000000000002 /* pippipgo/Resources/PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -303,6 +309,7 @@
 				AB1070000000000000000001 /* pippipgo/Resources/VoicePreviews in Resources */,
 				E33000000000000000000001 /* LaunchScreen.storyboard in Resources */,
 				C12345678901234567890123B /* pippipgo/Resources/Localizable.xcstrings in Resources */,
+				AB1080000000000000000001 /* pippipgo/Resources/PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,6 +352,7 @@
 				C3403EA2321FDDD7B221862B /* pippipgo/Views/AccountView.swift in Sources */,
 				8A7D0AAA03B3D954C16ECC93 /* pippipgo/Views/RootView.swift in Sources */,
 				079A596F004B80CE9ACD0DFB /* pippipgo/Views/WelcomeView.swift in Sources */,
+				AB1090000000000000000001 /* pippipgo/Views/GuestExploreView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

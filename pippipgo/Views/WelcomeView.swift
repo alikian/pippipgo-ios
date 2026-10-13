@@ -4,6 +4,8 @@ struct WelcomeView: View {
     let isBusy: Bool
     let errorMessage: String?
     let signIn: () -> Void
+    /// Signed-out exploring: map, nearby places and translation without an account.
+    var explore: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -41,7 +43,18 @@ struct WelcomeView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.indigo)
                     .disabled(isBusy)
-                    Text("Use Google or email and password. When creating an account, enter your email address as both username and email.")
+                    if let explore {
+                        Button(action: explore) {
+                            Text("Explore without an account")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isBusy)
+                        .accessibilityIdentifier("welcome.explore")
+                    }
+                    Text("Use Apple, Google or email and password. When creating an account, enter your email address as both username and email.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

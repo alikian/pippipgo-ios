@@ -41,6 +41,66 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
     ]
 
     static func language(_ code: String) -> TranslationLanguage? { supported.first { $0.code == code } }
+
+    /// Shown to the other person in their own language: they did not sign up for PipPipGo.
+    /// Accurate only while the backend never stores interpreter transcripts.
+    var bystanderNotice: String { Self.notices[code] ?? Self.notices["en"]! }
+    var isRightToLeft: Bool { ["ar", "fa", "he"].contains(code) }
+
+    private static let notices: [String: String] = [
+        "en": "This conversation is translated by AI. PipPipGo does not save your words.",
+        "fil": "Isinasalin ng AI ang usapang ito. Hindi sine-save ng PipPipGo ang iyong mga salita.",
+        "tl": "Isinasalin ng AI ang usapang ito. Hindi sine-save ng PipPipGo ang iyong mga salita.",
+        "ar": "تُترجم هذه المحادثة بالذكاء الاصطناعي. لا يحفظ PipPipGo كلامك.",
+        "zh": "这段对话由 AI 翻译。PipPipGo 不会保存你说的话。",
+        "nl": "Dit gesprek wordt door AI vertaald. PipPipGo slaat je woorden niet op.",
+        "fr": "Cette conversation est traduite par une IA. PipPipGo n’enregistre pas vos paroles.",
+        "de": "Dieses Gespräch wird von einer KI übersetzt. PipPipGo speichert Ihre Worte nicht.",
+        "el": "Αυτή η συνομιλία μεταφράζεται από τεχνητή νοημοσύνη. Το PipPipGo δεν αποθηκεύει τα λόγια σας.",
+        "he": "השיחה הזו מתורגמת על ידי בינה מלאכותית. PipPipGo לא שומרת את הדברים שלך.",
+        "hi": "इस बातचीत का अनुवाद AI करता है। PipPipGo आपके शब्द सहेजता नहीं है।",
+        "id": "Percakapan ini diterjemahkan oleh AI. PipPipGo tidak menyimpan kata-kata Anda.",
+        "it": "Questa conversazione è tradotta da un’IA. PipPipGo non salva le tue parole.",
+        "ja": "この会話はAIが翻訳しています。PipPipGoはあなたの言葉を保存しません。",
+        "ko": "이 대화는 AI가 통역합니다. PipPipGo는 말씀하신 내용을 저장하지 않습니다.",
+        "fa": "این گفت‌وگو با هوش مصنوعی ترجمه می‌شود. PipPipGo حرف‌های شما را ذخیره نمی‌کند.",
+        "pl": "Ta rozmowa jest tłumaczona przez AI. PipPipGo nie zapisuje Twoich słów.",
+        "pt": "Esta conversa é traduzida por IA. O PipPipGo não guarda suas palavras.",
+        "ru": "Этот разговор переводит ИИ. PipPipGo не сохраняет ваши слова.",
+        "es": "Esta conversación la traduce una IA. PipPipGo no guarda tus palabras.",
+        "sv": "Det här samtalet översätts av AI. PipPipGo sparar inte dina ord.",
+        "th": "บทสนทนานี้แปลโดย AI และ PipPipGo จะไม่บันทึกคำพูดของคุณ",
+        "tr": "Bu konuşma yapay zekâ ile çevriliyor. PipPipGo sözlerinizi kaydetmez.",
+        "vi": "Cuộc trò chuyện này được AI dịch. PipPipGo không lưu lời nói của bạn.",
+    ]
+}
+
+/// A notice the other person can read in their own language before and during translation.
+struct TranslationBystanderNotice: View {
+    let language: TranslationLanguage
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "person.wave.2").font(.title3).foregroundStyle(PipAppearance.navy)
+                .accessibilityHidden(true)
+            Text(spoken).font(.callout).foregroundStyle(PipAppearance.navy)
+                .multilineTextAlignment(language.isRightToLeft ? .trailing : .leading)
+                .frame(maxWidth: .infinity, alignment: language.isRightToLeft ? .trailing : .leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .environment(\.layoutDirection, language.isRightToLeft ? .rightToLeft : .leftToRight)
+        .padding(14)
+        .background(.white, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("translation.bystanderNotice")
+    }
+
+    /// Tags the language so VoiceOver reads the notice with the right voice.
+    private var spoken: AttributedString {
+        var text = AttributedString(language.bystanderNotice)
+        text.languageIdentifier = language.code
+        return text
+    }
 }
 
 /// The traveler's language and the other person's language for a two-way interpreter session.
@@ -112,6 +172,8 @@ struct TranslateTab: View {
                 }
                 .padding(.horizontal, 16)
                 TranslationLanguageBar(store: store).padding(.top, 16)
+                TranslationBystanderNotice(language: (store.mode.translation ?? .saved()).theirs)
+                    .padding(.horizontal, 22).padding(.top, 8)
                 LiveVoiceView(store: store, companionStyle: true, translationStyle: true, translationSettings: { showingSettings = true })
             }
             .background(PipAppearance.cream.ignoresSafeArea())

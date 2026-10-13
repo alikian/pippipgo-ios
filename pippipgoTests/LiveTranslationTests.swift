@@ -15,6 +15,19 @@ struct LiveTranslationTests {
         #expect(!TranslationHeadphoneControl.hasHeadphoneOutput([]))
     }
 
+    @Test func everyInterpreterLanguageHasItsOwnBystanderNotice() {
+        let codes = ["fil", "tl", "ar", "zh", "nl", "en", "fr", "de", "el", "he", "hi", "id", "it", "ja",
+                     "ko", "fa", "pl", "pt", "ru", "es", "sv", "th", "tr", "vi"]
+        let english = TranslationLanguage.language("en")!.bystanderNotice
+        for code in codes {
+            let notice = TranslationLanguage.language(code)!.bystanderNotice
+            #expect(notice.contains("PipPipGo"))
+            #expect(code == "en" || notice != english, "Missing notice for \(code)")
+        }
+        #expect(TranslationLanguage.language("fa")!.isRightToLeft)
+        #expect(!TranslationLanguage.language("ja")!.isRightToLeft)
+    }
+
     @Test func pairsRequireDistinctSupportedLanguages() {
         #expect(TranslationPair(mine: "en", theirs: "es")?.headerValue == "en,es")
         #expect(TranslationPair(mine: "en", theirs: "en") == nil)
