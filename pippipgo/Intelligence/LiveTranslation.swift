@@ -67,7 +67,7 @@ struct TranslationPair: Equatable, Sendable {
     static func defaultPair(locale: Locale = .current) -> TranslationPair {
         let device = locale.language.languageCode?.identifier ?? "en"
         let mine = TranslationLanguage.all.contains { $0.code == device } ? device : "en"
-        return TranslationPair(mine: mine, theirs: mine == "en" ? "fa" : "en")!
+        return TranslationPair(mine: mine, theirs: "es")!
     }
 
     private static let storageKey = "translationLanguages"

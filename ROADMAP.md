@@ -563,3 +563,9 @@ October 12: exact hosted Dev backend revision 59 image promoted to Prod through 
 
 
 October 12: iOS Production environment indicator section removed, including row padding; Local/Dev retain the indicator. Swift syntax/diff checks passed. App release and visual device acceptance pending; no backend deployment required.
+
+
+October 12: default translation pair now English for the traveler and Spanish for the other speaker, giving Spanish-to-English listening direction; saved choices retained. Swift default/persistence checks passed; app release pending, no backend deployment required.
+
+
+October 12 correction: default translation is Spanish to the traveler’s device language, with English fallback for unavailable picker languages; saved choices remain. Swift checks passed; app rollout pending, no backend deployment required.

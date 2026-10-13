@@ -660,3 +660,9 @@ Longer-TTS final validation: 592 backend tests passed, one skipped; Ruff lint/fo
 
 
 | 2026-10-12-hide-prod-environment | October 12, 2026 | Codex | Hide Production environment section | RootView omits the entire environment row and padding in Prod; Local/Dev retain indicator; Swift syntax and diff checks passed; app release/visual device acceptance pending; no backend deployment required | Start not measured; end 2026-10-13T06:20:41+00:00; no known pauses | Exact duration unknown | Counted once across repositories; Codex elapsed time is not human labor |
+
+
+| 2026-10-12-spanish-english-default | October 12, 2026 | Codex | Default translation Spanish to English | Default mine English/theirs Spanish across locales; saved user choices and mode preserved; existing default assertions updated; extracted Swift default/persistence checks and syntax/diff checks passed; app rollout pending; no backend deployment required | Start not measured; end 2026-10-13T06:48:23+00:00; no known pauses | Exact duration unknown | Counted once across repositories; Codex elapsed time is not human labor |
+
+
+| 2026-10-12-spanish-to-mine-default | October 12, 2026 | Codex | Default Spanish to traveler language | Corrected default: theirs Spanish, mine device language from available picker languages with English fallback; saved choices preserved; Swift locale/fallback/persistence and syntax checks passed; app rollout pending, no backend deployment | Start not measured; end 2026-10-13T06:49:07+00:00; no known pauses | Exact duration unknown | Counted once across repositories; Codex elapsed time is not human labor |

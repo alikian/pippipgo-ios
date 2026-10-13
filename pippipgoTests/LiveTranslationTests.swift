@@ -35,10 +35,11 @@ struct LiveTranslationTests {
         #expect(TranslationPair(headerValue: "fil,tl")?.headerValue == "fil,tl")
     }
 
-    @Test func defaultPairFollowsDeviceLanguage() {
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "fr_FR")).headerValue == "fr,en")
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "es_MX")).headerValue == "en,fa")
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "sw_KE")).headerValue == "en,fa")
+    @Test func defaultPairIsSpanishToDeviceLanguage() {
+        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "fr_FR")).headerValue == "fr,es")
+        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "fa_IR")).headerValue == "fa,es")
+        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "es_MX")).headerValue == "en,es")
+        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "sw_KE")).headerValue == "en,es")
     }
 
     @Test func savedPairRoundTripsAndIgnoresInvalidValues() throws {
