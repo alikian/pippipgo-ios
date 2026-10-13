@@ -509,3 +509,35 @@ October 12 iOS feature inventory: [featured.md](../pippipgo-backend/featured.md)
 October 12 guide label rename: iOS tab and navigation title now use Tour Guide, reusing existing localized strings; feature inventory and Full Test navigation labels updated. Three localization checks and diff checks passed. No app build/install or Full Test run; app update required, no build number changed. No backend deployment required.
 
 October 12 Ask label rename: Tour Guide voice action now says Ask; voice screen/composer labels use Ask Pip. Existing Ask Pip translations reused and Ask localized in all fourteen resources; feature inventory updated. Three catalog checks and diff checks passed. Voice behavior unchanged; app rebuild/install pending, no build number changed, no backend deployment required.
+
+October 12 admin Offline city packs: OpenStreetMap boundary/place/parking discovery, reviewed licensed content, backend-generated MP3 narration, conditional S3 manifests, resumable generation, saved-pack list, previews and ZIP downloads implemented. Dev pippipgo-dev-city-packs bucket/IAM stack CREATE_COMPLETE; local Cognito/DynamoDB API runs on 127.0.0.1:8000 and admin on localhost:8765. 622 backend tests passed/one skipped, Ruff passed; 31 admin tests/build and zero-vulnerability audit passed; CloudFormation validation/cfn-lint passed. Public Overpass live discovery is intermittent (park boundary found; fuller queries failed), and live TTS/authenticated pack creation remain unaccepted. Hosted Dev/Prod backend and admin rollout pending, backend before admin; no iOS consumer/build change. See backend docs/city-packs.md.
+
+October 12 area-search repair: partial case-insensitive OSM boundary lookup now uses the supplied City to scope queries and removes a repeated city name from search text; admin shows lookup progress/errors beside Find area. 623 backend tests passed/one skipped; Ruff passed; 31 admin tests/build passed. Local API restarted. Live Old Town lookup still returned upstream 504, so live provider success is not claimed. Hosted Dev/Prod backend deployment is pending and must precede admin rollout.
+
+October 12 drawn city-pack regions: replaced Find area with an OpenStreetMap/Leaflet rectangle selector (two corners or visible map), bounded region discovery and retained pack region; no Google in city-pack flow. 632 backend tests passed/one skipped, Ruff, 33 admin tests/build, zero-vulnerability audit and hosting lint passed. Local map rendering visually checked; full browser corner/pack acceptance remains separate. Local API restarted; hosted Dev/Prod backend and admin/hosting-header deployments pending, backend before admin.
+
+October 12 local OSM reliability repair: confirmed public Overpass busy/timeouts; built verified Southern California SQLite/R-tree index (69,836 places, October 11 snapshot) and enabled it on local backend. Covered drawn regions avoid live providers; source date retained, outside coverage stays explicit. Live Old Town rectangle returned 32 attractions/92 parking objects; Balboa-area rectangles hit 100-result cap. 637 backend tests/one skip, Ruff, 33 admin tests/build and zero-vulnerability audit passed. Local API restarted; hosted Dev/Prod data/backend/admin provisioning pending, backend before admin.
+
+October 12 Overture Old Town download: official CLI downloaded 1,800 building footprints and 916 unfiltered places/businesses for bbox -117.202,32.749,-117.181,32.766, release 2026-09-23.1. GeoJSON validated; local ignored artifacts and provenance/checksums saved; see backend docs/overture-old-town.md. Data download only, no provider switch, S3 upload or voice generation; no backend deployment/iOS build required.
+
+October 12 Overture tourism filter: reusable script matches basic_category, taxonomy primary/hierarchy/alternates and legacy categories. Old Town narrowed from 916 to 42 features (17 museums, 16 historic sites, nine parks); original download retained with matching checksum and full source metadata preserved. 640 backend tests passed/one skipped, Ruff passed. Download/filter only; no backend deployment or app build required.
+
+- October 12: editable Overture category configuration and extraction groups added; Old Town attractions regenerated to 55. Local extraction only; no backend deployment required.
+
+- October 12: Dev city-pack DynamoDB metadata table provisioned through CloudFormation with retained data, PITR and deletion protection. Existing S3 preserved; backend metadata integration and app rollout pending; Prod unchanged.
+
+- October 12: city-pack SQS/DLQ infrastructure added and provisioned in Dev; queued API, standalone worker and admin queued polling implemented. Deploy worker before API queue activation, then admin; hosted rollout/live generation pending, Prod unchanged.
+
+- October 12: admin Overture search/map (up to 100 places), queued AI text/voice S3 generation, selectable saved-place playback and progress implemented. Local API/worker running; live lookup/authenticated map verified; deploy hosted worker before queued API activation, then admin. Live narration acceptance/hosted rollout pending.
+
+- October 12: new city packs include all fetched matches (up to 5,000 per bounded region), map remains 100 markers; Stop/Resume preserves progress with job-token fences; worker checkpoint continuation and streaming ZIP implemented. Local updated; hosted backend/worker/admin rollout pending.
+
+- October 12: Google area search activated locally with a dedicated restricted Dev browser key; live Old Town San Diego lookup verified. Prod cannot inherit the Dev key. Hosted Dev admin/CSP deployment remains pending; no backend API deployment required for area search.
+
+- October 12: city-pack region limit increased to 1,000 km²; local backend updated. Hosted backend deployment must precede admin rollout; both pending.
+
+- October 12: optional AI tourist-place filtering added before city-pack generation, with progress, Stop and restore. Hosted backend-before-admin deployment and live acceptance pending.
+
+- October 12: selected city-pack region limit raised to 10,000 km² at user request. Local backend updated; hosted backend-before-admin deployment remains pending.
+
+- October 12: per-pack recorded AI tokens and partial text USD estimate added; audio/earlier usage unavailable. Hosted backend-before-admin rollout pending.
