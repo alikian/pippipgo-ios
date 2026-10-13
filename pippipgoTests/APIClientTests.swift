@@ -309,6 +309,8 @@ struct APIClientTests {
     }
 
     @MainActor @Test func travelChatTimeoutRetainsOnlyMessageAndExactRetry() async throws {
+        allowMockAISharing()
+        defer { AISharingConsent.shared.forgetAccount() }
         let data = TravelChatData(messages: [TravelChatMessage(id: "1", role: "assistant", text: "Which area?")])
         let record = APIRecord(id: "me", kind: "travel_chat", version: 1, revision: 1, updatedAt: Date(), deleted: false, data: data)
         let body = try APIJSON.encoder().encode(record)
@@ -429,6 +431,8 @@ struct APIClientTests {
     }
 
     @MainActor @Test func importReviewRejectionDoesNotFreezeActions() async throws {
+        allowMockAISharing()
+        defer { AISharingConsent.shared.forgetAccount() }
         let id = UUID()
         var intake = TripIntake(); intake.destination = "New York"
         let record = APIRecord(id: id.uuidString.lowercased(), kind: "journey", version: 1, revision: 1, updatedAt: Date(), deleted: false,
@@ -455,6 +459,8 @@ struct APIClientTests {
     }
 
     @MainActor @Test func introductionTimeoutKeepsAnswerAndRequestForExactRetry() async throws {
+        allowMockAISharing()
+        defer { AISharingConsent.shared.forgetAccount() }
         let intro = APIRecord(id: "me", kind: "introduction", version: 1, revision: 1, updatedAt: Date(), deleted: false, data: TravelerIntroduction(messages: [], onboarding_done: false))
         let body = try APIJSON.encoder().encode(intro)
         let client = APIClient(baseURL: URL(string: "https://example.invalid")!, urlSession: queuedSession([.init(error: .timedOut), .init(status: 200, body: body), .init(status: 200, body: body), .init(status: 200, body: Data(#"{"items":[]}"#.utf8))]))
@@ -541,7 +547,9 @@ struct APIClientTests {
         #expect(StubURLProtocol.requests.count == 1)
     }
 
-    @Test func timeoutCanBeRetriedWithIdenticalOperation() async throws {
+    @MainActor @Test func timeoutCanBeRetriedWithIdenticalOperation() async throws {
+        allowMockAISharing()
+        defer { AISharingConsent.shared.forgetAccount() }
         let client = APIClient(baseURL: URL(string: "https://example.invalid")!, urlSession: queuedSession([.init(error: .timedOut), .init(status: 200, body: Data("{}".utf8))]))
         let operation = try APIRequest<JSONValue>.put(.journeyAction(UUID()), body: PipAction(action: "plan"), expectedVersion: 1)
         await #expect(throws: APIClientError.connection) { try await client.send(operation, accessToken: "token") }
@@ -667,6 +675,12 @@ struct APIClientTests {
 
 
 
+    @MainActor private func allowMockAISharing() {
+        let data = try! JSONSerialization.data(withJSONObject: ["iss": "mock-api-consent", "sub": UUID().uuidString])
+        AISharingConsent.shared.configure(accessToken: "header.\(data.base64EncodedString()).signature")
+        AISharingConsent.shared.resolve(true)
+    }
+
     private func queuedSession(_ responses: [StubReply]) -> URLSession {
         let session = makeSession(status: 200, body: Data())
         StubURLProtocol.replies = responses
@@ -735,6 +749,8 @@ struct APIClientTests {
     }
 
     @MainActor @Test func guidePreferenceRetryIsImmutableAndResetClearsMemory() async throws {
+        allowMockAISharing()
+        defer { AISharingConsent.shared.forgetAccount() }
         let pref = GuidePreference(id: "cafes", topic: "cafes", category: "food", kind: "like", text: "Quiet cafes", evidence: "I like quiet cafes", updated_at: "2026-10-06T00:00:00Z", edited: false)
         var guide = GuideData(version: 1, welcome_due: false, welcome: "Hi!", summary: [], preferences: [pref])
         guide.version = 2
@@ -1005,4 +1021,70 @@ private final class DeletionTestKeychain: TokenStoring, @unchecked Sendable {
     func load() -> TokenSet? { lock.withLock { tokens } }
     func save(_ tokens: TokenSet) { lock.withLock { self.tokens = tokens } }
     func delete() { lock.withLock { tokens = nil } }
+}
+
+@Suite(.serialized) @MainActor
+struct AISharingConsentTests {
+    private func token(_ subject: String, issuer: String = "test-consent-issuer") -> String {
+        let data = try! JSONSerialization.data(withJSONObject: ["iss": issuer, "sub": subject])
+        return "header.\(data.base64EncodedString()).signature"
+    }
+
+    @Test func acceptanceSurvivesRestartAndSignOutButDoesNotCrossAccounts() async throws {
+        let subject = UUID().uuidString
+        let consent = AISharingConsent()
+        consent.configure(accessToken: token(subject))
+        #expect(!consent.allowed)
+        consent.resolve(true)
+        #expect(consent.allowed)
+        consent.reset()
+        #expect(!consent.allowed)
+        consent.configure(accessToken: token(subject))
+        #expect(consent.allowed)
+        try await consent.request()
+        let restored = AISharingConsent()
+        restored.configure(accessToken: token(subject))
+        #expect(restored.allowed)
+        restored.configure(accessToken: token(UUID().uuidString))
+        #expect(!restored.allowed)
+        restored.configure(accessToken: token(subject, issuer: "other-test-issuer"))
+        #expect(!restored.allowed)
+        consent.forgetAccount()
+        restored.configure(accessToken: token(subject))
+        #expect(!restored.allowed)
+    }
+
+    @Test func requestWaitsForExplicitAcceptanceAndResetRejectsPendingWork() async throws {
+        let consent = AISharingConsent()
+        consent.configure(accessToken: token(UUID().uuidString))
+        let waiting = Task { try await consent.request() }
+        while !consent.presented { await Task.yield() }
+        #expect(!consent.allowed)
+        consent.resolve(true)
+        try await waiting.value
+        consent.forgetAccount()
+        let rejected = Task { try await consent.request() }
+        while !consent.presented { await Task.yield() }
+        consent.reset()
+        await #expect(throws: (any Error).self) { try await rejected.value }
+        #expect(!consent.allowed && !consent.presented)
+    }
+
+    @Test func cancellingRequestCannotApproveSharing() async {
+        let consent = AISharingConsent()
+        let waiting = Task { try await consent.request() }
+        while !consent.presented { await Task.yield() }
+        waiting.cancel()
+        await #expect(throws: CancellationError.self) { try await waiting.value }
+        #expect(!consent.allowed)
+    }
+
+    @Test func allAIWriteRoutesRequireConsentWhileOrganizerDoesNot() {
+        for endpoint in [APIEndpoint.travelChat, .introduction, .guide, .guideBooking, .guideMention, .guideSpeech, .journeyAction(UUID()), .journeyImport(UUID())] {
+            #expect(endpoint.sharesWithAI)
+        }
+        for endpoint in [APIEndpoint.organizer, .account, .accountExport, .guideSetup, .guideNearby, .preferences, .travelers] {
+            #expect(!endpoint.sharesWithAI)
+        }
+    }
 }

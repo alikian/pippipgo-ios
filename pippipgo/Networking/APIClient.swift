@@ -34,6 +34,13 @@ enum APIEndpoint: Sendable, Equatable {
         case .sync: "/v1/sync"
         }
     }
+    var sharesWithAI: Bool {
+        switch self {
+        case .introduction, .travelChat, .guide, .guideBooking, .guideMention, .guideSpeech, .journeyAction, .journeyImport: true
+        default: false
+        }
+    }
+
     var canRead: Bool {
         switch self { case .guideBooking, .guideNearby, .guideMention, .guideSpeech, .journeyAction, .journeyImport: false; default: true }
     }
@@ -125,6 +132,10 @@ struct APIClient: Sendable {
     }
 
     private func perform<Response>(_ operation: APIRequest<Response>, accessToken: String) async throws -> Data {
+        try Task.checkCancellation()
+        if operation.method != "GET", operation.endpoint.sharesWithAI {
+            try await AISharingConsent.shared.request()
+        }
         try Task.checkCancellation()
         guard var components = URLComponents(url: baseURL.appending(path: operation.endpoint.path), resolvingAgainstBaseURL: false),
               ["https", "http"].contains(components.scheme), components.host != nil,

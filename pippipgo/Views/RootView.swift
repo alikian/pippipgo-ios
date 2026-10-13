@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     let store: AuthenticationStore
+    @State private var aiConsent = AISharingConsent.shared
     @State private var siriSignInRequired = false
     @Environment(\.scenePhase) private var scenePhase
     var environment: AppEnvironment = AppConfiguration.live.environment
@@ -27,7 +28,11 @@ struct RootView: View {
                 case .loadingAccount:
                     AccountLoadingView()
                 case .signedIn:
-                    TravelOrganizerView(store: store.organizer, chat: store.chat, profilePictureURL: store.profilePictureURL, signOut: { Task { await store.signOut() } }, deleteAccount: { Task { await store.deleteAccount() } })
+                    if aiConsent.allowed {
+                        TravelOrganizerView(store: store.organizer, chat: store.chat, profilePictureURL: store.profilePictureURL, signOut: { Task { await store.signOut() } }, deleteAccount: { Task { await store.deleteAccount() } })
+                    } else {
+                        AISharingConsentView(consent: aiConsent, deleteAccount: { Task { await store.deleteAccount() } })
+                    }
                 case .accountError(let message):
                     AccountErrorView(message: message, retry: { Task { await store.loadAccount() } }, signOut: { Task { await store.signOut() } })
                 case .signingOut:
@@ -50,6 +55,7 @@ struct RootView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: store.state)
         .onChange(of: store.state, initial: true) { _, _ in checkVoiceLaunch(); syncLocationDisplay() }
+        .onChange(of: aiConsent.allowed) { _, _ in syncLocationDisplay() }
         .onChange(of: scenePhase, initial: true) { _, _ in syncLocationDisplay() }
         .onDisappear { store.chat.locationDisplay.stop() }
         .onChange(of: TalkToPipLaunch.shared.requestID) { _, _ in checkVoiceLaunch() }
@@ -60,7 +66,7 @@ struct RootView: View {
         }
     }
     private func syncLocationDisplay() {
-        if case .signedIn = store.state, scenePhase == .active { store.chat.locationDisplay.start() }
+        if case .signedIn = store.state, aiConsent.allowed, scenePhase == .active { store.chat.locationDisplay.start() }
         else { store.chat.locationDisplay.stop() }
     }
     private func checkVoiceLaunch() {

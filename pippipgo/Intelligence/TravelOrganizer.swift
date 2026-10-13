@@ -667,45 +667,52 @@ struct ProfileTab: View {
     @State private var booking = false
     @State private var calendars = false
     @State private var destination: ProfileDestination?
-    @ScaledMetric(relativeTo: .subheadline) private var iconColumnWidth = 94.0
     @AppStorage("pip.waitingHum") private var waitingHum = true
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    tripsTile
+            List {
+                Section {
                     profileCard
-                    if let error = store.error, !store.loaded {
-                        VStack(spacing: 8) {
-                            Text(LocalizedStringKey(error)).font(.callout).foregroundStyle(.red)
-                            Button("Try again") { Task { await store.load() } }
-                        }
-                    }
-                    if store.busy && !store.loaded { ProgressView() }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: iconColumnWidth, maximum: max(150, iconColumnWidth)), spacing: 16, alignment: .top)], spacing: 26) {
-                        ProfileIconTile(title: "Pip’s voice", symbol: "waveform", color: .blue) { choicesSaved = false; voiceChoices = true }
-                        ProfileIconTile(title: "Travel style", symbol: "sparkles", color: .purple) { choicesSaved = false; travelStyle = true }
-                        ProfileIconTile(title: "Companions", symbol: "person.2.fill", color: .orange) { destination = .companions }
-                            .disabled(!store.loaded)
-                        ProfileIconTile(title: "Bookings", symbol: "ticket.fill", color: .pink) { booking = true }
-                        ProfileIconTile(title: "Calendars", symbol: "calendar", color: .red) { calendars = true }
-                        ProfileIconTile(title: "About you", symbol: "folder.fill", color: .indigo) { destination = .memories }
-                        ProfileIconTile(title: "Settings", symbol: "gearshape.fill", color: .gray) { destination = .settings }
-                    }
-                    if choicesSaved {
-                        Label("Changes saved", systemImage: "checkmark.circle.fill")
-                            .font(.subheadline).foregroundStyle(.green)
+                    Button("Trips", systemImage: "suitcase.rolling") { showTrips = true }
+                        .accessibilityIdentifier("profile.trips")
+                }
+                Section {
+                    Button("Pip’s voice", systemImage: "waveform") { choicesSaved = false; voiceChoices = true }
+                    Button("Travel style", systemImage: "sparkles") { choicesSaved = false; travelStyle = true }
+                    Button("Companions", systemImage: "person.2") { destination = .companions }
+                        .disabled(!store.loaded)
+                    Button("Bookings", systemImage: "ticket") { booking = true }
+                    Button("Calendars", systemImage: "calendar") { calendars = true }
+                    Button("About you", systemImage: "folder") { destination = .memories }
+                    Button("Settings", systemImage: "gearshape") { destination = .settings }
+                }
+                if choicesSaved {
+                    Label("Changes saved", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline).foregroundStyle(.green)
+                }
+                if let error = store.error, !store.loaded {
+                    Section {
+                        Text(LocalizedStringKey(error)).font(.callout).foregroundStyle(.red)
+                        Button("Try again") { Task { await store.load() } }
                     }
                 }
-                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 32)
-                .frame(maxWidth: 560)
-                .frame(maxWidth: .infinity)
+                if store.busy && !store.loaded { ProgressView() }
+                Section {
+                    Button("Sign out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) { confirmSignOut = true }
+                        .accessibilityIdentifier("account.signOut")
+                    Button("Delete account", systemImage: "trash", role: .destructive) { confirmDeleteAccount = true }
+                        .accessibilityIdentifier("account.delete")
+                }
             }
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(12)
+            .scrollContentBackground(.hidden)
             .background(PipAppearance.cream.ignoresSafeArea())
             .id(locale.identifier)
             .refreshable { await store.load() }
             .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { AppLanguageMenu() }
             }
@@ -739,28 +746,6 @@ struct ProfileTab: View {
         }
     }
 
-    private var tripsTile: some View {
-        Button { showTrips = true } label: {
-            HStack(spacing: 20) {
-                Image(systemName: "suitcase.rolling.fill")
-                    .font(.system(size: 40, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 88, height: 88)
-                    .background(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 24))
-                    .accessibilityHidden(true)
-                Text("Trips").font(.title2.weight(.semibold))
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.forward").font(.headline).accessibilityHidden(true)
-            }
-            .foregroundStyle(PipAppearance.navy)
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 28))
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("profile.trips")
-    }
-
     private var profileCard: some View {
         Button { editor = .profile } label: {
             HStack(spacing: 16) {
@@ -768,15 +753,15 @@ struct ProfileTab: View {
                     if let image = phase.image { image.resizable().scaledToFill() }
                     else {
                         Image(systemName: "person.fill").resizable().scaledToFit()
-                            .padding(20).foregroundStyle(.white)
+                            .padding(10).foregroundStyle(.white)
                             .background(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
                     }
                 }
-                .frame(width: 76, height: 76).clipShape(Circle())
+                .frame(width: 44, height: 44).clipShape(Circle())
                 .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(store.data.profile.flatMap { $0.name.isEmpty ? nil : $0.name } ?? String(localized: "Your profile", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale))
-                        .font(.title2.weight(.semibold)).foregroundStyle(PipAppearance.navy)
+                        .font(.headline).foregroundStyle(PipAppearance.navy)
                         .multilineTextAlignment(.leading)
                     if let hometown = store.data.profile?.hometown, !hometown.isEmpty {
                         Text(verbatim: hometown).font(.subheadline).foregroundStyle(PipAppearance.secondary)
@@ -784,12 +769,10 @@ struct ProfileTab: View {
                     Label("Edit profile", systemImage: "pencil").font(.caption.weight(.medium))
                 }
                 Spacer(minLength: 0)
-                Image("PipTranslate").resizable().scaledToFit().frame(width: 58)
-                    .accessibilityHidden(true)
+                Image(systemName: "chevron.forward").font(.caption)
+                    .foregroundStyle(PipAppearance.secondary).accessibilityHidden(true)
             }
-            .padding(20)
-            .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 28))
-            .shadow(color: PipAppearance.navy.opacity(0.04), radius: 14, y: 6)
+            .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
         .disabled(!store.loaded)
@@ -817,11 +800,6 @@ struct ProfileTab: View {
                 Section {
                     Toggle("Pip’s waiting hum", isOn: $waitingHum)
                 }
-                Section {
-                    Button("Sign out", role: .destructive) { confirmSignOut = true }
-                    Button("Delete account", role: .destructive) { confirmDeleteAccount = true }
-                        .accessibilityIdentifier("account.delete")
-                }
                 Section { AppVersionView() }
             }
         }
@@ -841,35 +819,6 @@ private enum ProfileDestination: Hashable {
         case .nearby: "Nearby"
         case .settings: "Settings"
         }
-    }
-}
-
-private struct ProfileIconTile: View {
-    let title: LocalizedStringKey
-    let symbol: String
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 10) {
-                Image(systemName: symbol)
-                    .font(.system(size: 29, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 72, height: 72)
-                    .background(LinearGradient(colors: [color.opacity(0.65), color], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 20))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.5), lineWidth: 1))
-                    .shadow(color: color.opacity(0.17), radius: 8, y: 4)
-                    .accessibilityHidden(true)
-                Text(title).font(.subheadline.weight(.medium))
-                    .foregroundStyle(PipAppearance.navy)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(1).minimumScaleFactor(0.75)
-            }
-            .frame(maxWidth: .infinity, alignment: .top)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -1229,7 +1178,7 @@ final class TravelChatStore {
         refreshingGuide = true
         defer { if ticket == epoch { refreshingGuide = false } }
         do {
-            let request: APIRequest<GuideData> = refresh
+            let request: APIRequest<GuideData> = refresh && AISharingConsent.shared.allowed
                 ? try .post(.guide, body: [String: String]()) : try .get(.guide)
             let result = try await client.send(request, using: authentication)
             guard ticket == epoch, !Task.isCancelled else { return }

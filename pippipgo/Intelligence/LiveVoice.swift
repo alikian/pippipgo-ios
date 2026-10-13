@@ -451,6 +451,8 @@ final class LiveVoiceStore {
         worker = Task { [weak self] in
             guard let self else { return }
             do {
+                try await AISharingConsent.shared.request()
+                guard self.epoch == ticket, !Task.isCancelled else { return }
                 let allowed = await AVAudioApplication.requestRecordPermission()
                 guard self.epoch == ticket, !Task.isCancelled else { return }
                 guard allowed else {

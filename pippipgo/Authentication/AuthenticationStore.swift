@@ -56,6 +56,7 @@ final class AuthenticationStore {
         profilePictureURL = nil
         intelligence.reset()
         organizer.reset()
+        AISharingConsent.shared.reset()
         chat.reset()
         state = .signingIn
         do {
@@ -82,6 +83,9 @@ final class AuthenticationStore {
         do {
             let account = try await apiClient.account(using: authentication)
             guard ticket == sessionEpoch else { return }
+            let consentToken = try await authentication.validAccessToken()
+            guard ticket == sessionEpoch else { return }
+            AISharingConsent.shared.configure(accessToken: consentToken)
             state = .signedIn(account)
             // Photo loading is optional and must never prevent opening the app.
             let photo = try? await authentication.profilePictureURL()
@@ -100,6 +104,7 @@ final class AuthenticationStore {
         profilePictureURL = nil
         intelligence.reset()
         organizer.reset()
+        AISharingConsent.shared.reset()
         chat.reset()
         state = .signingOut
         var message: String?
@@ -126,7 +131,7 @@ final class AuthenticationStore {
         let ticket = UUID(); sessionEpoch = ticket
         TalkToPipLaunch.shared.cancel()
         profilePictureURL = nil
-        intelligence.reset(); organizer.reset(); chat.reset()
+        intelligence.reset(); organizer.reset(); AISharingConsent.shared.forgetAccount(); chat.reset()
         state = .deletingAccount
         do {
             let result: AccountDeletionResult = try await apiClient.send(.deleteAccount(), using: authentication)
