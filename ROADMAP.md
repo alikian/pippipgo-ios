@@ -557,3 +557,9 @@ Disclosure denial (October 12, 2026): Added localized Deny and delete account on
 Disclosure denial button styling (October 12, 2026): Deny and delete account now uses a bordered red button with its existing accessible label and deletion confirmation. Swift syntax/diff checks passed; simulator/device rollout pending. No backend deployment required.
 
 Review-fix commit validation (October 12, 2026): Profile list/account actions and mandatory versioned AI disclosure with confirmed denial/deletion prepared for commit/push. Older mocked AI request tests now explicitly accept using disposable local test identities, without granting real-account permission. All 60 affected API/consent simulator tests passed with normal signing; final web build and 22 tests passed; localization coverage is 14 locale identifiers and no credential patterns were found in the iOS diff. Physical-device/App Store acceptance and Dev/Prod privacy-policy publication remain pending; no backend API deployment required. Release build number unchanged because latest Cloud number was not verified.
+
+
+October 12: exact hosted Dev backend revision 59 image promoted to Prod through image-only CloudFormation; Prod revision 13 stable, health/readiness 200, nearby route now protected 401 instead of 404. Prod identity/data/secrets retained. Backend rollout complete; authenticated nearby provider results and iPhone acceptance pending. No city-pack infrastructure/worker, admin or iOS rollout included. See backend infra/prod-deployment.md.
+
+
+October 12: iOS Production environment indicator section removed, including row padding; Local/Dev retain the indicator. Swift syntax/diff checks passed. App release and visual device acceptance pending; no backend deployment required.

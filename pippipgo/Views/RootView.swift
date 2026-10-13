@@ -9,12 +9,14 @@ struct RootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                BuildEnvironmentIndicator(environment: environment)
+            if environment != .prod {
+                HStack {
+                    Spacer()
+                    BuildEnvironmentIndicator(environment: environment)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 3)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 3)
             Group {
                 switch store.state {
                 case .restoring:
