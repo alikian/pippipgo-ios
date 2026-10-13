@@ -541,3 +541,5 @@ October 12 Overture tourism filter: reusable script matches basic_category, taxo
 - October 12: selected city-pack region limit raised to 10,000 km² at user request. Local backend updated; hosted backend-before-admin deployment remains pending.
 
 - October 12: per-pack recorded AI tokens and partial text USD estimate added; audio/earlier usage unavailable. Hosted backend-before-admin rollout pending.
+
+Sign in with Apple (October 12): primary App ID and separate Dev/Prod Services IDs configured; approved signing key stored in environment-specific AWS secrets; additive Dev then Prod Cognito deployment completed with no replacements. Live Apple redirects and callback isolation verified; Local uses Dev identity. Complete login/device acceptance and iOS explanatory-copy update pending; no new app build.
