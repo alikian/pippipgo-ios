@@ -672,51 +672,71 @@ final class LiveGuideStore {
 
 // MARK: - Views
 
-/// Live Guide tab: a full-screen map with one panel at the bottom. The panel shows what Pip is
-/// saying and a single main button (Start, then Talk). Tour mode sits at the top; the speaking
-/// frequency and privacy notes live behind the settings button.
+/// Home screen: the tour map in the style of Apple Maps. Profile sits top left; translate,
+/// language, settings and recenter float top right; one bottom panel holds what Pip is saying,
+/// the blue raised-hand Ask Pip, Find nearby and the walking/driving tour controls.
 struct LiveGuideTab: View {
     @Bindable var guide: LiveGuideStore
+    var openChat: (() -> Void)? = nil
+    var openTranslate: (() -> Void)? = nil
+    var openProfile: (() -> Void)? = nil
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     @State private var showSettings = false
     @State private var mapLocationFeed: LiveGuideLocationFeed?
     @State private var currentMapCamera: MapCamera?
+    @State private var nearby = NearbyPlacesModel()
+    @State private var finding = false
+    @State private var selectedPlace: NearbyPlace?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        ZStack {
-            map
-            VStack(spacing: 12) {
-                topBar
-                if let route = guide.route { LiveGuideRouteCard(route: route, close: guide.clearRoute) }
-                Spacer()
-                recenterButton
-                panel
+        map
+            .safeAreaInset(edge: .bottom, spacing: 0) { panel.frame(maxWidth: 560) }
+            .overlay(alignment: .topLeading) { profileButton }
+            .overlay(alignment: .topTrailing) { floatingControls }
+            .overlay(alignment: .top) {
+                if let route = guide.route {
+                    LiveGuideRouteCard(route: route, close: guide.clearRoute)
+                        .padding(.horizontal, 72).padding(.top, 8)
+                }
             }
-            .padding(.horizontal, 16).padding(.bottom, 16)
-        }
-        .onAppear { locateMapInitially() }
-        .onChange(of: guide.enabled) { _, enabled in
-            if !enabled {
-                // Restore MapKit's continuous user tracking when the tour ends.
-                // A fixed camera would otherwise retain the last tour position.
-                position = .userLocation(followsHeading: false,
-                                         fallback: currentMapCamera.map { .camera($0) } ?? .automatic)
-                locateMapInitially()
+            .onAppear { locateMapInitially() }
+            .onChange(of: guide.enabled) { _, enabled in
+                if !enabled {
+                    // Restore MapKit's continuous user tracking when the tour ends.
+                    // A fixed camera would otherwise retain the last tour position.
+                    position = .userLocation(followsHeading: false,
+                                             fallback: currentMapCamera.map { .camera($0) } ?? .automatic)
+                    locateMapInitially()
+                }
             }
-        }
-        .onDisappear {
-            mapLocationFeed?.stop()
-            mapLocationFeed = nil
-        }
-        .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                Form { LiveGuideSettingsSection(guide: guide) }
-                    .navigationTitle("Tour Guide").navigationBarTitleDisplayMode(.inline)
-                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showSettings = false } } }
+            .onChange(of: finding) { _, open in
+                if open { nearby.start() } else { nearby.stop(); nearby.clear(); selectedPlace = nil }
             }
-            .presentationDetents([.medium, .large])
-        }
+            #if DEBUG
+            // Simulator review: `-PipGuestCategory restrooms` opens Find nearby and searches.
+            .task {
+                let arguments = ProcessInfo.processInfo.arguments
+                guard let index = arguments.firstIndex(of: "-PipGuestCategory"), index + 1 < arguments.count,
+                      let category = GuestCategory(rawValue: arguments[index + 1]) else { return }
+                finding = true
+                for _ in 0..<40 where nearby.location == nil { try? await Task.sleep(for: .milliseconds(250)) }
+                nearby.search(category)
+            }
+            #endif
+            .onDisappear {
+                mapLocationFeed?.stop()
+                mapLocationFeed = nil
+                nearby.stop()
+            }
+            .sheet(isPresented: $showSettings) {
+                NavigationStack {
+                    Form { LiveGuideSettingsSection(guide: guide) }
+                        .navigationTitle("Tour Guide").navigationBarTitleDisplayMode(.inline)
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showSettings = false } } }
+                }
+                .presentationDetents([.medium, .large])
+            }
     }
 
     /// Keep map location separate from the tour so Stop still allows GPS following.
@@ -762,6 +782,10 @@ struct LiveGuideTab: View {
                        coordinate: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
                     .tint(place.tier == .mustSee ? .orange : .blue)
             }
+            ForEach(nearby.places) { place in
+                Marker(place.name, systemImage: nearby.category?.symbol ?? "mappin", coordinate: place.coordinate)
+                    .tint(nearby.category?.tint ?? .red)
+            }
             if let route = guide.route {
                 if route.path.count > 1 {
                     MapPolyline(coordinates: route.path.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) })
@@ -785,67 +809,57 @@ struct LiveGuideTab: View {
         .ignoresSafeArea(edges: .top)
     }
 
-    /// Walking or driving, and the one settings button.
-    private var topBar: some View {
-        HStack(alignment: .top, spacing: 8) {
-            AppLanguageMenu()
-                .foregroundStyle(.blue)
-                .background(.regularMaterial, in: Circle())
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 6) { modeButtons }
-                VStack(alignment: .leading, spacing: 6) { modeButtons }
-            }
-            .padding(4)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-            Spacer(minLength: 0)
-            Button { showSettings = true } label: {
-                Image(systemName: "gearshape.fill").font(.title3)
-                    .foregroundStyle(.primary)
+    @ViewBuilder private var profileButton: some View {
+        if let openProfile {
+            Button(action: openProfile) {
+                Image(systemName: "person.crop.circle.fill").font(.title2)
                     .frame(width: 48, height: 48)
-                    .background(.regularMaterial, in: Circle())
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
-            .accessibilityLabel(Text("Settings"))
-            .accessibilityIdentifier("liveGuide.settings")
-        }
-        .padding(.top, 8)
-    }
-
-    @ViewBuilder private var modeButtons: some View {
-        ForEach(GuideTourMode.allCases) { mode in
-            let selected = guide.tourMode == mode
-            Button { guide.tourMode = mode } label: {
-                Label { Text(LocalizedStringKey(mode.title)) } icon: { Image(systemName: mode.symbol) }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(selected ? Color.white : Color.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: 44)
-                    .background(selected ? PipAppearance.navy : Color.clear, in: RoundedRectangle(cornerRadius: 12))
-                    .contentShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-            .accessibilityAddTraits(selected ? .isSelected : [])
-            .accessibilityIdentifier("liveGuide.mode.\(mode.rawValue)")
+            .accessibilityLabel(Text("Profile"))
+            .accessibilityIdentifier("navigation.profile")
+            .padding(.leading, 12).padding(.top, 8)
         }
     }
 
-    private var recenterButton: some View {
-        HStack {
-            Spacer()
+    /// Apple Maps-style floating buttons.
+    private var floatingControls: some View {
+        VStack(spacing: 10) {
+            VStack(spacing: 0) {
+                if let openTranslate {
+                    Button(action: openTranslate) {
+                        Image(systemName: "character.bubble").font(.title3).frame(width: 48, height: 48)
+                    }
+                    .accessibilityLabel(Text("Translate"))
+                    .accessibilityIdentifier("navigation.translate")
+                    Divider().frame(width: 48)
+                }
+                AppLanguageMenu().frame(width: 48, height: 48)
+                Divider().frame(width: 48)
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape").font(.title3).frame(width: 48, height: 48)
+                }
+                .accessibilityLabel(Text("Settings"))
+                .accessibilityIdentifier("liveGuide.settings")
+            }
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             Button {
                 withAnimation { position = .userLocation(followsHeading: false, fallback: .automatic) }
             } label: {
                 Image(systemName: "location.fill").font(.title3)
                     .frame(width: 48, height: 48)
-                    .background(.regularMaterial, in: Circle())
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
             .accessibilityLabel(Text("Recenter"))
         }
+        .padding(.trailing, 12).padding(.top, 8)
     }
 
-    /// Status, what Pip is saying, and the main action, in one card.
+    /// One Apple Maps-style panel: status, what Pip is saying (or Find nearby), Ask Pip, tour controls.
     private var panel: some View {
         VStack(alignment: .leading, spacing: 14) {
+            Capsule().fill(Color.secondary.opacity(0.4)).frame(width: 36, height: 5)
+                .frame(maxWidth: .infinity).accessibilityHidden(true)
             if guide.enabled, guide.status != .listening {
                 Label(LocalizedStringKey(guide.status.message), systemImage: statusSymbol)
                     .font(.subheadline).foregroundStyle(.secondary)
@@ -859,84 +873,117 @@ struct LiveGuideTab: View {
                     .font(.subheadline).foregroundStyle(.secondary)
                     .accessibilityIdentifier("liveGuide.voiceError")
             }
-            if guide.talking, let line = guide.latestPipLine, !line.isEmpty {
+            if guide.status == .denied {
+                Button("Open location settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                }
+                .buttonStyle(.bordered)
+            }
+            if finding {
+                NearbyFinder(model: nearby, selected: $selectedPlace) { place in
+                    withAnimation { position = .item(place.item) }
+                }
+            } else if guide.talking, let line = guide.latestPipLine, !line.isEmpty {
                 // What Pip is saying right now in the conversation.
                 Text(verbatim: line).font(.body).foregroundStyle(.primary).lineLimit(5)
                     .fixedSize(horizontal: false, vertical: true)
             } else if guide.enabled, let mention = guide.lastMention {
                 LiveGuideMentionView(mention: mention, guide: guide)
             }
-            if guide.status == .denied {
-                Button("Open location settings") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+
+            HStack(spacing: 10) {
+                askPipButton
+                if let openChat {
+                    circleButton("keyboard", label: "Type to Pip", identifier: "navigation.pip", action: openChat)
                 }
-                .buttonStyle(.bordered).controlSize(.large)
+                circleButton(finding ? "xmark" : "magnifyingglass", label: finding ? "Close" : "Search places",
+                             identifier: "liveGuide.findNearby") { withAnimation { finding.toggle() } }
             }
+
             TimelineView(.periodic(from: .now, by: 0.5)) { _ in
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) { guideActions }
-                    VStack(alignment: .leading, spacing: 8) { guideActions }
+                HStack(spacing: 8) {
+                    HStack(spacing: 4) { modeIcons }
+                        .padding(3)
+                        .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                    if guide.enabled, guide.announcementSpeaking, !guide.talking {
+                        Button { guide.skipAnnouncement() } label: {
+                            Image(systemName: "forward.end.fill").frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel(Text("Skip announcement"))
+                        .accessibilityIdentifier("liveGuide.skipAnnouncement")
+                    }
+                    startStopButton
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
-        .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+        .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
+        .background {
+            UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
+                .fill(.regularMaterial).ignoresSafeArea(edges: .bottom)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 12, y: -2)
     }
 
-    @ViewBuilder private var guideActions: some View {
-        primaryButton
-        if guide.enabled {
-            Button { guide.skipAnnouncement() } label: {
-                Text("Skip").font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-                    .background(Color.blue.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+    /// Walking or driving as universal icons; the names are read by VoiceOver.
+    @ViewBuilder private var modeIcons: some View {
+        ForEach(GuideTourMode.allCases) { mode in
+            let selected = guide.tourMode == mode
+            Button { guide.tourMode = mode } label: {
+                Image(systemName: mode.symbol).font(.title3)
+                    .foregroundStyle(selected ? Color.white : Color.primary)
+                    .frame(width: 52, height: 44)
+                    .background(selected ? PipAppearance.navy : Color.clear, in: RoundedRectangle(cornerRadius: 11))
+                    .contentShape(RoundedRectangle(cornerRadius: 11))
             }
             .buttonStyle(.plain)
-            .disabled(guide.talking || !guide.announcementSpeaking)
-            .opacity(guide.talking || !guide.announcementSpeaking ? 0 : 1)
-            .accessibilityHidden(guide.talking || !guide.announcementSpeaking)
-            .accessibilityLabel(Text("Skip announcement"))
-            .accessibilityIdentifier("liveGuide.skipAnnouncement")
+            .accessibilityLabel(Text(LocalizedStringKey(mode.title)))
+            .accessibilityAddTraits(selected ? .isSelected : [])
+            .accessibilityIdentifier("liveGuide.mode.\(mode.rawValue)")
         }
-        if guide.enabled {
-            Button(role: .destructive) {
-                withAnimation(.spring) { guide.enabled = false }
-            } label: {
-                Text("Stop").font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-                    .background(Color.blue.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// The one blue button everywhere: raise your hand to ask Pip, with the guide's context.
+    private var askPipButton: some View {
+        Button { guide.toggleConversation() } label: {
+            Label {
+                Text(guide.talking ? "Listening… tap to end" : "Ask Pip").lineLimit(1).minimumScaleFactor(0.7)
+            } icon: {
+                Image(systemName: "hand.raised.fill").symbolEffect(.variableColor.iterative, isActive: guide.listening)
             }
-            .buttonStyle(.plain)
+            .font(.title3.weight(.bold))
+            .frame(maxWidth: .infinity, minHeight: 52)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.capsule)
+        .tint(guide.talking ? Color(red: 0, green: 0.45, blue: 0.2) : .blue)
+        .accessibilityIdentifier("liveGuide.talk")
+    }
+
+    private func circleButton(_ symbol: String, label: LocalizedStringKey, identifier: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.title3.weight(.semibold))
+                .frame(width: 52, height: 52)
+                .background(Color.secondary.opacity(0.15), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.blue)
+        .accessibilityLabel(Text(label))
+        .accessibilityIdentifier(identifier)
+    }
+
+    @ViewBuilder private var startStopButton: some View {
+        if guide.enabled {
+            Button(role: .destructive) { withAnimation(.spring) { guide.enabled = false } } label: {
+                Text("Stop").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.bordered)
             .accessibilityIdentifier("liveGuide.enabled")
-        }
-    }
-
-    /// Start when the guide is off; talk to Pip while it runs.
-    @ViewBuilder private var primaryButton: some View {
-        if guide.enabled {
-            Button { guide.toggleConversation() } label: {
-                Label {
-                    Text(guide.talking ? "End" : "Ask")
-                } icon: {
-                    Image(systemName: "mic.fill").symbolEffect(.variableColor.iterative, isActive: guide.listening)
-                }
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 56)
-                .background(guide.talking ? Color(red: 0, green: 0.45, blue: 0.2) : PipAppearance.navy,
-                            in: RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("liveGuide.talk")
         } else {
-            Button {
-                withAnimation(.spring) { guide.enabled = true }
-            } label: {
-                Text("Start").modifier(LiveGuidePrimaryLabel(color: PipAppearance.navy))
+            Button { withAnimation(.spring) { guide.enabled = true } } label: {
+                Text("Start").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bordered)
+            .tint(.blue)
             .accessibilityIdentifier("liveGuide.enabled")
         }
     }
@@ -948,21 +995,6 @@ struct LiveGuideTab: View {
         case .unavailable: "exclamationmark.circle"
         case .off, .listening: "pause.circle"
         }
-    }
-}
-
-/// The large, full-width look shared by Start and Talk: white text on a dark fill for contrast.
-private struct LiveGuidePrimaryLabel: ViewModifier {
-    let color: Color
-    func body(content: Content) -> some View {
-        content
-            .font(.title3.weight(.semibold))
-            .foregroundStyle(.white)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .padding(.horizontal, 12)
-            .background(color, in: RoundedRectangle(cornerRadius: 16))
-            .contentShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 

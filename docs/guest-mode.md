@@ -15,3 +15,16 @@ Also in this change: Live Translate shows a notice in the other person's languag
 Debug-only simulator review: launch with `-PipGuestExplore` and optionally `-PipGuestCategory restrooms`.
 
 Validation (October 13, 2026): Local simulator builds passed; catalog checks passed; simulator review at the Colosseum showed real nearby restrooms. Existing unrelated failures remain in LiveGuideEngineTests (3) and AppConfigurationTests (1). Not yet done: physical iPhone/iPad check, App Review screen recording of account deletion, release build number from Xcode Cloud.
+
+## Map-first home for signed-in travellers (October 13, 2026)
+
+The approved Apple Maps-style redesign (Requirements.md section 5) replaces the four-tab bar:
+
+- Home is the tour map (`LiveGuideTab`). Profile floats top left; Translate, language, tour settings and recenter float top right.
+- One bottom panel: status and what Pip is saying, the blue raised-hand **Ask Pip** (the existing guide conversation), **Type to Pip** (typed chat), **Search places** (the shared `NearbyFinder` used by the guest screen, with results pinned on the map), walking/driving as universal icons, and Start/Stop.
+- Chat, Translate and Profile open full screen with **‹ Map** to return. Voice-session rules are unchanged: the map counts as the Tour Guide, so leaving it ends a guide conversation.
+- Full Test navigation updated for the new labels.
+
+Debug-only simulator review: `-PipHomeTab profile|pip|translate`, `-PipGuestCategory pharmacy`. Opening `pip` directly uses voice mode and starts a live session.
+
+Validation: Local simulator builds; signed-in home, Find nearby (pharmacies near the Colosseum), Profile and chat reviewed by screenshot; catalog and Full Test runner tests pass; the same four unrelated tests fail as before. Not yet: physical-device check, hands-free wake word, headphone skip, auto parking, music, P-pin sharing (later phases).

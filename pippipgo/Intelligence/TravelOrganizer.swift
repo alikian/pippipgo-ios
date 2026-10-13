@@ -150,37 +150,49 @@ struct TravelOrganizerView: View {
     var profilePictureURL: URL? = nil
     let signOut: () -> Void
     let deleteAccount: () -> Void
-    @State private var tab = AppTab.pip
+    /// The tour map is home; Ask Pip chat, Translate and Profile open over it with a way back.
+    @State private var tab = TravelOrganizerView.launchTab
     @State private var pipMode = PipMode.voice
     @State private var editor: OrganizerEditorKind?
     @State private var reviewingTrip: OrganizerTrip?
     @State private var voiceStartRequest: UUID?
     @Environment(\.scenePhase) private var scenePhase
 
-    private func navigationButton(_ destination: AppTab, title: LocalizedStringKey, icon: String) -> some View {
-        Button { tab = destination } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon).font(.system(size: 20))
-                Text(title).font(.caption).multilineTextAlignment(.center)
+    /// Debug-only simulator review: `-PipHomeTab profile|pip|translate`.
+    private static var launchTab: AppTab {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-PipHomeTab"), index + 1 < arguments.count,
+           let tab = AppTab(rawValue: arguments[index + 1]) { return tab }
+        #endif
+        return .guide
+    }
+
+    private var backToMap: some View {
+        HStack {
+            Button { tab = .guide } label: {
+                Label("Map", systemImage: "chevron.backward").font(.headline)
+                    .frame(minHeight: 44).contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .contentShape(Rectangle())
+            .accessibilityIdentifier("navigation.map")
+            Spacer()
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(tab == destination ? Color.blue : PipAppearance.secondary)
-        .accessibilityLabel(Text(title))
-        .accessibilityAddTraits(tab == destination ? [.isSelected] : [])
-        .accessibilityIdentifier("navigation.\(destination.rawValue)")
+        .padding(.horizontal, 16)
+        .background(PipAppearance.cream)
     }
 
     var body: some View {
         VStack(spacing: 0) {
+        if tab != .guide { backToMap }
         Group {
             switch tab {
             case .pip:
                 PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
             case .guide:
-                LiveGuideTab(guide: chat.liveGuide)
+                LiveGuideTab(guide: chat.liveGuide,
+                             openChat: { pipMode = .chat; tab = .pip },
+                             openTranslate: { tab = .translate },
+                             openProfile: { tab = .profile })
             case .translate:
                 TranslateTab(store: chat.translator)
             case .profile:
@@ -188,17 +200,6 @@ struct TravelOrganizerView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Reserve real layout height so tab content and composer cannot
-            // extend underneath navigation when the keyboard reduces the screen.
-            HStack(spacing: 0) {
-                navigationButton(.pip, title: "Pip", icon: "bubble.left.and.bubble.right")
-                navigationButton(.guide, title: "Tour Guide", icon: "binoculars")
-                navigationButton(.translate, title: "Translate", icon: "translate")
-                navigationButton(.profile, title: "Profile", icon: "person.crop.circle")
-            }
-            .padding(.vertical, 4)
-            .background(PipAppearance.cream)
-            .fixedSize(horizontal: false, vertical: true)
         }
         .tint(.blue)
         .task { if !store.loaded { await store.load() } }

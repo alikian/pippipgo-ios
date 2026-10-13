@@ -64,7 +64,7 @@ enum GuestCategory: String, CaseIterable, Identifiable {
     }
 }
 
-struct GuestPlace: Identifiable {
+struct NearbyPlace: Identifiable {
     let id = UUID()
     let item: MKMapItem
     let distance: CLLocationDistance
@@ -73,11 +73,11 @@ struct GuestPlace: Identifiable {
 }
 
 @MainActor @Observable
-final class GuestExploreModel: NSObject, @preconcurrency CLLocationManagerDelegate {
+final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelegate {
     private(set) var location: CLLocation?
     private(set) var authorization: CLAuthorizationStatus
     private(set) var category: GuestCategory?
-    private(set) var places: [GuestPlace] = []
+    private(set) var places: [NearbyPlace] = []
     private(set) var searching = false
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var searchID = UUID()
@@ -128,7 +128,7 @@ final class GuestExploreModel: NSObject, @preconcurrency CLLocationManagerDelega
                 .map { item in
                     let point = item.placemark.coordinate
                     let distance = location.distance(from: CLLocation(latitude: point.latitude, longitude: point.longitude))
-                    return GuestPlace(item: item, distance: distance)
+                    return NearbyPlace(item: item, distance: distance)
                 }
                 .sorted { $0.distance < $1.distance }
                 .prefix(15).map { $0 }
@@ -140,9 +140,9 @@ final class GuestExploreModel: NSObject, @preconcurrency CLLocationManagerDelega
 struct GuestExploreView: View {
     let signIn: () -> Void
     var errorMessage: String?
-    @State private var model = GuestExploreModel()
+    @State private var model = NearbyPlacesModel()
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
-    @State private var selected: GuestPlace?
+    @State private var selected: NearbyPlace?
     @State private var askingToSignIn = false
     @State private var translating = false
     @Namespace private var mapScope
@@ -235,12 +235,8 @@ struct GuestExploreView: View {
             .tint(.blue)
             .accessibilityIdentifier("guest.askPip")
 
-            if let selected {
-                placeCard(selected)
-            } else if let category = model.category {
-                results(category)
-            } else {
-                categories
+            NearbyFinder(model: model, selected: $selected) { place in
+                withAnimation { position = .item(place.item) }
             }
         }
         .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
@@ -250,6 +246,24 @@ struct GuestExploreView: View {
                 .fill(.regularMaterial).ignoresSafeArea(edges: .bottom)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: -2)
+    }
+}
+
+/// Find nearby: Apple Maps categories, nearest results and walking directions. Shared by the
+/// signed-out screen and the signed-in map.
+struct NearbyFinder: View {
+    let model: NearbyPlacesModel
+    @Binding var selected: NearbyPlace?
+    let focus: (NearbyPlace) -> Void
+
+    var body: some View {
+        if let selected {
+            placeCard(selected)
+        } else if let category = model.category {
+            results(category)
+        } else {
+            categories
+        }
     }
 
     private var categories: some View {
@@ -297,12 +311,12 @@ struct GuestExploreView: View {
                         ForEach(model.places) { place in
                             Button {
                                 selected = place
-                                withAnimation { position = .item(place.item) }
+                                focus(place)
                             } label: {
                                 HStack {
                                     Text(verbatim: place.name).font(.body).foregroundStyle(.primary).lineLimit(2)
                                     Spacer(minLength: 8)
-                                    Text(Self.distance(place.distance)).font(.callout).foregroundStyle(.secondary)
+                                    Text(NearbyFinder.distance(place.distance)).font(.callout).foregroundStyle(.secondary)
                                 }
                                 .frame(minHeight: 48)
                                 .contentShape(Rectangle())
@@ -317,12 +331,12 @@ struct GuestExploreView: View {
         }
     }
 
-    private func placeCard(_ place: GuestPlace) -> some View {
+    private func placeCard(_ place: NearbyPlace) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(verbatim: place.name).font(.title2.weight(.bold))
-                    Text(Self.distance(place.distance)).font(.callout).foregroundStyle(.secondary)
+                    Text(NearbyFinder.distance(place.distance)).font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button { selected = nil } label: {

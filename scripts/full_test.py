@@ -157,11 +157,12 @@ def run(args):
         device.call('POST', '/execute/sync', {'script': 'mobile: activateApp',
                                              'args': [{'bundleId': 'com.pippipgo.ios'}]})
         device.stop_audio()
-        check('Signed-in navigation', lambda: [device.find(x) for x in ['Pip', 'Tour Guide', 'Translate', 'Profile']])
+        # Map-first home: Ask Pip, Type to Pip, Translate and Profile float over the tour map.
+        check('Signed-in navigation', lambda: [device.find(x) for x in ['Ask Pip', 'Type to Pip', 'Translate', 'Profile']])
         device.tap('app.languagePicker')
         check('Interface language choices accessible', lambda: (device.find('English'), device.find('فارسی')))
-        device.tap('Pip')  # dismiss the language menu
-        check('Tour Guide tab opens', lambda: (device.tap('Tour Guide'), device.find('liveGuide.enabled')))
+        device.tap('Recenter')  # dismiss the language menu without starting a conversation
+        check('Tour controls on the map', lambda: device.find('liveGuide.enabled'))
         device.tap('Profile')
         check('Trips tile opens', lambda: (device.tap('profile.trips'), device.wait('Trips')))
         check('New trip editor opens', lambda: (device.tap('Add trip'), device.wait('Trip')))
@@ -191,10 +192,12 @@ def run(args):
         device.tap('Cancel')
         check('Settings account controls accessible', lambda: (device.tap('Settings', True), device.find('Sign out'), device.find('account.delete')))
         device.tap('BackButton')
-        device.tap('Pip')
+        device.tap('Map')
+        device.tap('Type to Pip')
         device.stop_audio()
         check('Conversation history opens', lambda: (device.tap('pip.history'), device.wait('Conversations')))
         device.tap('Done')
+        device.tap('Map')
         device.tap('Translate')
         check('Translation controls available', lambda: [device.find(x) for x in ['You speak', 'They speak', 'Swap languages', 'Start translation', 'Headphone mode']])
         device.tap('You speak')

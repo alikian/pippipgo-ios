@@ -1,540 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Deny and delete account" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deny and delete account"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "رفض وحذف الحساب"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rechazar y eliminar la cuenta"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "رد کردن و حذف حساب"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tanggihan at tanggalin ang account"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tanggihan at tanggalin ang account"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refuser et supprimer le compte"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rifiuta ed elimina l’account"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "拒否してアカウントを削除"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "거부하고 계정 삭제"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Отказаться и удалить аккаунт"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reddet ve hesabı sil"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Từ chối và xóa tài khoản"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "拒绝并删除账户"
-          }
-        }
-      }
-    },
-    "ai.sharing.details" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo sends data through its server to OpenAI:\n• Chat and voice: messages, history, profile, preferences, memories, language, time and available location. Voice also shares audio, saved trips and companions.\n• Translation: audio and selected languages only.\n• Tour guide: location, nearby places and preferences.\n• Bookings: selected text, images and files.\nAvailable transcripts and AI context are retained for service and support. Raw live audio is not saved on our backend. OpenAI’s data policies apply."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo envía datos a OpenAI a través de su servidor:\n• Chat y voz: mensajes, historial, perfil, preferencias, recuerdos, idioma, hora y ubicación disponible. La voz también comparte audio, viajes guardados y acompañantes.\n• Traducción: solo audio e idiomas seleccionados.\n• Guía: ubicación, lugares cercanos y preferencias.\n• Reservas: texto, imágenes y archivos seleccionados.\nLas transcripciones disponibles y el contexto de IA se conservan para el servicio y soporte. El audio en directo no se guarda en nuestro servidor. Se aplican las políticas de datos de OpenAI."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo transmet des données à OpenAI par son serveur :\n• Chat et voix : messages, historique, profil, préférences, souvenirs, langue, heure et position disponible. La voix partage aussi l’audio, les voyages enregistrés et les compagnons.\n• Traduction : audio et langues choisies uniquement.\n• Guide : position, lieux proches et préférences.\n• Réservations : textes, images et fichiers sélectionnés.\nLes transcriptions disponibles et le contexte IA sont conservés pour le service et l’assistance. L’audio en direct n’est pas enregistré sur notre serveur. Les politiques de données d’OpenAI s’appliquent."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo invia dati a OpenAI tramite il proprio server:\n• Chat e voce: messaggi, cronologia, profilo, preferenze, ricordi, lingua, ora e posizione disponibile. La voce condivide anche audio, viaggi salvati e compagni.\n• Traduzione: solo audio e lingue selezionate.\n• Guida: posizione, luoghi vicini e preferenze.\n• Prenotazioni: testi, immagini e file selezionati.\nLe trascrizioni disponibili e il contesto IA vengono conservati per il servizio e l’assistenza. L’audio dal vivo non viene salvato sul nostro server. Si applicano le politiche sui dati di OpenAI."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo داده‌ها را از طریق سرور خود به OpenAI می‌فرستد:\n• گفتگو و صدا: پیام‌ها، سابقه، نمایه، ترجیحات، خاطرات، زبان، زمان و موقعیت مکانی در صورت دسترسی. در حالت صوتی، صدا، سفرهای ذخیره‌شده و همراهان نیز ارسال می‌شوند.\n• ترجمه: فقط صدا و زبان‌های انتخاب‌شده.\n• راهنمای گردش: موقعیت مکانی، مکان‌های نزدیک و ترجیحات.\n• رزروها: متن، تصاویر و فایل‌های انتخاب‌شده.\nرونوشت‌های موجود و زمینه هوش مصنوعی برای ارائه خدمات و پشتیبانی نگهداری می‌شوند. صدای زنده خام در سرور ما ذخیره نمی‌شود. سیاست‌های داده OpenAI اعمال می‌شوند."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يرسل PipPipGo البيانات إلى OpenAI عبر خادمه:\n• الدردشة والصوت: الرسائل والسجل والملف الشخصي والتفضيلات والذكريات واللغة والوقت والموقع عند توفره. يشارك الصوت أيضًا التسجيل الصوتي والرحلات المحفوظة والمرافقين.\n• الترجمة: الصوت واللغات المحددة فقط.\n• الدليل السياحي: الموقع والأماكن القريبة والتفضيلات.\n• الحجوزات: النصوص والصور والملفات المحددة.\nنحتفظ بالنصوص المتاحة وسياق الذكاء الاصطناعي لتقديم الخدمة والدعم. لا نحفظ الصوت المباشر الخام على خادمنا. تنطبق سياسات بيانات OpenAI."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGoはサーバーを通じてOpenAIにデータを送信します。\n• チャットと音声：メッセージ、履歴、プロフィール、設定、記憶、言語、時刻、利用可能な位置情報。音声では音声データ、保存した旅行、同行者も共有します。\n• 翻訳：音声と選択した言語のみ。\n• 観光ガイド：位置情報、近くの場所、設定。\n• 予約：選択したテキスト、画像、ファイル。\n利用可能な文字起こしとAIの文脈は、サービスとサポートのために保存されます。生のライブ音声は当社のサーバーに保存されません。OpenAIのデータポリシーが適用されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo는 서버를 통해 OpenAI에 데이터를 전송합니다.\n• 채팅과 음성: 메시지, 기록, 프로필, 선호 사항, 기억, 언어, 시간 및 사용 가능한 위치. 음성은 오디오, 저장된 여행 및 동행자도 공유합니다.\n• 번역: 오디오와 선택한 언어만 공유합니다.\n• 여행 가이드: 위치, 주변 장소 및 선호 사항.\n• 예약: 선택한 텍스트, 이미지 및 파일.\n사용 가능한 대화 기록과 AI 문맥은 서비스와 지원을 위해 보관됩니다. 실시간 원본 오디오는 서버에 저장되지 않습니다. OpenAI 데이터 정책이 적용됩니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo通过服务器将数据发送给OpenAI：\n• 聊天和语音：消息、历史记录、个人资料、偏好、记忆、语言、时间和可用的位置。语音还共享音频、已保存的旅行和同行者。\n• 翻译：仅音频和所选语言。\n• 导游：位置、附近地点和偏好。\n• 预订：所选文字、图片和文件。\n可用的对话文本和AI上下文会被保留，用于服务和支持。我们的服务器不保存原始实时音频。适用OpenAI的数据政策。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo отправляет данные в OpenAI через свой сервер:\n• Чат и голос: сообщения, история, профиль, предпочтения, воспоминания, язык, время и доступное местоположение. Голос также передаёт аудио, сохранённые поездки и спутников.\n• Перевод: только аудио и выбранные языки.\n• Гид: местоположение, места поблизости и предпочтения.\n• Бронирования: выбранные тексты, изображения и файлы.\nДоступные расшифровки и контекст ИИ сохраняются для работы сервиса и поддержки. Исходное аудио прямого эфира не сохраняется на нашем сервере. Применяются правила обработки данных OpenAI."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo, sunucusu üzerinden OpenAI’a veri gönderir:\n• Sohbet ve ses: mesajlar, geçmiş, profil, tercihler, anılar, dil, saat ve mevcut konum. Ses ayrıca ses kaydını, kayıtlı seyahatleri ve yol arkadaşlarını paylaşır.\n• Çeviri: yalnızca ses ve seçilen diller.\n• Tur rehberi: konum, yakındaki yerler ve tercihler.\n• Rezervasyonlar: seçilen metinler, görüntüler ve dosyalar.\nMevcut konuşma dökümleri ve yapay zekâ bağlamı hizmet ve destek için saklanır. Ham canlı ses sunucumuzda saklanmaz. OpenAI veri politikaları geçerlidir."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo gửi dữ liệu qua máy chủ đến OpenAI:\n• Trò chuyện và giọng nói: tin nhắn, lịch sử, hồ sơ, sở thích, ký ức, ngôn ngữ, thời gian và vị trí nếu có. Giọng nói còn chia sẻ âm thanh, chuyến đi đã lưu và người đồng hành.\n• Dịch: chỉ âm thanh và ngôn ngữ đã chọn.\n• Hướng dẫn du lịch: vị trí, địa điểm gần đó và sở thích.\n• Đặt chỗ: văn bản, hình ảnh và tệp đã chọn.\nBản chép lời có sẵn và ngữ cảnh AI được lưu để cung cấp dịch vụ và hỗ trợ. Âm thanh trực tiếp gốc không được lưu trên máy chủ của chúng tôi. Áp dụng chính sách dữ liệu của OpenAI."
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nIniimbak ang magagamit na transcript at konteksto ng AI para sa serbisyo at suporta. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nIniimbak ang magagamit na transcript at konteksto ng AI para sa serbisyo at suporta. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
-          }
-        }
-      }
-    },
-    "ai.sharing.acceptance" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accept to use PipPipGo. Saved for this account on this device; we ask again if this disclosure changes."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acepta para usar PipPipGo. Se guarda para esta cuenta en este dispositivo; volveremos a preguntar si cambia esta información."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acceptez pour utiliser PipPipGo. Votre choix est enregistré pour ce compte sur cet appareil ; nous redemanderons si ces informations changent."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accetta per usare PipPipGo. La scelta è salvata per questo account su questo dispositivo; chiederemo di nuovo se queste informazioni cambiano."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "برای استفاده از PipPipGo بپذیرید. انتخاب برای این حساب در این دستگاه ذخیره می‌شود؛ اگر این توضیحات تغییر کند، دوباره می‌پرسیم."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "وافق لاستخدام PipPipGo. يُحفظ اختيارك لهذا الحساب على هذا الجهاز؛ سنطلب الموافقة مجددًا إذا تغير هذا الإفصاح."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGoを使うには同意してください。この端末のアカウントに保存されます。説明が変更された場合は再度確認します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo를 사용하려면 동의하세요. 이 기기의 해당 계정에 저장되며, 안내 내용이 변경되면 다시 요청합니다."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同意后即可使用PipPipGo。此选择保存在本设备的该账户下；如披露内容变更，我们会再次征求同意。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Примите условия, чтобы использовать PipPipGo. Выбор сохраняется для этого аккаунта на этом устройстве; при изменении уведомления мы спросим снова."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipPipGo’yu kullanmak için kabul edin. Seçim bu cihazda bu hesap için kaydedilir; açıklama değişirse tekrar sorarız."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Đồng ý để dùng PipPipGo. Lựa chọn được lưu cho tài khoản này trên thiết bị này; chúng tôi sẽ hỏi lại nếu nội dung này thay đổi."
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tanggapin upang magamit ang PipPipGo. Naka-save para sa account na ito sa device na ito; hihingi muli ng pahintulot kung magbago ang paliwanag."
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tanggapin upang magamit ang PipPipGo. Naka-save para sa account na ito sa device na ito; hihingi muli ng pahintulot kung magbago ang paliwanag."
-          }
-        }
-      }
-    },
-    "AI privacy" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI privacy"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privacidad de IA"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confidentialité IA"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privacy IA"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حریم خصوصی هوش مصنوعی"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "خصوصية الذكاء الاصطناعي"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AIのプライバシー"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI 개인정보 보호"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI隐私"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Конфиденциальность ИИ"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yapay zekâ gizliliği"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quyền riêng tư AI"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privacy ng AI"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Privacy ng AI"
-          }
-        }
-      }
-    },
-    "Allow sharing with OpenAI?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow sharing with OpenAI?"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Permitir compartir con OpenAI?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser le partage avec OpenAI ?"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consentire la condivisione con OpenAI?"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اجازه اشتراک‌گذاری با OpenAI؟"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السماح بالمشاركة مع OpenAI؟"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAIとの共有を許可しますか？"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI와 공유를 허용할까요?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许与OpenAI共享吗？"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить передачу данных OpenAI?"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI ile paylaşıma izin verilsin mi?"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cho phép chia sẻ với OpenAI?"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payagan ang pagbabahagi sa OpenAI?"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payagan ang pagbabahagi sa OpenAI?"
-          }
-        }
-      }
-    },
-    "Allow sharing with OpenAI" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow sharing with OpenAI"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir compartir con OpenAI"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser le partage avec OpenAI"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consenti la condivisione con OpenAI"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اجازه اشتراک‌گذاری با OpenAI"
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السماح بالمشاركة مع OpenAI"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAIとの共有を許可"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI와 공유 허용"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许与OpenAI共享"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить передачу данных OpenAI"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI ile paylaşıma izin ver"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cho phép chia sẻ với OpenAI"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payagan ang pagbabahagi sa OpenAI"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payagan ang pagbabahagi sa OpenAI"
-          }
-        }
-      }
-    },
     "%@ · %@" : {
       "localizations" : {
         "ar" : {
@@ -5593,6 +5059,273 @@
         }
       }
     },
+    "AI privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خصوصية الذكاء الاصطناعي"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI privacy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacidad de IA"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حریم خصوصی هوش مصنوعی"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy ng AI"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy ng AI"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confidentialité IA"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIのプライバシー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 개인정보 보호"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конфиденциальность ИИ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapay zekâ gizliliği"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền riêng tư AI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI隐私"
+          }
+        }
+      }
+    },
+    "ai.sharing.acceptance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "وافق لاستخدام PipPipGo. يُحفظ اختيارك لهذا الحساب على هذا الجهاز؛ سنطلب الموافقة مجددًا إذا تغير هذا الإفصاح."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accept to use PipPipGo. Saved for this account on this device; we ask again if this disclosure changes."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acepta para usar PipPipGo. Se guarda para esta cuenta en este dispositivo; volveremos a preguntar si cambia esta información."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای استفاده از PipPipGo بپذیرید. انتخاب برای این حساب در این دستگاه ذخیره می‌شود؛ اگر این توضیحات تغییر کند، دوباره می‌پرسیم."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanggapin upang magamit ang PipPipGo. Naka-save para sa account na ito sa device na ito; hihingi muli ng pahintulot kung magbago ang paliwanag."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanggapin upang magamit ang PipPipGo. Naka-save para sa account na ito sa device na ito; hihingi muli ng pahintulot kung magbago ang paliwanag."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceptez pour utiliser PipPipGo. Votre choix est enregistré pour ce compte sur cet appareil ; nous redemanderons si ces informations changent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accetta per usare PipPipGo. La scelta è salvata per questo account su questo dispositivo; chiederemo di nuovo se queste informazioni cambiano."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGoを使うには同意してください。この端末のアカウントに保存されます。説明が変更された場合は再度確認します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo를 사용하려면 동의하세요. 이 기기의 해당 계정에 저장되며, 안내 내용이 변경되면 다시 요청합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Примите условия, чтобы использовать PipPipGo. Выбор сохраняется для этого аккаунта на этом устройстве; при изменении уведомления мы спросим снова."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo’yu kullanmak için kabul edin. Seçim bu cihazda bu hesap için kaydedilir; açıklama değişirse tekrar sorarız."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đồng ý để dùng PipPipGo. Lựa chọn được lưu cho tài khoản này trên thiết bị này; chúng tôi sẽ hỏi lại nếu nội dung này thay đổi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同意后即可使用PipPipGo。此选择保存在本设备的该账户下；如披露内容变更，我们会再次征求同意。"
+          }
+        }
+      }
+    },
+    "ai.sharing.details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يرسل PipPipGo البيانات إلى OpenAI عبر خادمه:\n• الدردشة والصوت: الرسائل والسجل والملف الشخصي والتفضيلات والذكريات واللغة والوقت والموقع عند توفره. يشارك الصوت أيضًا التسجيل الصوتي والرحلات المحفوظة والمرافقين.\n• الترجمة: الصوت واللغات المحددة فقط.\n• الدليل السياحي: الموقع والأماكن القريبة والتفضيلات.\n• الحجوزات: النصوص والصور والملفات المحددة.\nنحتفظ بالنصوص المتاحة وسياق الذكاء الاصطناعي لتقديم الخدمة والدعم. لا نحفظ الصوت المباشر الخام على خادمنا. تنطبق سياسات بيانات OpenAI."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo sends data through its server to OpenAI:\n• Chat and voice: messages, history, profile, preferences, memories, language, time and available location. Voice also shares audio, saved trips and companions.\n• Translation: audio and selected languages only.\n• Tour guide: location, nearby places and preferences.\n• Bookings: selected text, images and files.\nAvailable transcripts and AI context are retained for service and support. Raw live audio is not saved on our backend. OpenAI’s data policies apply."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo envía datos a OpenAI a través de su servidor:\n• Chat y voz: mensajes, historial, perfil, preferencias, recuerdos, idioma, hora y ubicación disponible. La voz también comparte audio, viajes guardados y acompañantes.\n• Traducción: solo audio e idiomas seleccionados.\n• Guía: ubicación, lugares cercanos y preferencias.\n• Reservas: texto, imágenes y archivos seleccionados.\nLas transcripciones disponibles y el contexto de IA se conservan para el servicio y soporte. El audio en directo no se guarda en nuestro servidor. Se aplican las políticas de datos de OpenAI."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo داده‌ها را از طریق سرور خود به OpenAI می‌فرستد:\n• گفتگو و صدا: پیام‌ها، سابقه، نمایه، ترجیحات، خاطرات، زبان، زمان و موقعیت مکانی در صورت دسترسی. در حالت صوتی، صدا، سفرهای ذخیره‌شده و همراهان نیز ارسال می‌شوند.\n• ترجمه: فقط صدا و زبان‌های انتخاب‌شده.\n• راهنمای گردش: موقعیت مکانی، مکان‌های نزدیک و ترجیحات.\n• رزروها: متن، تصاویر و فایل‌های انتخاب‌شده.\nرونوشت‌های موجود و زمینه هوش مصنوعی برای ارائه خدمات و پشتیبانی نگهداری می‌شوند. صدای زنده خام در سرور ما ذخیره نمی‌شود. سیاست‌های داده OpenAI اعمال می‌شوند."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nIniimbak ang magagamit na transcript at konteksto ng AI para sa serbisyo at suporta. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nIniimbak ang magagamit na transcript at konteksto ng AI para sa serbisyo at suporta. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo transmet des données à OpenAI par son serveur :\n• Chat et voix : messages, historique, profil, préférences, souvenirs, langue, heure et position disponible. La voix partage aussi l’audio, les voyages enregistrés et les compagnons.\n• Traduction : audio et langues choisies uniquement.\n• Guide : position, lieux proches et préférences.\n• Réservations : textes, images et fichiers sélectionnés.\nLes transcriptions disponibles et le contexte IA sont conservés pour le service et l’assistance. L’audio en direct n’est pas enregistré sur notre serveur. Les politiques de données d’OpenAI s’appliquent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo invia dati a OpenAI tramite il proprio server:\n• Chat e voce: messaggi, cronologia, profilo, preferenze, ricordi, lingua, ora e posizione disponibile. La voce condivide anche audio, viaggi salvati e compagni.\n• Traduzione: solo audio e lingue selezionate.\n• Guida: posizione, luoghi vicini e preferenze.\n• Prenotazioni: testi, immagini e file selezionati.\nLe trascrizioni disponibili e il contesto IA vengono conservati per il servizio e l’assistenza. L’audio dal vivo non viene salvato sul nostro server. Si applicano le politiche sui dati di OpenAI."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGoはサーバーを通じてOpenAIにデータを送信します。\n• チャットと音声：メッセージ、履歴、プロフィール、設定、記憶、言語、時刻、利用可能な位置情報。音声では音声データ、保存した旅行、同行者も共有します。\n• 翻訳：音声と選択した言語のみ。\n• 観光ガイド：位置情報、近くの場所、設定。\n• 予約：選択したテキスト、画像、ファイル。\n利用可能な文字起こしとAIの文脈は、サービスとサポートのために保存されます。生のライブ音声は当社のサーバーに保存されません。OpenAIのデータポリシーが適用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo는 서버를 통해 OpenAI에 데이터를 전송합니다.\n• 채팅과 음성: 메시지, 기록, 프로필, 선호 사항, 기억, 언어, 시간 및 사용 가능한 위치. 음성은 오디오, 저장된 여행 및 동행자도 공유합니다.\n• 번역: 오디오와 선택한 언어만 공유합니다.\n• 여행 가이드: 위치, 주변 장소 및 선호 사항.\n• 예약: 선택한 텍스트, 이미지 및 파일.\n사용 가능한 대화 기록과 AI 문맥은 서비스와 지원을 위해 보관됩니다. 실시간 원본 오디오는 서버에 저장되지 않습니다. OpenAI 데이터 정책이 적용됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo отправляет данные в OpenAI через свой сервер:\n• Чат и голос: сообщения, история, профиль, предпочтения, воспоминания, язык, время и доступное местоположение. Голос также передаёт аудио, сохранённые поездки и спутников.\n• Перевод: только аудио и выбранные языки.\n• Гид: местоположение, места поблизости и предпочтения.\n• Бронирования: выбранные тексты, изображения и файлы.\nДоступные расшифровки и контекст ИИ сохраняются для работы сервиса и поддержки. Исходное аудио прямого эфира не сохраняется на нашем сервере. Применяются правила обработки данных OpenAI."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo, sunucusu üzerinden OpenAI’a veri gönderir:\n• Sohbet ve ses: mesajlar, geçmiş, profil, tercihler, anılar, dil, saat ve mevcut konum. Ses ayrıca ses kaydını, kayıtlı seyahatleri ve yol arkadaşlarını paylaşır.\n• Çeviri: yalnızca ses ve seçilen diller.\n• Tur rehberi: konum, yakındaki yerler ve tercihler.\n• Rezervasyonlar: seçilen metinler, görüntüler ve dosyalar.\nMevcut konuşma dökümleri ve yapay zekâ bağlamı hizmet ve destek için saklanır. Ham canlı ses sunucumuzda saklanmaz. OpenAI veri politikaları geçerlidir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo gửi dữ liệu qua máy chủ đến OpenAI:\n• Trò chuyện và giọng nói: tin nhắn, lịch sử, hồ sơ, sở thích, ký ức, ngôn ngữ, thời gian và vị trí nếu có. Giọng nói còn chia sẻ âm thanh, chuyến đi đã lưu và người đồng hành.\n• Dịch: chỉ âm thanh và ngôn ngữ đã chọn.\n• Hướng dẫn du lịch: vị trí, địa điểm gần đó và sở thích.\n• Đặt chỗ: văn bản, hình ảnh và tệp đã chọn.\nBản chép lời có sẵn và ngữ cảnh AI được lưu để cung cấp dịch vụ và hỗ trợ. Âm thanh trực tiếp gốc không được lưu trên máy chủ của chúng tôi. Áp dụng chính sách dữ liệu của OpenAI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipPipGo通过服务器将数据发送给OpenAI：\n• 聊天和语音：消息、历史记录、个人资料、偏好、记忆、语言、时间和可用的位置。语音还共享音频、已保存的旅行和同行者。\n• 翻译：仅音频和所选语言。\n• 导游：位置、附近地点和偏好。\n• 预订：所选文字、图片和文件。\n可用的对话文本和AI上下文会被保留，用于服务和支持。我们的服务器不保存原始实时音频。适用OpenAI的数据政策。"
+          }
+        }
+      }
+    },
     "Airline" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6033,6 +5766,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有费用均使用此货币。更改货币不会换算金额。"
+          }
+        }
+      }
+    },
+    "Allow location access to find places near you." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اسمح بالوصول إلى الموقع للعثور على أماكن قريبة منك."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow location access to find places near you."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite el acceso a la ubicación para encontrar lugares cerca de ti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای پیدا کردن مکان‌های اطراف، دسترسی به موقعیت را مجاز کنید."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payagan ang access sa lokasyon para makahanap ng mga lugar na malapit sa iyo."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payagan ang access sa lokasyon para makahanap ng mga lugar na malapit sa iyo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisez l’accès à la position pour trouver des lieux près de vous."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti l’accesso alla posizione per trovare luoghi vicini."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近くの場所を探すには位置情報へのアクセスを許可してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주변 장소를 찾으려면 위치 접근을 허용하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешите доступ к геопозиции, чтобы найти места рядом."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yakındaki yerleri bulmak için konum erişimine izin ver."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cho phép truy cập vị trí để tìm địa điểm gần bạn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许访问位置以查找你附近的地点。"
           }
         }
       }
@@ -6478,6 +6299,184 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请在“设置”中允许使用麦克风和语音识别，或输入你的回答。"
+          }
+        }
+      }
+    },
+    "Allow sharing with OpenAI" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "السماح بالمشاركة مع OpenAI"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow sharing with OpenAI"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir compartir con OpenAI"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اجازه اشتراک‌گذاری با OpenAI"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payagan ang pagbabahagi sa OpenAI"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payagan ang pagbabahagi sa OpenAI"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser le partage avec OpenAI"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti la condivisione con OpenAI"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAIとの共有を許可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI와 공유 허용"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить передачу данных OpenAI"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI ile paylaşıma izin ver"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cho phép chia sẻ với OpenAI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许与OpenAI共享"
+          }
+        }
+      }
+    },
+    "Allow sharing with OpenAI?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "السماح بالمشاركة مع OpenAI؟"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow sharing with OpenAI?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Permitir compartir con OpenAI?"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اجازه اشتراک‌گذاری با OpenAI؟"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payagan ang pagbabahagi sa OpenAI?"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payagan ang pagbabahagi sa OpenAI?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser le partage avec OpenAI ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentire la condivisione con OpenAI?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAIとの共有を許可しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI와 공유를 허용할까요?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить передачу данных OpenAI?"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenAI ile paylaşıma izin verilsin mi?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cho phép chia sẻ với OpenAI?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许与OpenAI共享吗？"
           }
         }
       }
@@ -10921,6 +10920,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "汽车"
+          }
+        }
+      }
+    },
+    "Cash" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صراف آلي"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cash"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cajeros"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خودپرداز"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ATM"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ATM"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distributeurs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bancomat"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ATM"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ATM"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Банкоматы"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ATM"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ATM"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取款机"
           }
         }
       }
@@ -16435,6 +16523,95 @@
         }
       }
     },
+    "Deny and delete account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رفض وحذف الحساب"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deny and delete account"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechazar y eliminar la cuenta"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رد کردن و حذف حساب"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanggihan at tanggalin ang account"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanggihan at tanggalin ang account"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refuser et supprimer le compte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rifiuta ed elimina l’account"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拒否してアカウントを削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "거부하고 계정 삭제"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отказаться и удалить аккаунт"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reddet ve hesabı sil"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Từ chối và xóa tài khoản"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拒绝并删除账户"
+          }
+        }
+      }
+    },
     "Departure" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17498,6 +17675,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在听写……轻点麦克风停止。"
+          }
+        }
+      }
+    },
+    "Directions" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الاتجاهات"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Directions"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo llegar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسیریابی"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direksyon"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direksyon"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Itinéraire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicazioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "経路"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "경로"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Маршрут"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yol tarifi"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ đường"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "路线"
           }
         }
       }
@@ -20701,6 +20967,94 @@
         }
       }
     },
+    "Explore without an account" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استكشف بدون حساب"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore without an account"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorar sin cuenta"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کاوش بدون حساب کاربری"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-explore nang walang account"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-explore nang walang account"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorer sans compte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esplora senza account"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントなしで使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정 없이 둘러보기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить без аккаунта"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hesap olmadan keşfet"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khám phá không cần tài khoản"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无需账户即可浏览"
+          }
+        }
+      }
+    },
     "Extract for review" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -21053,6 +21407,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查找航班"
+          }
+        }
+      }
+    },
+    "Find nearby" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "البحث بالقرب منك"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find nearby"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar cerca"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جست‌وجو در اطراف"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanapin sa malapit"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanapin sa malapit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À proximité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca nelle vicinanze"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近くを探す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주변 찾기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рядом"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yakında bul"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tìm gần đây"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查找附近"
           }
         }
       }
@@ -23369,6 +23811,95 @@
         }
       }
     },
+    "Groceries" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "البقالة"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groceries"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supermercados"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خواربار"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groseri"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groseri"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épiceries"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alimentari"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食料品店"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "식료품점"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продукты"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Market"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tạp hóa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "杂货店"
+          }
+        }
+      }
+    },
     "Headphone mode" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25409,6 +25940,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从酒店到机场"
+          }
+        }
+      }
+    },
+    "Hotels" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الفنادق"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotels"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoteles"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هتل‌ها"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mga hotel"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mga hotel"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hôtels"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotel"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホテル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "호텔"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отели"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oteller"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khách sạn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "酒店"
           }
         }
       }
@@ -35187,6 +35807,94 @@
         }
       }
     },
+    "Nothing found nearby." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يتم العثور على شيء بالقرب منك."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing found nearby."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró nada cerca."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "چیزی در اطراف پیدا نشد."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walang nakita sa malapit."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walang nakita sa malapit."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien trouvé à proximité."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun risultato nelle vicinanze."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近くに見つかりませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주변에서 찾지 못했습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поблизости ничего не найдено."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yakında bir şey bulunamadı."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không tìm thấy gì gần đây."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近没有找到结果。"
+          }
+        }
+      }
+    },
     "Nothing notable within 150 m." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -37673,6 +38381,95 @@
         }
       }
     },
+    "Parking" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "موقف سيارات"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parking"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aparcamiento"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پارکینگ"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paradahan"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paradahan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parking"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parcheggio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "駐車場"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주차장"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Парковка"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otopark"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bãi đỗ xe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停车场"
+          }
+        }
+      }
+    },
     "Partly planned" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -38472,6 +39269,95 @@
         }
       }
     },
+    "Pharmacy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صيدلية"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pharmacy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farmacia"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "داروخانه"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botika"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botika"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pharmacie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farmacia"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "薬局"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "약국"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аптека"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eczane"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhà thuốc"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "药店"
+          }
+        }
+      }
+    },
     "Photo · Google Maps" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39002,6 +39888,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pip 🦆"
+          }
+        }
+      }
+    },
+    "Pip answers your questions using your profile and AI. Sign in to continue." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يجيب Pip عن أسئلتك باستخدام ملفك الشخصي والذكاء الاصطناعي. سجّل الدخول للمتابعة."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip answers your questions using your profile and AI. Sign in to continue."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip responde a tus preguntas con tu perfil y la IA. Inicia sesión para continuar."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip با استفاده از نمایه شما و هوش مصنوعی به پرسش‌هایتان پاسخ می‌دهد. برای ادامه وارد شوید."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinasagot ni Pip ang mga tanong mo gamit ang iyong profile at AI. Mag-sign in para magpatuloy."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinasagot ni Pip ang mga tanong mo gamit ang iyong profile at AI. Mag-sign in para magpatuloy."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip répond à vos questions grâce à votre profil et à l’IA. Connectez-vous pour continuer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip risponde alle tue domande usando il tuo profilo e l’IA. Accedi per continuare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PipはあなたのプロフィールとAIを使って質問に答えます。続けるにはサインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip은 프로필과 AI를 사용해 질문에 답합니다. 계속하려면 로그인하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip отвечает на вопросы с учётом вашего профиля и с помощью ИИ. Войдите, чтобы продолжить."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip, profilini ve yapay zekâyı kullanarak sorularını yanıtlar. Devam etmek için giriş yap."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip trả lời câu hỏi của bạn dựa trên hồ sơ của bạn và AI. Đăng nhập để tiếp tục."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip 会根据你的个人资料并借助 AI 回答你的问题。登录后继续。"
           }
         }
       }
@@ -44601,6 +45575,95 @@
         }
       }
     },
+    "Restrooms" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دورات المياه"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restrooms"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baños"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سرویس بهداشتی"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banyo"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banyo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toilettes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bagni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トイレ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화장실"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Туалеты"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuvalet"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhà vệ sinh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "洗手间"
+          }
+        }
+      }
+    },
     "Retry deletion" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -49219,6 +50282,94 @@
         }
       }
     },
+    "Sign in" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تسجيل الدخول"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ورود"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-sign in"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-sign in"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サインイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giriş yap"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
     "Sign in or create account" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -49304,6 +50455,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录或创建账户"
+          }
+        }
+      }
+    },
+    "Sign in to ask Pip" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سجّل الدخول لتسأل Pip"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to ask Pip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión para preguntar a Pip"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای پرسیدن از Pip وارد شوید"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-sign in para magtanong kay Pip"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-sign in para magtanong kay Pip"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous pour demander à Pip"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi per chiedere a Pip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pipに質問するにはサインイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip에게 물어보려면 로그인하세요"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войдите, чтобы спросить Pip"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip'e sormak için giriş yap"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập để hỏi Pip"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录后即可询问 Pip"
           }
         }
       }
@@ -57295,6 +58535,95 @@
         }
       }
     },
+    "Transit" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المواصلات العامة"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transporte"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حمل‌ونقل عمومی"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pampublikong sasakyan"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pampublikong sasakyan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transports"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trasporti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公共交通"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대중교통"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Транспорт"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplu taşıma"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giao thông công cộng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公共交通"
+          }
+        }
+      }
+    },
     "Translate" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -57469,6 +58798,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻译对话"
+          }
+        }
+      }
+    },
+    "Translate a phrase" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ترجمة عبارة"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Translate a phrase"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir una frase"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ترجمهٔ یک عبارت"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isalin ang parirala"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isalin ang parirala"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire une phrase"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci una frase"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文を翻訳"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "문장 번역"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевести фразу"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir ifadeyi çevir"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dịch một câu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译句子"
           }
         }
       }
@@ -60316,6 +61734,95 @@
         }
       }
     },
+    "Type a phrase to translate" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اكتب عبارة لترجمتها"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type a phrase to translate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe una frase para traducir"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عبارتی برای ترجمه بنویسید"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-type ng pariralang isasalin"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-type ng pariralang isasalin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez une phrase à traduire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivi una frase da tradurre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳する文を入力"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역할 문장을 입력하세요"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите фразу для перевода"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çevrilecek bir ifade yaz"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhập câu cần dịch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入要翻译的句子"
+          }
+        }
+      }
+    },
     "Type or speak…" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -61020,6 +62527,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上传航班确认信息"
+          }
+        }
+      }
+    },
+    "Use Apple, Google or email and password. When creating an account, enter your email address as both username and email." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدم Apple أو Google أو البريد الإلكتروني وكلمة المرور. عند إنشاء حساب، أدخل عنوان بريدك الإلكتروني في حقلي اسم المستخدم والبريد الإلكتروني."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Apple, Google or email and password. When creating an account, enter your email address as both username and email."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa Apple, Google o correo y contraseña. Al crear una cuenta, introduce tu correo tanto como nombre de usuario como correo electrónico."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "با Apple، گوگل یا ایمیل و رمز عبور وارد شوید. هنگام ساخت حساب، نشانی ایمیل را هم در نام کاربری و هم در ایمیل وارد کنید."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gumamit ng Apple, Google o email at password. Kapag gagawa ng account, ilagay ang iyong email address bilang username at email."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gumamit ng Apple, Google o email at password. Kapag gumagawa ng account, ilagay ang email address mo bilang username at email."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez Apple, Google ou un e-mail et un mot de passe. À la création du compte, saisissez votre e-mail comme nom d’utilisateur et comme adresse e-mail."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa Apple, Google o email e password. Quando crei un account, inserisci il tuo indirizzo email sia come nome utente sia come email."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple、Googleまたはメールアドレスとパスワードを使用します。アカウント作成時は、ユーザー名とメールアドレスの両方にメールアドレスを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple, Google 또는 이메일과 비밀번호를 사용하세요. 계정을 만들 때는 이메일 주소를 사용자 이름과 이메일에 모두 입력하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте Apple, Google или адрес электронной почты и пароль. При создании аккаунта укажите свой адрес электронной почты и в поле имени пользователя, и в поле электронной почты."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple'ı, Google'ı veya e-posta adresinizi ve parolanızı kullanın. Hesap oluştururken e-posta adresinizi hem kullanıcı adı hem de e-posta olarak girin."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng Apple, Google hoặc email và mật khẩu. Khi tạo tài khoản, hãy nhập địa chỉ email làm cả tên người dùng lẫn email."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Apple、Google 或邮箱和密码。创建账户时，请在用户名和邮箱栏中都输入你的邮箱地址。"
           }
         }
       }
@@ -66529,1586 +68124,266 @@
         }
       }
     },
-    "Explore without an account" : {
+    "Map" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "استكشف بدون حساب"
+            "value" : "الخريطة"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Explore without an account"
+            "value" : "Map"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Explorar sin cuenta"
+            "value" : "Mapa"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "کاوش بدون حساب کاربری"
+            "value" : "نقشه"
           }
         },
         "fil" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mag-explore nang walang account"
+            "value" : "Mapa"
           }
         },
         "fil-PH" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mag-explore nang walang account"
+            "value" : "Mapa"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Explorer sans compte"
+            "value" : "Carte"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esplora senza account"
+            "value" : "Mappa"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アカウントなしで使う"
+            "value" : "マップ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "계정 없이 둘러보기"
+            "value" : "지도"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Продолжить без аккаунта"
+            "value" : "Карта"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hesap olmadan keşfet"
+            "value" : "Harita"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khám phá không cần tài khoản"
+            "value" : "Bản đồ"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无需账户即可浏览"
+            "value" : "地图"
           }
         }
       }
     },
-    "Find nearby" : {
+    "Type to Pip" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "البحث بالقرب منك"
+            "value" : "اكتب إلى Pip"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Find nearby"
+            "value" : "Type to Pip"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buscar cerca"
+            "value" : "Escribir a Pip"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "جست‌وجو در اطراف"
+            "value" : "برای Pip بنویسید"
           }
         },
         "fil" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hanapin sa malapit"
+            "value" : "Mag-type kay Pip"
           }
         },
         "fil-PH" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hanapin sa malapit"
+            "value" : "Mag-type kay Pip"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "À proximité"
+            "value" : "Écrire à Pip"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cerca nelle vicinanze"
+            "value" : "Scrivi a Pip"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "近くを探す"
+            "value" : "Pipに入力"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "주변 찾기"
+            "value" : "Pip에게 입력하기"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Рядом"
+            "value" : "Написать Pip"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Yakında bul"
+            "value" : "Pip'e yaz"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tìm gần đây"
+            "value" : "Nhắn cho Pip"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查找附近"
+            "value" : "给 Pip 打字"
           }
         }
       }
     },
-    "Restrooms" : {
+    "Search places" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "دورات المياه"
+            "value" : "البحث عن أماكن"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restrooms"
+            "value" : "Search places"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Baños"
+            "value" : "Buscar lugares"
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "سرویس بهداشتی"
+            "value" : "جست‌وجوی مکان‌ها"
           }
         },
         "fil" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Banyo"
+            "value" : "Maghanap ng lugar"
           }
         },
         "fil-PH" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Banyo"
+            "value" : "Maghanap ng lugar"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toilettes"
+            "value" : "Rechercher des lieux"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bagni"
+            "value" : "Cerca luoghi"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "トイレ"
+            "value" : "場所を検索"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "화장실"
+            "value" : "장소 검색"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Туалеты"
+            "value" : "Поиск мест"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tuvalet"
+            "value" : "Yer ara"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nhà vệ sinh"
+            "value" : "Tìm địa điểm"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "洗手间"
-          }
-        }
-      }
-    },
-    "Transit" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "المواصلات العامة"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transit"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transporte"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حمل‌ونقل عمومی"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pampublikong sasakyan"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pampublikong sasakyan"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transports"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trasporti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "公共交通"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "대중교통"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Транспорт"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toplu taşıma"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Giao thông công cộng"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "公共交通"
-          }
-        }
-      }
-    },
-    "Groceries" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "البقالة"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Groceries"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supermercados"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "خواربار"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Groseri"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Groseri"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Épiceries"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alimentari"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "食料品店"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "식료품점"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Продукты"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Market"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tạp hóa"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "杂货店"
-          }
-        }
-      }
-    },
-    "Hotels" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الفنادق"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hotels"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hoteles"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "هتل‌ها"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mga hotel"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mga hotel"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hôtels"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hotel"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ホテル"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "호텔"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Отели"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oteller"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Khách sạn"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "酒店"
-          }
-        }
-      }
-    },
-    "Pharmacy" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "صيدلية"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pharmacy"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Farmacia"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "داروخانه"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Botika"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Botika"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pharmacie"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Farmacia"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "薬局"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "약국"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Аптека"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eczane"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nhà thuốc"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "药店"
-          }
-        }
-      }
-    },
-    "Cash" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "صراف آلي"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cash"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cajeros"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "خودپرداز"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ATM"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ATM"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Distributeurs"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bancomat"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ATM"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ATM"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Банкоматы"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ATM"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ATM"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取款机"
-          }
-        }
-      }
-    },
-    "Parking" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "موقف سيارات"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parking"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aparcamiento"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "پارکینگ"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paradahan"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paradahan"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parking"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parcheggio"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "駐車場"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "주차장"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Парковка"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otopark"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bãi đỗ xe"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "停车场"
-          }
-        }
-      }
-    },
-    "Directions" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الاتجاهات"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Directions"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cómo llegar"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مسیریابی"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Direksyon"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Direksyon"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Itinéraire"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indicazioni"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "経路"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "경로"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Маршрут"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yol tarifi"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chỉ đường"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "路线"
-          }
-        }
-      }
-    },
-    "Sign in" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تسجيل الدخول"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iniciar sesión"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ورود"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mag-sign in"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mag-sign in"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se connecter"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accedi"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "サインイン"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "로그인"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Войти"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Giriş yap"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Đăng nhập"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录"
-          }
-        }
-      }
-    },
-    "Sign in to ask Pip" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "سجّل الدخول لتسأل Pip"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in to ask Pip"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inicia sesión para preguntar a Pip"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "برای پرسیدن از Pip وارد شوید"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mag-sign in para magtanong kay Pip"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mag-sign in para magtanong kay Pip"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connectez-vous pour demander à Pip"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accedi per chiedere a Pip"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pipに質問するにはサインイン"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip에게 물어보려면 로그인하세요"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Войдите, чтобы спросить Pip"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip'e sormak için giriş yap"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Đăng nhập để hỏi Pip"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登录后即可询问 Pip"
-          }
-        }
-      }
-    },
-    "Pip answers your questions using your profile and AI. Sign in to continue." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يجيب Pip عن أسئلتك باستخدام ملفك الشخصي والذكاء الاصطناعي. سجّل الدخول للمتابعة."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip answers your questions using your profile and AI. Sign in to continue."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip responde a tus preguntas con tu perfil y la IA. Inicia sesión para continuar."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip با استفاده از نمایه شما و هوش مصنوعی به پرسش‌هایتان پاسخ می‌دهد. برای ادامه وارد شوید."
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sinasagot ni Pip ang mga tanong mo gamit ang iyong profile at AI. Mag-sign in para magpatuloy."
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sinasagot ni Pip ang mga tanong mo gamit ang iyong profile at AI. Mag-sign in para magpatuloy."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip répond à vos questions grâce à votre profil et à l’IA. Connectez-vous pour continuer."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip risponde alle tue domande usando il tuo profilo e l’IA. Accedi per continuare."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PipはあなたのプロフィールとAIを使って質問に答えます。続けるにはサインインしてください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip은 프로필과 AI를 사용해 질문에 답합니다. 계속하려면 로그인하세요."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip отвечает на вопросы с учётом вашего профиля и с помощью ИИ. Войдите, чтобы продолжить."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip, profilini ve yapay zekâyı kullanarak sorularını yanıtlar. Devam etmek için giriş yap."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip trả lời câu hỏi của bạn dựa trên hồ sơ của bạn và AI. Đăng nhập để tiếp tục."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip 会根据你的个人资料并借助 AI 回答你的问题。登录后继续。"
-          }
-        }
-      }
-    },
-    "Nothing found nearby." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "لم يتم العثور على شيء بالقرب منك."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nothing found nearby."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se encontró nada cerca."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "چیزی در اطراف پیدا نشد."
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Walang nakita sa malapit."
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Walang nakita sa malapit."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rien trouvé à proximité."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun risultato nelle vicinanze."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "近くに見つかりませんでした。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "주변에서 찾지 못했습니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поблизости ничего не найдено."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yakında bir şey bulunamadı."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Không tìm thấy gì gần đây."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "附近没有找到结果。"
-          }
-        }
-      }
-    },
-    "Allow location access to find places near you." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اسمح بالوصول إلى الموقع للعثور على أماكن قريبة منك."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow location access to find places near you."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permite el acceso a la ubicación para encontrar lugares cerca de ti."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "برای پیدا کردن مکان‌های اطراف، دسترسی به موقعیت را مجاز کنید."
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payagan ang access sa lokasyon para makahanap ng mga lugar na malapit sa iyo."
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payagan ang access sa lokasyon para makahanap ng mga lugar na malapit sa iyo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autorisez l’accès à la position pour trouver des lieux près de vous."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consenti l’accesso alla posizione per trovare luoghi vicini."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "近くの場所を探すには位置情報へのアクセスを許可してください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "주변 장소를 찾으려면 위치 접근을 허용하세요."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешите доступ к геопозиции, чтобы найти места рядом."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yakındaki yerleri bulmak için konum erişimine izin ver."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cho phép truy cập vị trí để tìm địa điểm gần bạn."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许访问位置以查找你附近的地点。"
-          }
-        }
-      }
-    },
-    "Type a phrase to translate" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اكتب عبارة لترجمتها"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type a phrase to translate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escribe una frase para traducir"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "عبارتی برای ترجمه بنویسید"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mag-type ng pariralang isasalin"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mag-type ng pariralang isasalin"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saisissez une phrase à traduire"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scrivi una frase da tradurre"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻訳する文を入力"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "번역할 문장을 입력하세요"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Введите фразу для перевода"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Çevrilecek bir ifade yaz"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nhập câu cần dịch"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "输入要翻译的句子"
-          }
-        }
-      }
-    },
-    "Translate a phrase" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ترجمة عبارة"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Translate a phrase"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Traducir una frase"
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ترجمهٔ یک عبارت"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Isalin ang parirala"
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Isalin ang parirala"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Traduire une phrase"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Traduci una frase"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文を翻訳"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "문장 번역"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевести фразу"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bir ifadeyi çevir"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dịch một câu"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻译句子"
-          }
-        }
-      }
-    },
-    "Use Apple, Google or email and password. When creating an account, enter your email address as both username and email." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "استخدم Apple أو Google أو البريد الإلكتروني وكلمة المرور. عند إنشاء حساب، أدخل عنوان بريدك الإلكتروني في حقلي اسم المستخدم والبريد الإلكتروني."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use Apple, Google or email and password. When creating an account, enter your email address as both username and email."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa Apple, Google o correo y contraseña. Al crear una cuenta, introduce tu correo tanto como nombre de usuario como correo electrónico."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "با Apple، گوگل یا ایمیل و رمز عبور وارد شوید. هنگام ساخت حساب، نشانی ایمیل را هم در نام کاربری و هم در ایمیل وارد کنید."
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gumamit ng Apple, Google o email at password. Kapag gagawa ng account, ilagay ang iyong email address bilang username at email."
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gumamit ng Apple, Google o email at password. Kapag gumagawa ng account, ilagay ang email address mo bilang username at email."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisez Apple, Google ou un e-mail et un mot de passe. À la création du compte, saisissez votre e-mail comme nom d’utilisateur et comme adresse e-mail."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa Apple, Google o email e password. Quando crei un account, inserisci il tuo indirizzo email sia come nome utente sia come email."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple、Googleまたはメールアドレスとパスワードを使用します。アカウント作成時は、ユーザー名とメールアドレスの両方にメールアドレスを入力してください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple, Google 또는 이메일과 비밀번호를 사용하세요. 계정을 만들 때는 이메일 주소를 사용자 이름과 이메일에 모두 입력하세요."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Используйте Apple, Google или адрес электронной почты и пароль. При создании аккаунта укажите свой адрес электронной почты и в поле имени пользователя, и в поле электронной почты."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple'ı, Google'ı veya e-posta adresinizi ve parolanızı kullanın. Hesap oluştururken e-posta adresinizi hem kullanıcı adı hem de e-posta olarak girin."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dùng Apple, Google hoặc email và mật khẩu. Khi tạo tài khoản, hãy nhập địa chỉ email làm cả tên người dùng lẫn email."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用 Apple、Google 或邮箱和密码。创建账户时，请在用户名和邮箱栏中都输入你的邮箱地址。"
+            "value" : "搜索地点"
           }
         }
       }
