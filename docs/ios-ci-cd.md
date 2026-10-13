@@ -79,7 +79,7 @@ in these scripts.
 
 The generated, ignored `ProdIdentity.xcconfig` contains only the verified public
 Cognito client ID. A missing, development or unexpected identity stops the build.
-The hooks reject cloud archives of Local/Dev. Production unit-test actions enable
+The hooks reject Local cloud archives. Dev archives are allowed for development TestFlight testing and validate the Dev API, identity and display name; Prod archives validate Production configuration. Production unit-test actions enable
 `@testable` support; archive actions explicitly disable it. The post-archive hook
 checks the actual app plist for the Prod API, Prod authentication identity, bundle
 ID, display name, version/build and absence of transport exceptions. A failure
@@ -146,3 +146,8 @@ prove signing or App Store availability for `com.pippipgo.ios`.
 ## Prod email/password release — October 2, 2026
 
 The sign-in chooser now supports Google or native Cognito username/password in Prod as well as Dev. `pippipgo-prod-foundation` was updated without replacing the pool/client. An isolated checkout of the authentication changes passed 93 Prod simulator tests and a signed archive with verified Prod metadata. The active Default cloud workflow was inspected and uses Prod for Build and Archive, the verified public client, App Store Connect distribution, and internal TestFlight group Pips. Email confirmation/recovery and device acceptance remain separate from form inspection and mocked tests. See backend `docs/email-password-signup.md` for infrastructure evidence.
+
+
+### Development TestFlight
+
+Select scheme `Dev` for a Dev archive. No `PIPPIPGO_PROD_COGNITO_CLIENT_ID` variable is required. The archive hook checks Dev API/authentication and `PipPipGo Dev` display name. Use internal testing distribution for Dev builds; select `Prod` for public release candidates.

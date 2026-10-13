@@ -666,3 +666,6 @@ Longer-TTS final validation: 592 backend tests passed, one skipped; Ruff lint/fo
 
 
 | 2026-10-12-spanish-to-mine-default | October 12, 2026 | Codex | Default Spanish to traveler language | Corrected default: theirs Spanish, mine device language from available picker languages with English fallback; saved choices preserved; Swift locale/fallback/persistence and syntax checks passed; app rollout pending, no backend deployment | Start not measured; end 2026-10-13T06:49:07+00:00; no known pauses | Exact duration unknown | Counted once across repositories; Codex elapsed time is not human labor |
+
+
+| 2026-10-12-dev-cloud-archive | October 12, 2026 | Codex | Repair Dev Xcode Cloud archive | Allow Dev/Prod archive schemes; verify actual archive identity/API/display name against selected scheme; Local still blocked; 11 CI-hook tests passed including cross-environment rejection; commit/push and Cloud rerun pending; no backend deployment | Start not measured; end 2026-10-13T06:57:10+00:00; no known pauses | Exact duration unknown | Counted once across repositories; Codex elapsed time is not human labor |

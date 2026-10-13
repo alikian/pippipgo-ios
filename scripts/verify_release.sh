@@ -1,7 +1,12 @@
 #!/bin/sh
 # Usage: verify_release.sh /path/to/pippipgo.app expected-build expected-version
 set -eu
-[ "$#" -eq 3 ] || { echo "Usage: $0 app-path build-number marketing-version" >&2; exit 1; }
+[ "$#" -ge 3 ] && [ "$#" -le 4 ] || { echo "Usage: $0 app-path build-number marketing-version [Dev|Prod]" >&2; exit 1; }
+case "${4:-Prod}" in
+    Prod) environment=prod; display_name=PipPipGo; api=https://api.pippipgo.com; auth=https://auth.pippipgo.com; client=23sk8qfmpotjj40jbnl9tn33em ;;
+    Dev) environment=dev; display_name='PipPipGo Dev'; api=https://api-dev.pippipgo.com; auth=https://auth-dev.pippipgo.com; client=5ungc4grbiid7de7rjbh0jn2ff ;;
+    *) echo "Archive scheme must be Dev or Prod." >&2; exit 1 ;;
+esac
 plist="$1/Info.plist"
 check() {
     actual=$(/usr/libexec/PlistBuddy -c "Print :$1" "$plist")
@@ -12,11 +17,11 @@ check() {
 }
 check CFBundleIdentifier com.pippipgo.ios
 check CFBundleURLTypes:0:CFBundleURLSchemes:0 pippipgo
-check CFBundleDisplayName PipPipGo
-check AppEnvironment prod
-check BackendBaseURL https://api.pippipgo.com
-check CognitoDomain https://auth.pippipgo.com
-check CognitoClientID 23sk8qfmpotjj40jbnl9tn33em
+check CFBundleDisplayName "$display_name"
+check AppEnvironment "$environment"
+check BackendBaseURL "$api"
+check CognitoDomain "$auth"
+check CognitoClientID "$client"
 check CFBundleVersion "$2"
 check CFBundleShortVersionString "$3"
 if /usr/libexec/PlistBuddy -c 'Print :NSAppTransportSecurity' "$plist" >/dev/null 2>&1; then
@@ -38,4 +43,4 @@ ipad = info.get("UISupportedInterfaceOrientations~ipad", phone)
 if not phone or not required.issubset(ipad):
     sys.exit("Release validation failed: missing supported orientations for iPad multitasking.")
 PYTHON
-echo "Verified PipPipGo $3 ($2), production API and isolated production identity."
+echo "Verified PipPipGo $3 ($2), $environment API and matching identity."

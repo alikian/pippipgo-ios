@@ -64,8 +64,13 @@ class CloudHookTests(unittest.TestCase):
         self.run_hook("ci_pre_xcodebuild.sh")
         self.assertFalse((self.root / "Configurations/ProdIdentity.xcconfig").exists())
 
-    def test_only_prod_can_archive(self):
-        for scheme in ("Local", "Dev", "Unknown"):
+    def test_dev_can_archive_without_prod_identity(self):
+        self.env["CI_XCODE_SCHEME"] = "Dev"
+        self.env.pop("PIPPIPGO_PROD_COGNITO_CLIENT_ID")
+        self.run_hook("ci_pre_xcodebuild.sh")
+
+    def test_local_and_unknown_cannot_archive(self):
+        for scheme in ("Local", "Unknown"):
             self.env["CI_XCODE_SCHEME"] = scheme
             self.run_hook("ci_pre_xcodebuild.sh", success=False)
 
@@ -98,6 +103,18 @@ class CloudHookTests(unittest.TestCase):
                         CFBundleURLTypes=[{"CFBundleURLSchemes": ["pippipgo"]}])
         plist.write_bytes(plistlib.dumps(expected))
         self.run_hook("ci_post_xcodebuild.sh")
+        self.env["CI_XCODE_SCHEME"] = "Dev"
+        dev = dict(expected, CFBundleDisplayName="PipPipGo Dev", AppEnvironment="dev",
+                   BackendBaseURL="https://api-dev.pippipgo.com",
+                   CognitoDomain="https://auth-dev.pippipgo.com",
+                   CognitoClientID="5ungc4grbiid7de7rjbh0jn2ff")
+        plist.write_bytes(plistlib.dumps(dev))
+        self.run_hook("ci_post_xcodebuild.sh")
+        plist.write_bytes(plistlib.dumps(expected))
+        self.run_hook("ci_post_xcodebuild.sh", success=False)
+        self.env["CI_XCODE_SCHEME"] = "Prod"
+        plist.write_bytes(plistlib.dumps(dev))
+        self.run_hook("ci_post_xcodebuild.sh", success=False)
         for field, value in dict(CFBundleURLTypes=[{"CFBundleURLSchemes": ["pipgogo"]}],
                                  UISupportedInterfaceOrientations=[],
                                  **{"UISupportedInterfaceOrientations~ipad": ["UIInterfaceOrientationPortrait"]},

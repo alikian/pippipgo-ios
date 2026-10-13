@@ -569,3 +569,6 @@ October 12: default translation pair now English for the traveler and Spanish fo
 
 
 October 12 correction: default translation is Spanish to the traveler’s device language, with English fallback for unavailable picker languages; saved choices remain. Swift checks passed; app rollout pending, no backend deployment required.
+
+
+October 12: Dev Xcode Cloud archives enabled with scheme-specific archive validation; Local remains blocked, Prod isolation retained. 11 CI-hook tests passed; push/Cloud rerun pending, no backend deployment required.

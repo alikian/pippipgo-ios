@@ -8,4 +8,4 @@ set -eu
 : "${CI_BUILD_NUMBER:?Missing cloud build number}"
 version=$(sed -n 's/^MARKETING_VERSION = //p' "$CI_PRIMARY_REPOSITORY_PATH/Configurations/Version.xcconfig")
 "$CI_PRIMARY_REPOSITORY_PATH/scripts/verify_release.sh" \
-    "$CI_ARCHIVE_PATH/Products/Applications/pippipgo.app" "$CI_BUILD_NUMBER" "$version"
+    "$CI_ARCHIVE_PATH/Products/Applications/pippipgo.app" "$CI_BUILD_NUMBER" "$version" "$CI_XCODE_SCHEME"
