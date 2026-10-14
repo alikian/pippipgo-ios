@@ -4,8 +4,6 @@ struct RootView: View {
     let store: AuthenticationStore
     @State private var aiConsent = AISharingConsent.shared
     @State private var siriSignInRequired = false
-    /// Signed-out exploring chosen on the welcome screen (App Review guideline 5.1.1(v)).
-    @State private var exploring = RootView.launchedExploring
     @Environment(\.scenePhase) private var scenePhase
     var environment: AppEnvironment = AppConfiguration.live.environment
 
@@ -23,20 +21,14 @@ struct RootView: View {
                 switch store.state {
                 case .restoring:
                     StartupLoadingView(message: "Restoring your session…")
+                // Signed out, PipPipGo opens on the map (App Review guideline 5.1.1(v)); signing in
+                // is offered from the map and from Ask Pip.
                 case .signedOut:
-                    if exploring {
-                        GuestExploreView(signIn: { Task { await store.signIn() } })
-                    } else {
-                        WelcomeView(isBusy: false, errorMessage: nil, signIn: { Task { await store.signIn() } }, explore: { exploring = true })
-                    }
+                    GuestExploreView(signIn: { Task { await store.signIn() } })
                 case .signingIn:
-                    WelcomeView(isBusy: true, errorMessage: nil) {}
+                    GuestExploreView(signIn: {}, signingIn: true)
                 case .signInError(let message):
-                    if exploring {
-                        GuestExploreView(signIn: { Task { await store.signIn() } }, errorMessage: message)
-                    } else {
-                        WelcomeView(isBusy: false, errorMessage: message, signIn: { Task { await store.signIn() } }, explore: { exploring = true })
-                    }
+                    GuestExploreView(signIn: { Task { await store.signIn() } }, errorMessage: message)
                 case .loadingAccount:
                     AccountLoadingView()
                 case .signedIn:
@@ -76,14 +68,6 @@ struct RootView: View {
         } message: {
             Text("Sign in to PipPipGo, then ask Siri to start Talk to Pip again.")
         }
-    }
-    /// Debug-only shortcut for simulator review: `-PipGuestExplore`.
-    private static var launchedExploring: Bool {
-        #if DEBUG
-        ProcessInfo.processInfo.arguments.contains("-PipGuestExplore")
-        #else
-        false
-        #endif
     }
     private func syncLocationDisplay() {
         if case .signedIn = store.state, aiConsent.allowed, scenePhase == .active { store.chat.locationDisplay.start() }

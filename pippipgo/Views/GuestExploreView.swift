@@ -94,6 +94,10 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
     private(set) var places: [NearbyPlace] = []
     private(set) var searching = false
     private(set) var failed = false
+    /// How far the traveler is willing to go, in local units (miles where people use them).
+    static let radii: [CLLocationDistance] = Locale.current.measurementSystem == .metric
+        ? [1_000, 5_000, 25_000] : [804.672, 4_828.032, 24_140.16]
+    private(set) var radius = NearbyPlacesModel.radii[0]
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var searchID = UUID()
 
@@ -131,9 +135,14 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
         category = nil; places = []; searching = false; failed = false
     }
 
-    /// Apple Maps places near the traveler, nearest first. Widens from 1.5 km to 25 km, then
-    /// falls back to a plain-text search, so travellers outside city centres still get results.
-    func search(_ category: GuestCategory) {
+    func setRadius(_ radius: CLLocationDistance) {
+        self.radius = radius
+        if let category { search(category, widen: false) }
+    }
+
+    /// Apple Maps places within the chosen distance, nearest first. When nothing is that close it
+    /// widens to the next distance (shown as selected), then tries a filtered plain-text search.
+    func search(_ category: GuestCategory, widen: Bool = true) {
         let ticket = UUID(); searchID = ticket
         self.category = category; places = []; failed = false
         searching = true
@@ -145,8 +154,11 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
         Task {
             var found: [MKMapItem] = []
             var errors = 0, attempts = 0
-            for radius in [1_500.0, 5_000, 25_000] where found.isEmpty {
-                let request = MKLocalPointsOfInterestRequest(center: location.coordinate, radius: radius)
+            let options = Self.radii.filter { $0 >= radius }
+            var used = radius
+            for candidate in (widen ? options : [radius]) where found.isEmpty {
+                used = candidate
+                let request = MKLocalPointsOfInterestRequest(center: location.coordinate, radius: candidate)
                 request.pointOfInterestFilter = MKPointOfInterestFilter(including: category.pointsOfInterest)
                 attempts += 1
                 do { found = try await MKLocalSearch(request: request).start().mapItems } catch { errors += 1 }
@@ -156,7 +168,7 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
                 let request = MKLocalSearch.Request()
                 request.naturalLanguageQuery = category.query
                 request.resultTypes = .pointOfInterest
-                request.region = MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 25_000, longitudinalMeters: 25_000)
+                request.region = MKCoordinateRegion(center: location.coordinate, latitudinalMeters: used * 2, longitudinalMeters: used * 2)
                 attempts += 1
                 do {
                     // Text search can match unrelated businesses; drop ones Apple files under another kind.
@@ -166,12 +178,14 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
                 } catch { errors += 1 }
                 guard searchID == ticket else { return }
             }
+            radius = used
             places = found
                 .map { item in
                     let point = item.placemark.coordinate
                     let distance = location.distance(from: CLLocation(latitude: point.latitude, longitude: point.longitude))
                     return NearbyPlace(item: item, distance: distance)
                 }
+                .filter { $0.distance <= used * 1.1 }
                 .sorted { $0.distance < $1.distance }
                 .prefix(15).map { $0 }
             failed = places.isEmpty && errors == attempts
@@ -183,6 +197,7 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
 struct GuestExploreView: View {
     let signIn: () -> Void
     var errorMessage: String?
+    var signingIn = false
     @State private var model = NearbyPlacesModel()
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selected: NearbyPlace?
@@ -208,18 +223,22 @@ struct GuestExploreView: View {
         .overlay(alignment: .topTrailing) { floatingControls.padding(.trailing, 12).padding(.top, 8) }
         .overlay(alignment: .topLeading) {
             Button(action: signIn) {
-                Image(systemName: "person.crop.circle.fill").font(.title2)
-                    .frame(width: 48, height: 48)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                HStack(spacing: 6) {
+                    if signingIn { ProgressView() } else { Image(systemName: "person.crop.circle.fill").font(.title3) }
+                    Text("Sign in").font(.headline)
+                }
+                .padding(.horizontal, 14)
+                .frame(minHeight: 48)
+                .background(.regularMaterial, in: Capsule())
             }
-            .accessibilityLabel(Text("Sign in"))
+            .disabled(signingIn)
             .accessibilityIdentifier("guest.signIn")
             .padding(.leading, 12).padding(.top, 8)
         }
         .mapScope(mapScope)
         // Show the traveler and every result, including ones found farther away.
-        .onChange(of: model.places.map(\.id)) { _, ids in
-            if !ids.isEmpty { withAnimation { position = .automatic } }
+        .onChange(of: model.places.map(\.id)) { _, _ in
+            if let region = NearbyFinder.region(for: model) { withAnimation { position = .region(region) } }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase == .active { model.start() } else { model.stop() }
@@ -348,6 +367,7 @@ struct NearbyFinder: View {
                 }
                 .accessibilityLabel(Text("Close"))
             }
+            distanceChoice
             if model.locationDenied {
                 Text("Allow location access to find places near you.").font(.callout).foregroundStyle(.secondary)
                 Button("Open location settings") {
@@ -393,6 +413,26 @@ struct NearbyFinder: View {
         }
     }
 
+    /// Within ½ mi · 3 mi · 15 mi (1 · 5 · 25 km): how far the traveler is willing to go.
+    private var distanceChoice: some View {
+        HStack(spacing: 8) {
+            ForEach(NearbyPlacesModel.radii, id: \.self) { radius in
+                let selected = model.radius == radius
+                Button { model.setRadius(radius) } label: {
+                    Text(Self.radiusLabel(radius))
+                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .foregroundStyle(selected ? Color.white : Color.primary)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 36)
+                        .background(selected ? Color.blue : Color.secondary.opacity(0.15), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+                .accessibilityIdentifier("nearby.radius.\(Int(radius))")
+            }
+        }
+    }
+
     private func placeCard(_ place: NearbyPlace) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
@@ -415,6 +455,27 @@ struct NearbyFinder: View {
             .buttonStyle(.bordered)
             .accessibilityIdentifier("guest.directions")
         }
+    }
+
+    /// Frames the traveler and every result together.
+    static func region(for model: NearbyPlacesModel) -> MKCoordinateRegion? {
+        guard let location = model.location, !model.places.isEmpty else { return nil }
+        let points = [location.coordinate] + model.places.map(\.coordinate)
+        let lats = points.map(\.latitude), lons = points.map(\.longitude)
+        let center = CLLocationCoordinate2D(latitude: (lats.min()! + lats.max()!) / 2,
+                                            longitude: (lons.min()! + lons.max()!) / 2)
+        return MKCoordinateRegion(center: center,
+                                  span: MKCoordinateSpan(latitudeDelta: max(0.006, (lats.max()! - lats.min()!) * 1.5),
+                                                         longitudeDelta: max(0.006, (lons.max()! - lons.min()!) * 1.5)))
+    }
+
+    /// "0.5 mi" / "3 mi" / "15 mi" or "1 km" / "5 km" / "25 km", never converted to feet.
+    static func radiusLabel(_ meters: CLLocationDistance) -> String {
+        let style = Measurement<UnitLength>.FormatStyle(width: .abbreviated, usage: .asProvided,
+                                                        numberFormatStyle: .number.precision(.fractionLength(0...1)))
+        let metric = Locale.current.measurementSystem == .metric
+        return Measurement(value: meters, unit: UnitLength.meters)
+            .converted(to: metric ? .kilometers : .miles).formatted(style)
     }
 
     static func distance(_ meters: CLLocationDistance) -> String {

@@ -28,3 +28,9 @@ The approved Apple Maps-style redesign (Requirements.md section 5) replaces the 
 Debug-only simulator review: `-PipHomeTab profile|pip|translate`, `-PipGuestCategory pharmacy`. Opening `pip` directly uses voice mode and starts a live session.
 
 Validation: Local simulator builds; signed-in home, Find nearby (pharmacies near the Colosseum), Profile and chat reviewed by screenshot; catalog and Full Test runner tests pass; the same four unrelated tests fail as before. Not yet: physical-device check, hands-free wake word, headphone skip, auto parking, music, P-pin sharing (later phases).
+
+## October 13, 2026 — opens on the map, distance choice
+
+- Signed out, PipPipGo now opens directly on the map (no welcome page); a **Sign in** button sits top left and Ask Pip also offers sign-in.
+- Find nearby offers **0.5 mi · 3 mi · 15 mi** (1 · 5 · 25 km in metric regions). Results stay within the chosen distance; when nothing is that close the search widens to the next distance and selects it. The map frames the traveler and all results.
+- Verified in the simulator at Carmel Valley, San Diego: Hotels within 0.5 mi finds DoubleTree by Hilton Del Mar.
