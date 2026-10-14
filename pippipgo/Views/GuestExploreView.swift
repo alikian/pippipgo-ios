@@ -7,7 +7,8 @@ import Translation
 
 // Signed-out exploring (App Review guideline 5.1.1(v)): the map, nearby essentials, directions
 // and Apple's own translation work without an account. Everything here runs on the phone with
-// Apple services; nothing is sent to PipPipGo or an AI provider. Ask Pip still needs an account.
+// Apple services; nothing is sent to PipPipGo or an AI provider. The tour guide and Ask Pip need
+// an account; guests see what they do and can hear a built-in sample first.
 
 enum GuestCategory: String, CaseIterable, Identifiable {
     case restrooms, transit, food, groceries, pharmacy, hotels, cash, gas, evCharging, parking
@@ -243,7 +244,14 @@ struct GuestExploreView: View {
     @State private var zoomedToStart = false
     @State private var selected: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
-    @State private var askingToSignIn = false
+    /// Simulator review: `-PipGuestFeature guide|askPip` opens that explanation.
+    @State private var feature: GuestFeature? = GuestExploreView.debug
+        ? ProcessInfo.processInfo.arguments.firstIndex(of: "-PipGuestFeature")
+            .flatMap { ProcessInfo.processInfo.arguments.dropFirst($0 + 1).first }
+            .flatMap(GuestFeature.init(rawValue:))
+        : nil
+    /// The welcome cards are shown once, before the map.
+    @AppStorage("pip.guestWelcomeSeen") private var welcomeSeen = false
     @State private var translating = false
     /// Shown once per device before a guest uses the map; bump to show a changed notice again.
     @AppStorage("pip.guestNoticeVersion") private var noticeSeen = 0
@@ -327,14 +335,14 @@ struct GuestExploreView: View {
             }
         }
         #endif
-        .confirmationDialog("Sign in to ask Pip", isPresented: $askingToSignIn, titleVisibility: .visible) {
-            Button("Sign in or create account", action: signIn)
-            Button("Not now", role: .cancel) {}
-        } message: {
-            Text("Pip answers your questions using your profile and AI. Sign in to continue.")
+        .sheet(item: $feature) { feature in
+            GuestFeatureSheet(feature: feature, signIn: { self.feature = nil; signIn() })
         }
         .sheet(isPresented: $translating) { GuestTranslateSheet() }
-        .sheet(isPresented: Binding(get: { noticeSeen < Self.noticeVersion }, set: { _ in })) {
+        .fullScreenCover(isPresented: Binding(get: { !welcomeSeen }, set: { _ in })) {
+            GuestWelcomeView(signIn: { welcomeSeen = true; signIn() }, explore: { welcomeSeen = true })
+        }
+        .sheet(isPresented: Binding(get: { welcomeSeen && noticeSeen < Self.noticeVersion }, set: { _ in })) {
             GuestNoticeView { noticeSeen = Self.noticeVersion }
         }
     }
@@ -366,25 +374,29 @@ struct GuestExploreView: View {
         #endif
     }
 
+    private func guestAction(_ title: LocalizedStringKey, symbol: String, tint: Color, feature: GuestFeature) -> some View {
+        Button { self.feature = feature } label: {
+            Label(title, systemImage: symbol)
+                .font(.headline).foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .background(tint, in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
     private var panel: some View {
         VStack(alignment: .leading, spacing: 16) {
             PanelHandle(collapsed: $collapsed)
             if let errorMessage {
                 Text(LocalizedStringKey(errorMessage)).font(.callout).foregroundStyle(.red)
             }
-            Button { askingToSignIn = true } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "mic.fill")
-                    Text(verbatim: "Pip")
-                }
-                .font(.title2.weight(.bold)).foregroundStyle(.white)
-                .padding(.horizontal, 24)
-                .frame(minHeight: 56)
-                .background(.blue, in: Capsule())
+            // The same two main actions as the signed-in app; each explains itself, then signs in.
+            HStack(spacing: 10) {
+                guestAction("Start guide", symbol: "headphones", tint: Color(red: 0.0, green: 0.48, blue: 0.25), feature: .guide)
+                    .accessibilityIdentifier("guest.startGuide")
+                guestAction("Ask Pip", symbol: "mic.fill", tint: .blue, feature: .askPip)
+                    .accessibilityIdentifier("guest.askPip")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("Ask Pip"))
-            .accessibilityIdentifier("guest.askPip")
 
             if !collapsed {
             NearbyFinder(model: model, selected: $selected) { place in
@@ -406,6 +418,141 @@ struct GuestExploreView: View {
                 .fill(.bar).ignoresSafeArea(edges: .bottom)
         }
     }
+}
+
+/// Account-based features a guest can learn about before signing in.
+enum GuestFeature: String, Identifiable {
+    case guide, askPip
+    var id: String { rawValue }
+}
+
+/// First launch: what PipPipGo does, in three short cards, then sign in or explore first.
+struct GuestWelcomeView: View {
+    let signIn: () -> Void
+    let explore: () -> Void
+    @State private var page = 0
+
+    private let cards: [(symbol: String, tint: Color, title: LocalizedStringKey, detail: LocalizedStringKey)] = [
+        ("headphones", Color(red: 0.0, green: 0.48, blue: 0.25), "Pip talks as you walk or drive",
+         "Hear about the places around you, hands-free."),
+        ("mic.fill", .blue, "Ask Pip anything",
+         "Food, directions or plans. Just ask, in your language."),
+        ("suitcase.fill", .orange, "Your trips in one place",
+         "Hotels, flights, trains and who you travel with."),
+    ]
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(verbatim: "PipPipGo").font(.title2.bold()).padding(.top, 24)
+            TabView(selection: $page) {
+                ForEach(cards.indices, id: \.self) { index in
+                    let card = cards[index]
+                    VStack(spacing: 24) {
+                        Image(systemName: card.symbol)
+                            .font(.system(size: 56, weight: .semibold)).foregroundStyle(.white)
+                            .frame(width: 128, height: 128)
+                            .background(card.tint.gradient, in: Circle())
+                            .accessibilityHidden(true)
+                        Text(card.title).font(.title.bold()).multilineTextAlignment(.center)
+                        Text(card.detail).font(.title3).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 32)
+                    .accessibilityElement(children: .combine)
+                    .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
+            VStack(spacing: 12) {
+                Button(action: signIn) {
+                    Text("Sign in or create account").font(.headline).frame(maxWidth: .infinity, minHeight: 52)
+                }
+                .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                .accessibilityIdentifier("welcome.signIn")
+                Button(action: explore) {
+                    Text("Explore first").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .accessibilityIdentifier("welcome.explore")
+            }
+            .padding(.horizontal, 24).padding(.bottom, 16)
+            .frame(maxWidth: 520)
+        }
+        .background(Color(uiColor: .systemBackground).ignoresSafeArea())
+    }
+}
+
+/// What the tour guide or Ask Pip does, with a built-in spoken sample of the guide, then sign in.
+struct GuestFeatureSheet: View {
+    let feature: GuestFeature
+    let signIn: () -> Void
+    @State private var sample = GuestSampleVoice()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: feature == .guide ? "headphones" : "mic.fill")
+                .font(.system(size: 32, weight: .semibold)).foregroundStyle(.white)
+                .frame(width: 72, height: 72)
+                .background((feature == .guide ? Color(red: 0.0, green: 0.48, blue: 0.25) : .blue).gradient, in: Circle())
+                .accessibilityHidden(true)
+            Text(feature == .guide ? "Live tour guide" : "Ask Pip").font(.title2.bold())
+            Text(feature == .guide
+                 ? "Pip tells you about the places around you as you walk or drive, matched to what you enjoy."
+                 : "Ask about food, directions or your plans, in your own language. Pip learns what you like.")
+                .multilineTextAlignment(.center).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if feature == .guide {
+                Button { sample.toggle() } label: {
+                    Label(sample.speaking ? "Stop" : "Hear a sample",
+                          systemImage: sample.speaking ? "stop.fill" : "play.fill")
+                        .font(.headline).frame(minHeight: 44)
+                }
+                .buttonStyle(.bordered).buttonBorderShape(.capsule)
+                .accessibilityIdentifier("guest.sample")
+            }
+            Spacer(minLength: 0)
+            Button(action: signIn) {
+                Text("Sign in or create account").font(.headline).frame(maxWidth: .infinity, minHeight: 50)
+            }
+            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+            .accessibilityIdentifier("guestFeature.signIn")
+            Button("Not now") { dismiss() }.frame(minHeight: 44)
+        }
+        .padding(24).padding(.top, 8)
+        .presentationDetents([.fraction(0.62), .large])
+        .onDisappear { sample.stop() }
+    }
+}
+
+/// Speaks a short example of a tour with the iPhone's own voice: nothing is sent anywhere.
+@MainActor @Observable
+final class GuestSampleVoice: NSObject, @preconcurrency AVSpeechSynthesizerDelegate {
+    private(set) var speaking = false
+    @ObservationIgnored private let speech = AVSpeechSynthesizer()
+
+    override init() {
+        super.init()
+        speech.delegate = self
+    }
+
+    func toggle() {
+        if speaking { stop(); return }
+        let text = String(localized: "Here’s how a tour sounds. Hi, I’m Pip. Just ahead on your left is the old market square. People have met here for hundreds of years. If you’d like a coffee, there’s a small café on the corner that locals love.",
+                          bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = LiveGuideStore.bestVoice(for: AppLanguage.current.localizationIdentifier)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.96
+        speaking = true
+        speech.speak(utterance)
+    }
+
+    func stop() {
+        speech.stopSpeaking(at: .immediate)
+        speaking = false
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { speaking = false }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { speaking = false }
 }
 
 /// What guests agree to before exploring: privacy (Apple only, nothing sent to us) and safety.

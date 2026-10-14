@@ -70608,6 +70608,1150 @@
           }
         }
       }
+    },
+    "Start guide" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start guide"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شروع راهنما"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ガイドを開始"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar guía"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer le guide"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvia la guida"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始导览"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가이드 시작"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bắt đầu hướng dẫn"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulan ang gabay"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulan ang gabay"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rehberi başlat"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابدأ الدليل"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Начать экскурсию"
+          }
+        }
+      }
+    },
+    "Pip talks as you walk or drive" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip talks as you walk or drive"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip هنگام پیاده‌روی یا رانندگی با شما حرف می‌زند"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歩くときも運転中も、Pipが話しかけます"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip te habla mientras caminas o conduces"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip vous parle pendant que vous marchez ou conduisez"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip ti parla mentre cammini o guidi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "步行或开车时，Pip 为你讲解"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "걷거나 운전할 때 Pip이 이야기해 줘요"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip trò chuyện khi bạn đi bộ hoặc lái xe"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kinakausap ka ni Pip habang naglalakad o nagmamaneho"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kinakausap ka ni Pip habang naglalakad o nagmamaneho"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip, yürürken veya araç kullanırken sizinle konuşur"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يتحدث Pip إليك وأنت تمشي أو تقود"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip рассказывает, пока вы идёте или едете"
+          }
+        }
+      }
+    },
+    "Hear about the places around you, hands-free." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hear about the places around you, hands-free."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درباره مکان‌های اطرافتان بشنوید، بدون نیاز به دست."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "周りの場所の話を、ハンズフリーで聞けます。"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escucha sobre los lugares que te rodean, sin usar las manos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Découvrez les lieux autour de vous, les mains libres."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scopri i luoghi intorno a te, a mani libere."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无需动手，聆听身边地点的故事。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주변 장소 이야기를 손 쓰지 않고 들어 보세요."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nghe về những nơi xung quanh bạn, rảnh tay."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakinggan ang tungkol sa mga lugar sa paligid mo, hands-free."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pakinggan ang tungkol sa mga lugar sa paligid mo, hands-free."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çevrenizdeki yerleri eller serbest dinleyin."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استمع إلى معلومات عن الأماكن من حولك دون استخدام يديك."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слушайте о местах вокруг, не занимая рук."
+          }
+        }
+      }
+    },
+    "Ask Pip anything" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask Pip anything"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هر چیزی از Pip بپرسید"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pipに何でも聞いてください"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pregúntale a Pip lo que quieras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demandez tout à Pip"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiedi qualsiasi cosa a Pip"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随便问 Pip"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip에게 무엇이든 물어보세요"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hỏi Pip bất cứ điều gì"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Itanong kay Pip ang kahit ano"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Itanong kay Pip ang kahit ano"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip'e her şeyi sorun"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اسأل Pip عن أي شيء"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросите Pip о чём угодно"
+          }
+        }
+      }
+    },
+    "Food, directions or plans. Just ask, in your language." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Food, directions or plans. Just ask, in your language."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "غذا، مسیر یا برنامه‌ها. فقط به زبان خودتان بپرسید."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食事、道案内、予定。あなたの言葉で聞くだけです。"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comida, indicaciones o planes. Solo pregunta, en tu idioma."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repas, itinéraires ou projets. Demandez simplement, dans votre langue."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cibo, indicazioni o programmi. Chiedi e basta, nella tua lingua."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "美食、路线或计划，用你的语言直接问。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음식, 길 안내, 일정까지. 내 언어로 물어보세요."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đồ ăn, chỉ đường hay kế hoạch. Cứ hỏi bằng ngôn ngữ của bạn."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagkain, direksyon o plano. Magtanong lang, sa sarili mong wika."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagkain, direksyon o plano. Magtanong lang, sa sarili mong wika."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yemek, yol tarifi veya planlar. Kendi dilinizde sorun yeter."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الطعام أو الاتجاهات أو الخطط. فقط اسأل بلغتك."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Еда, маршруты или планы. Просто спросите на своём языке."
+          }
+        }
+      }
+    },
+    "Your trips in one place" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your trips in one place"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "همه سفرهایتان در یک جا"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旅行をひとつの場所に"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus viajes en un solo lugar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous vos voyages au même endroit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi viaggi in un unico posto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的行程，集中一处"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 여행을 한곳에"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mọi chuyến đi ở một nơi"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lahat ng biyahe mo sa iisang lugar"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lahat ng biyahe mo sa iisang lugar"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tüm seyahatleriniz tek yerde"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رحلاتك في مكان واحد"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все поездки в одном месте"
+          }
+        }
+      }
+    },
+    "Hotels, flights, trains and who you travel with." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotels, flights, trains and who you travel with."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هتل‌ها، پروازها، قطارها و همسفرانتان."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホテル、フライト、列車、そして旅の仲間。"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoteles, vuelos, trenes y con quién viajas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hôtels, vols, trains et vos compagnons de voyage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotel, voli, treni e con chi viaggi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "酒店、航班、火车和同行的人。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "호텔, 항공편, 기차, 그리고 함께 가는 사람."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khách sạn, chuyến bay, tàu hỏa và bạn đồng hành."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mga hotel, flight, tren at mga kasama mo sa biyahe."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mga hotel, flight, tren at mga kasama mo sa biyahe."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oteller, uçuşlar, trenler ve kiminle seyahat ettiğiniz."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الفنادق والرحلات الجوية والقطارات ومن تسافر معهم."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отели, рейсы, поезда и ваши попутчики."
+          }
+        }
+      }
+    },
+    "Explore first" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore first"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اول گشتی بزنید"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まずは見てみる"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorar primero"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorer d’abord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prima esplora"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先随便看看"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 둘러보기"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khám phá trước"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-explore muna"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mag-explore muna"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Önce keşfet"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استكشف أولاً"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала осмотреться"
+          }
+        }
+      }
+    },
+    "Live tour guide" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live tour guide"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "راهنمای تور زنده"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブツアーガイド"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guía turístico en vivo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guide touristique en direct"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guida turistica dal vivo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时导游"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "실시간 투어 가이드"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hướng dẫn viên trực tiếp"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live na tour guide"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live na tour guide"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canlı tur rehberi"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرشد سياحي مباشر"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Живой гид"
+          }
+        }
+      }
+    },
+    "Pip tells you about the places around you as you walk or drive, matched to what you enjoy." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip tells you about the places around you as you walk or drive, matched to what you enjoy."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip هنگام پیاده‌روی یا رانندگی، درباره مکان‌های اطرافتان و متناسب با علایقتان برایتان می‌گوید."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歩くときも運転中も、Pipがあなたの好みに合わせて周りの場所を紹介します。"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip te cuenta sobre los lugares que te rodean mientras caminas o conduces, según lo que te gusta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip vous parle des lieux autour de vous pendant que vous marchez ou conduisez, selon vos goûts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip ti racconta i luoghi intorno a te mentre cammini o guidi, in base a ciò che ti piace."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "步行或开车时，Pip 会根据你的喜好介绍身边的地点。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "걷거나 운전할 때 Pip이 취향에 맞춰 주변 장소를 알려 줘요."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip kể cho bạn về những nơi xung quanh khi bạn đi bộ hoặc lái xe, theo sở thích của bạn."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikinukuwento ni Pip ang mga lugar sa paligid mo habang naglalakad o nagmamaneho ka, ayon sa gusto mo."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikinukuwento ni Pip ang mga lugar sa paligid mo habang naglalakad o nagmamaneho ka, ayon sa gusto mo."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip, yürürken veya araç kullanırken çevrenizdeki yerleri zevkinize göre anlatır."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يخبرك Pip عن الأماكن من حولك وأنت تمشي أو تقود، بما يناسب ما تحب."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip рассказывает о местах вокруг, пока вы идёте или едете, с учётом ваших интересов."
+          }
+        }
+      }
+    },
+    "Ask about food, directions or your plans, in your own language. Pip learns what you like." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask about food, directions or your plans, in your own language. Pip learns what you like."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درباره غذا، مسیر یا برنامه‌هایتان به زبان خودتان بپرسید. Pip سلیقه شما را یاد می‌گیرد."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食事、道案内、予定について、あなたの言葉で聞いてください。Pipはあなたの好みを覚えます。"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pregunta sobre comida, indicaciones o tus planes, en tu idioma. Pip aprende lo que te gusta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posez vos questions sur les repas, les itinéraires ou vos projets, dans votre langue. Pip apprend vos goûts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiedi di cibo, indicazioni o dei tuoi programmi, nella tua lingua. Pip impara cosa ti piace."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用你的语言询问美食、路线或计划。Pip 会了解你的喜好。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음식, 길 안내, 일정을 내 언어로 물어보세요. Pip이 취향을 배워요."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hỏi về đồ ăn, chỉ đường hay kế hoạch bằng ngôn ngữ của bạn. Pip sẽ hiểu bạn thích gì."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magtanong tungkol sa pagkain, direksyon o mga plano mo, sa sarili mong wika. Natututunan ni Pip ang gusto mo."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magtanong tungkol sa pagkain, direksyon o mga plano mo, sa sarili mong wika. Natututunan ni Pip ang gusto mo."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yemek, yol tarifi veya planlarınızı kendi dilinizde sorun. Pip neleri sevdiğinizi öğrenir."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اسأل عن الطعام أو الاتجاهات أو خططك بلغتك. يتعلم Pip ما تحب."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спрашивайте о еде, маршрутах или планах на своём языке. Pip узнаёт, что вам нравится."
+          }
+        }
+      }
+    },
+    "Hear a sample" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hear a sample"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یک نمونه بشنوید"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サンプルを聞く"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escuchar un ejemplo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écouter un exemple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ascolta un esempio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "试听示例"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "샘플 듣기"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nghe thử"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makinig sa sample"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makinig sa sample"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Örnek dinle"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استمع إلى مثال"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Послушать пример"
+          }
+        }
+      }
+    },
+    "Here’s how a tour sounds. Hi, I’m Pip. Just ahead on your left is the old market square. People have met here for hundreds of years. If you’d like a coffee, there’s a small café on the corner that locals love." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here’s how a tour sounds. Hi, I’m Pip. Just ahead on your left is the old market square. People have met here for hundreds of years. If you’d like a coffee, there’s a small café on the corner that locals love."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یک تور این‌طور به نظر می‌رسد. سلام، من Pip هستم. کمی جلوتر، سمت چپ، میدان بازار قدیمی است. مردم صدها سال است که اینجا دور هم جمع می‌شوند. اگر قهوه می‌خواهید، سر نبش یک کافه کوچک هست که اهالی محل خیلی دوستش دارند."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツアーはこんな感じです。こんにちは、Pipです。少し先の左手にあるのが古い市場広場です。何百年も前から人々が集まってきた場所です。コーヒーが飲みたければ、角に地元の人に人気の小さなカフェがありますよ。"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Así suena un recorrido. Hola, soy Pip. Justo delante, a tu izquierda, está la antigua plaza del mercado. La gente se reúne aquí desde hace cientos de años. Si te apetece un café, en la esquina hay una pequeña cafetería que encanta a los vecinos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voici à quoi ressemble une visite. Bonjour, je suis Pip. Juste devant, sur votre gauche, se trouve l’ancienne place du marché. On s’y retrouve depuis des siècles. Si vous avez envie d’un café, il y a un petit café au coin que les habitants adorent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ecco come suona un tour. Ciao, sono Pip. Poco più avanti, sulla sinistra, c’è la vecchia piazza del mercato. Qui la gente si incontra da centinaia di anni. Se ti va un caffè, all’angolo c’è un piccolo bar che la gente del posto adora."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导览听起来是这样的。你好，我是 Pip。前方左手边就是古老的集市广场，几百年来人们一直在这里相聚。想喝杯咖啡的话，街角有一家当地人很喜欢的小咖啡馆。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "투어는 이렇게 들려요. 안녕하세요, 저는 Pip이에요. 바로 앞 왼쪽에 오래된 시장 광장이 있어요. 수백 년 동안 사람들이 이곳에서 만나 왔죠. 커피가 생각나면 모퉁이에 동네 사람들이 좋아하는 작은 카페가 있어요."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Một chuyến tham quan sẽ nghe như thế này. Xin chào, tôi là Pip. Ngay phía trước bên trái là quảng trường chợ cũ. Mọi người đã gặp nhau ở đây hàng trăm năm. Nếu bạn muốn uống cà phê, có một quán nhỏ ở góc phố mà người dân địa phương rất thích."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganito ang tunog ng isang tour. Hi, ako si Pip. Sa unahan sa kaliwa mo ang lumang plaza ng palengke. Daan-daang taon nang nagtitipon dito ang mga tao. Kung gusto mo ng kape, may maliit na café sa kanto na gustong-gusto ng mga taga-rito."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganito ang tunog ng isang tour. Hi, ako si Pip. Sa unahan sa kaliwa mo ang lumang plaza ng palengke. Daan-daang taon nang nagtitipon dito ang mga tao. Kung gusto mo ng kape, may maliit na café sa kanto na gustong-gusto ng mga taga-rito."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir tur böyle duyulur. Merhaba, ben Pip. Hemen ileride, solunuzda eski pazar meydanı var. İnsanlar yüzlerce yıldır burada buluşuyor. Kahve isterseniz köşede yerlilerin çok sevdiği küçük bir kafe var."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هكذا تبدو الجولة. مرحبًا، أنا Pip. أمامك مباشرة على اليسار ساحة السوق القديمة. يلتقي الناس هنا منذ مئات السنين. إذا رغبت في قهوة، فهناك مقهى صغير عند الزاوية يحبه أهل المنطقة."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вот как звучит экскурсия. Привет, я Pip. Чуть впереди слева — старая рыночная площадь. Люди встречаются здесь уже сотни лет. Если хотите кофе, на углу есть маленькое кафе, которое очень любят местные."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
