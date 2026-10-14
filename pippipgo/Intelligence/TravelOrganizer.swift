@@ -187,13 +187,12 @@ struct TravelOrganizerView: View {
     }
 
     var body: some View {
-        // The tab bar sits below the map, never over it, so panels end above the bar.
-        VStack(spacing: 0) {
-            home
-            AppTabBar(selection: $tab, language: language)
-                .overlay(alignment: .top) { Divider() }
-                .background(.bar, ignoresSafeAreaEdges: .bottom)
-        }
+        // The see-through tab bar floats over the map; panels end above the bar.
+        home
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // The bar draws its own floating glass; the map shows around and below it.
+                AppTabBar(selection: $tab, language: language)
+            }
         .tint(.blue)
         .task { if !store.loaded { await store.load() } }
         .sheet(isPresented: $showingProfile) {
@@ -285,7 +284,7 @@ struct AppTabBar: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UITabBar {
         let bar = UITabBar()
-        // SwiftUI draws the bar material so it continues behind the home indicator.
+        // Transparent, so the map (or an open panel) shows behind the floating bar.
         let appearance = UITabBarAppearance()
         appearance.configureWithTransparentBackground()
         bar.standardAppearance = appearance

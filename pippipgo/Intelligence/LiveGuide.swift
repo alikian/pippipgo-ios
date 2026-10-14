@@ -719,13 +719,17 @@ struct LiveGuideTab: View {
     @State private var mapLocationFeed: LiveGuideLocationFeed?
     @State private var currentMapCamera: MapCamera?
     @State private var nearby = NearbyPlacesModel()
+    #if DEBUG
+    @State private var collapsed = ProcessInfo.processInfo.arguments.contains("-PipPanelCollapsed")
+    #else
     @State private var collapsed = false
-    /// Height of the floating panel, so the map keeps Apple's attribution and results above it
-    /// without resizing the map's drawable.
-    @State private var panelHeight: CGFloat = 0
-    /// Screen positions of the map's top and the floating top bar's bottom, so the map frames
-    /// places and the traveler below the search bar while still drawing under the status bar.
+    #endif
+    /// Screen positions of the map's edges, the floating top bar's bottom and the panel's top, so
+    /// the map frames places, the traveler and Apple's attribution between them while still
+    /// drawing edge to edge under the status bar, panel and tab bar.
     @State private var mapTop: CGFloat = 0
+    @State private var mapBottom: CGFloat = 0
+    @State private var panelTop: CGFloat?
     @State private var topBarBottom: CGFloat = 0
     @State private var selectedPlace: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
@@ -744,11 +748,10 @@ struct LiveGuideTab: View {
 
     var body: some View {
         map
-            .safeAreaPadding(.bottom, panelHeight)
             .overlay(alignment: .bottom) {
                 panel.frame(maxWidth: 560)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { panelHeight = $0 }
-                    .onDisappear { panelHeight = 0 }
+                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { panelTop = $0 }
+                    .onDisappear { panelTop = nil }
             }
             .overlay(alignment: .top) { topBar }
             .onAppear {
@@ -927,9 +930,17 @@ struct LiveGuideTab: View {
         }
         .mapStyle(satellite ? .hybrid(pointsOfInterest: .excludingAll) : .standard(pointsOfInterest: .excludingAll))
         .safeAreaPadding(.top, max(0, topBarBottom - mapTop))
-        // Full screen like Google Maps: the map runs up under the status bar.
-        .ignoresSafeArea(edges: .top)
-        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { mapTop = $0 }
+        .safeAreaPadding(.bottom, max(0, mapBottom - (panelTop ?? mapBottom)))
+        // Full screen like Google Maps: the map runs under the status bar, panel and tab bar.
+        .ignoresSafeArea()
+        // The reported frame excludes the safe areas the map draws under; add them back.
+        .onGeometryChange(for: ClosedRange<CGFloat>.self) { proxy in
+            let frame = proxy.frame(in: .global)
+            return (frame.minY - proxy.safeAreaInsets.top)...(frame.maxY + proxy.safeAreaInsets.bottom)
+        } action: {
+            mapTop = $0.lowerBound
+            mapBottom = $0.upperBound
+        }
     }
 
     private var parkedCar: CLLocation? {
@@ -998,6 +1009,9 @@ struct LiveGuideTab: View {
                     }
                     .accessibilityLabel(Text("Map style"))
                     .accessibilityIdentifier("map.style")
+                    if AppConfiguration.live.environment != .prod {
+                        BuildEnvironmentIndicator(environment: AppConfiguration.live.environment)
+                    }
                 }
                 Spacer(minLength: 8)
                 floatingControls
@@ -1155,8 +1169,11 @@ struct LiveGuideTab: View {
         }
         .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
         .background {
-            // Apple's standard bar material, see-through like the tab bar below it.
-            UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16).fill(.bar)
+            // Apple's standard bar material, see-through like the tab bar below it. Collapsed, the
+            // controls float on the map with no sheet behind them.
+            UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
+                .fill(.bar).opacity(collapsed ? 0 : 1)
+                .ignoresSafeArea(edges: .bottom)
         }
     }
 

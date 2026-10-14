@@ -281,17 +281,22 @@ struct GuestExploreView: View {
         }
         .overlay(alignment: .topTrailing) { floatingControls.padding(.trailing, 12).padding(.top, 8) }
         .overlay(alignment: .topLeading) {
-            Button(action: signIn) {
-                HStack(spacing: 6) {
-                    if signingIn { ProgressView() } else { Image(systemName: "person.crop.circle.fill").font(.title3) }
-                    Text("Sign in").font(.headline)
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: signIn) {
+                    HStack(spacing: 6) {
+                        if signingIn { ProgressView() } else { Image(systemName: "person.crop.circle.fill").font(.title3) }
+                        Text("Sign in").font(.headline)
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 48)
+                    .background(.regularMaterial, in: Capsule())
                 }
-                .padding(.horizontal, 14)
-                .frame(minHeight: 48)
-                .background(.regularMaterial, in: Capsule())
+                .disabled(signingIn)
+                .accessibilityIdentifier("guest.signIn")
+                if AppConfiguration.live.environment != .prod {
+                    BuildEnvironmentIndicator(environment: AppConfiguration.live.environment)
+                }
             }
-            .disabled(signingIn)
-            .accessibilityIdentifier("guest.signIn")
             .padding(.leading, 12).padding(.top, 8)
         }
         .mapScope(mapScope)

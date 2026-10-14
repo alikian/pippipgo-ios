@@ -9,7 +9,8 @@ struct RootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if environment != .prod {
+            // The map screens show this on the map, so the map can reach the top of the screen.
+            if environment != .prod && !showsMap {
                 HStack {
                     Spacer()
                     BuildEnvironmentIndicator(environment: environment)
@@ -77,6 +78,13 @@ struct RootView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Sign in to PipPipGo, then ask Siri to start Talk to Pip again.")
+        }
+    }
+    private var showsMap: Bool {
+        switch store.state {
+        case .signedOut, .signingIn, .signInError: true
+        case .signedIn: aiConsent.allowed
+        default: false
         }
     }
     private func syncLocationDisplay() {
