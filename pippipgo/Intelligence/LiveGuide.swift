@@ -696,6 +696,8 @@ struct LiveGuideTab: View {
     let chat: TravelChatStore
     let tab: AppTab
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
+    /// The first location fix after the app opens zooms to the traveler's neighbourhood.
+    @State private var zoomedToStart = false
     @State private var showSettings = false
     @State private var mapLocationFeed: LiveGuideLocationFeed?
     @State private var currentMapCamera: MapCamera?
@@ -796,7 +798,15 @@ struct LiveGuideTab: View {
                   abs(location.timestamp.timeIntervalSinceNow) < 15,
                   CLLocationCoordinate2DIsValid(location.coordinate) else { return }
             refreshWeather(location)
-            var camera = currentMapCamera ?? MapCamera(
+            if !zoomedToStart {
+                // Before any fix the map shows a whole continent; never keep that zoom.
+                zoomedToStart = true
+                withAnimation { position = .region(MKCoordinateRegion(center: location.coordinate,
+                                                                      latitudinalMeters: 1_200, longitudinalMeters: 1_200)) }
+                return
+            }
+            let usable = currentMapCamera.flatMap { $0.distance < 50_000 ? $0 : nil }
+            var camera = usable ?? MapCamera(
                 centerCoordinate: location.coordinate,
                 distance: max(800, location.horizontalAccuracy * 4), heading: 0, pitch: 0)
             camera.centerCoordinate = location.coordinate

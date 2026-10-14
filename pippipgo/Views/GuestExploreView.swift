@@ -240,6 +240,7 @@ struct GuestExploreView: View {
     var signingIn = false
     @State private var model = NearbyPlacesModel()
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var zoomedToStart = false
     @State private var selected: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
     @State private var askingToSignIn = false
@@ -302,6 +303,15 @@ struct GuestExploreView: View {
             if phase == .active { model.start() } else { model.stop() }
         }
         .onDisappear { model.stop() }
+        // The first location fix after the app opens zooms to the traveler's neighbourhood.
+        .onChange(of: model.location == nil, initial: true) { _, missing in
+            guard !missing, !zoomedToStart, let location = model.location else { return }
+            zoomedToStart = true
+            withAnimation {
+                position = .region(MKCoordinateRegion(center: location.coordinate,
+                                                      latitudinalMeters: 1_200, longitudinalMeters: 1_200))
+            }
+        }
         #if DEBUG
         // Simulator review: `-PipGuestCategory restrooms` searches once a location arrives.
         .onChange(of: model.location == nil) { _, missing in
