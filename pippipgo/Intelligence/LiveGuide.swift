@@ -710,6 +710,9 @@ struct LiveGuideTab: View {
                     locateMapInitially()
                 }
             }
+            .onChange(of: nearby.places.map(\.id)) { _, ids in
+                if !ids.isEmpty { withAnimation { position = .automatic } }
+            }
             .onChange(of: finding) { _, open in
                 if open { nearby.start() } else { nearby.stop(); nearby.clear(); selectedPlace = nil }
             }

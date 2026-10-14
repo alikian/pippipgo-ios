@@ -50,6 +50,20 @@ enum GuestCategory: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Plain-text fallback when Apple has no categorised places nearby.
+    var query: String {
+        switch self {
+        case .restrooms: "public restroom"
+        case .transit: "public transport station"
+        case .groceries: "grocery store"
+        case .food: "restaurant"
+        case .hotels: "hotel"
+        case .pharmacy: "pharmacy"
+        case .cash: "ATM"
+        case .parking: "parking"
+        }
+    }
+
     var pointsOfInterest: [MKPointOfInterestCategory] {
         switch self {
         case .restrooms: [.restroom]
@@ -79,6 +93,7 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
     private(set) var category: GuestCategory?
     private(set) var places: [NearbyPlace] = []
     private(set) var searching = false
+    private(set) var failed = false
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var searchID = UUID()
 
@@ -105,26 +120,53 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let latest = locations.last, latest.horizontalAccuracy >= 0 else { return }
+        let first = location == nil
         location = latest
+        // A category tapped before the first fix searches as soon as the location arrives.
+        if first, searching, let category { search(category) }
     }
 
     func clear() {
         searchID = UUID()
-        category = nil; places = []; searching = false
+        category = nil; places = []; searching = false; failed = false
     }
 
-    /// Apple Maps points of interest near the traveler, nearest first.
+    /// Apple Maps places near the traveler, nearest first. Widens from 1.5 km to 25 km, then
+    /// falls back to a plain-text search, so travellers outside city centres still get results.
     func search(_ category: GuestCategory) {
         let ticket = UUID(); searchID = ticket
-        self.category = category; places = []
-        guard let location else { return }
+        self.category = category; places = []; failed = false
         searching = true
-        let request = MKLocalPointsOfInterestRequest(center: location.coordinate, radius: 1500)
-        request.pointOfInterestFilter = MKPointOfInterestFilter(including: category.pointsOfInterest)
+        guard let location else {
+            if manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
+            manager.startUpdatingLocation()
+            return
+        }
         Task {
-            let response = try? await MKLocalSearch(request: request).start()
-            guard searchID == ticket else { return }
-            places = (response?.mapItems ?? [])
+            var found: [MKMapItem] = []
+            var errors = 0, attempts = 0
+            for radius in [1_500.0, 5_000, 25_000] where found.isEmpty {
+                let request = MKLocalPointsOfInterestRequest(center: location.coordinate, radius: radius)
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: category.pointsOfInterest)
+                attempts += 1
+                do { found = try await MKLocalSearch(request: request).start().mapItems } catch { errors += 1 }
+                guard searchID == ticket else { return }
+            }
+            if found.isEmpty {
+                let request = MKLocalSearch.Request()
+                request.naturalLanguageQuery = category.query
+                request.resultTypes = .pointOfInterest
+                request.region = MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 25_000, longitudinalMeters: 25_000)
+                attempts += 1
+                do {
+                    // Text search can match unrelated businesses; drop ones Apple files under another kind.
+                    found = try await MKLocalSearch(request: request).start().mapItems.filter { item in
+                        item.pointOfInterestCategory.map(category.pointsOfInterest.contains) ?? true
+                    }
+                } catch { errors += 1 }
+                guard searchID == ticket else { return }
+            }
+            places = found
                 .map { item in
                     let point = item.placemark.coordinate
                     let distance = location.distance(from: CLLocation(latitude: point.latitude, longitude: point.longitude))
@@ -132,6 +174,7 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
                 }
                 .sorted { $0.distance < $1.distance }
                 .prefix(15).map { $0 }
+            failed = places.isEmpty && errors == attempts
             searching = false
         }
     }
@@ -174,6 +217,10 @@ struct GuestExploreView: View {
             .padding(.leading, 12).padding(.top, 8)
         }
         .mapScope(mapScope)
+        // Show the traveler and every result, including ones found farther away.
+        .onChange(of: model.places.map(\.id)) { _, ids in
+            if !ids.isEmpty { withAnimation { position = .automatic } }
+        }
         .onChange(of: scenePhase, initial: true) { _, phase in
             if phase == .active { model.start() } else { model.stop() }
         }
@@ -255,6 +302,7 @@ struct NearbyFinder: View {
     let model: NearbyPlacesModel
     @Binding var selected: NearbyPlace?
     let focus: (NearbyPlace) -> Void
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         if let selected {
@@ -284,7 +332,6 @@ struct NearbyFinder: View {
                         .frame(maxWidth: .infinity, minHeight: 80)
                     }
                     .buttonStyle(.plain)
-                    .disabled(model.location == nil)
                     .accessibilityIdentifier("guest.category.\(category.rawValue)")
                 }
             }
@@ -301,10 +348,25 @@ struct NearbyFinder: View {
                 }
                 .accessibilityLabel(Text("Close"))
             }
-            if model.searching {
-                ProgressView().frame(maxWidth: .infinity, minHeight: 60)
+            if model.locationDenied {
+                Text("Allow location access to find places near you.").font(.callout).foregroundStyle(.secondary)
+                Button("Open location settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                }
+                .buttonStyle(.bordered)
+            } else if model.searching {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    if model.location == nil {
+                        Text("Finding your location…").font(.callout).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 60)
             } else if model.places.isEmpty {
-                Text("Nothing found nearby.").font(.callout).foregroundStyle(.secondary)
+                Text(model.failed ? "Places nearby are unavailable right now." : "Nothing found nearby.")
+                    .font(.callout).foregroundStyle(.secondary)
+                Button("Try again") { model.search(category) }
+                    .buttonStyle(.bordered)
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
