@@ -44,15 +44,18 @@ struct LiveTranslationTests {
     @Test func languagePickerMatchesRequestedOrder() {
         let codes = TranslationLanguage.all.map(\.code)
         #expect(Set(codes).count == codes.count)
-        #expect(codes == ["zh", "ja", "ko", "vi", "fil", "tl", "fa", "tr", "ar", "ru", "it", "fr", "en"])
+        #expect(codes == ["zh", "ja", "ko", "vi", "fil", "tl", "fa", "tr", "ar", "ru", "it", "fr", "es", "en"])
         #expect(TranslationPair(headerValue: "fil,tl")?.headerValue == "fil,tl")
     }
 
-    @Test func defaultPairIsSpanishToDeviceLanguage() {
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "fr_FR")).headerValue == "fr,es")
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "fa_IR")).headerValue == "fa,es")
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "es_MX")).headerValue == "en,es")
-        #expect(TranslationPair.defaultPair(locale: Locale(identifier: "sw_KE")).headerValue == "en,es")
+    @Test func defaultPairIsSpanishToEnglish() throws {
+        #expect(TranslationPair.defaultPair().headerValue == "en,es")
+        let suite = "LiveTranslationTests-\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        #expect(TranslationPair.saved(defaults).headerValue == "en,es")
+        defaults.set(true, forKey: "translationListenOnly")
+        #expect(TranslationPair.saved(defaults).listenOnly)
     }
 
     @Test func savedPairRoundTripsAndIgnoresInvalidValues() throws {

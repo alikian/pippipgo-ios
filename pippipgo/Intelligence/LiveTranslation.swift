@@ -10,7 +10,7 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
     var id: String { code }
 
     /// Picker order requested by the user. Retained languages still decode saved choices.
-    static let all: [TranslationLanguage] = ["zh", "ja", "ko", "vi", "fil", "tl", "fa", "tr", "ar", "ru", "it", "fr", "en"]
+    static let all: [TranslationLanguage] = ["zh", "ja", "ko", "vi", "fil", "tl", "fa", "tr", "ar", "ru", "it", "fr", "es", "en"]
         .compactMap { code in supported.first { $0.code == code } }
 
     private static let supported: [TranslationLanguage] = [
@@ -167,10 +167,8 @@ struct TranslationPair: Equatable, Sendable {
         self.init(mine: parts[0], theirs: parts[1])
     }
 
-    static func defaultPair(locale: Locale = .current) -> TranslationPair {
-        let device = locale.language.languageCode?.identifier ?? "en"
-        let mine = TranslationLanguage.all.contains { $0.code == device } ? device : "en"
-        return TranslationPair(mine: mine, theirs: "es")!
+    static func defaultPair() -> TranslationPair {
+        TranslationPair(mine: "en", theirs: "es")!
     }
 
     private static let storageKey = "translationLanguages"

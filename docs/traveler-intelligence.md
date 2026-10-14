@@ -77,7 +77,6 @@ less-walking feedback; accept/reject proposed changes; account isolation. Includ
 network failures, exact retries, conflicts, language switching and denied media permissions.
 
 Location/live context, pilot, hands-free hardware and custom wearable remain later milestones.
-See [roadmap](../ROADMAP.md) for implementation versus acceptance status.
 
 ## Source verification
 

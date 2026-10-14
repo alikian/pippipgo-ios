@@ -6,9 +6,7 @@ Pip is a conversational local guide: understand the trip, get to know the travel
 suggest a light plan, learn during the journey, and propose useful changes. **Never overplan.**
 
 - [New product requirements](docs/traveler-intelligence-requirements.md)
-- [Roadmap and delivery boundary](ROADMAP.md)
 - [Implementation, model access and acceptance](docs/traveler-intelligence.md)
-- [Project-wide time log](TIME_LOG.md)
 - [iOS CI/CD, versioning and TestFlight setup](docs/ios-ci-cd.md)
 
 The rebuild retains Google/Cognito authentication and the ECS/DynamoDB foundation. The hosted

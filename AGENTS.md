@@ -2,7 +2,7 @@
 
 ## Authoritative scope
 
-The current September 28, 2026 scope is the [simple travel organizer](docs/simple-travel-organizer.md) and [roadmap](ROADMAP.md): traveler profile, companions and multi-destination trips with hotels and plane/train/car transport. This supersedes the September 27 traveler-intelligence requirements as the active product scope. Preserve the historical requirements and implementation evidence.
+The current September 28, 2026 scope is the [simple travel organizer](docs/simple-travel-organizer.md): traveler profile, companions and multi-destination trips with hotels and plane/train/car transport. This supersedes the September 27 traveler-intelligence requirements as the active product scope. Preserve the historical requirements and implementation evidence.
 
 Preserve Google/Cognito authentication, ECS/DynamoDB, account ownership and existing data. Keep AI credentials and the configured OpenAI model, while the core organizer works without AI calls. Optional Ask Pip uses backend `prompt.md`; chat messages/history and the traveler profile may be sent to OpenAI, not saved companions or trips. Chat can revise discussed plans but cannot silently modify organizer data. Never infer sensitive needs.
 
@@ -12,13 +12,6 @@ a model without user instruction. Record model agreement/access, IAM deployment,
 mocked tests and physical-device acceptance separately.
 
 Live voice was requested September 28, 2026: use `gpt-live-1` for Talk to Pip, with GPT-6 Luna for Responses delegation and typed chat. Keep voice credentials on the backend; audio is transient. At the September 29 admin-viewer request, the backend now retains future typed/voice transcripts and exact available LLM context for the read-only admin viewer; previous voice sessions cannot be recovered. Live voice includes saved trips and companions as read-only context (requested September 29, 2026), including each trip’s selected companions. See `docs/live-voice.md` for rollout and acceptance evidence.
-
-## Project time tracking
-
-Maintain one identical `TIME_LOG.md` in both repositories. Capture session start/end and known
-pauses, contributor and milestone. Count cross-repository work only once. Codex elapsed session
-time is not human labor. Keep estimates and unknown historical time separate. Never invent exact
-durations or create a scheduled time-tracking automation. Mirror roadmap milestone updates.
 
 ## Engineering rules
 
