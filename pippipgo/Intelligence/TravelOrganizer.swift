@@ -182,23 +182,36 @@ struct TravelOrganizerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-        if tab != .guide { backToMap }
-        Group {
-            switch tab {
-            case .pip:
-                PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
-            case .guide:
-                LiveGuideTab(guide: chat.liveGuide,
-                             translator: chat.translator,
-                             openProfile: { tab = .profile })
-            case .translate:
-                TranslateTab(store: chat.translator)
-            case .profile:
-                ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, askPip: { tab = .guide }, signOut: signOut, deleteAccount: deleteAccount)
+        ZStack {
+            // Keep MapKit's drawable owner alive across navigation changes.
+            LiveGuideTab(guide: chat.liveGuide, translator: chat.translator,
+                         openProfile: { tab = .profile }, isVisible: tab == .guide)
+                .allowsHitTesting(tab == .guide)
+                .accessibilityHidden(tab != .guide)
+            if tab != .guide {
+                VStack(spacing: 0) {
+                    backToMap
+                    Group {
+                        switch tab {
+                        case .pip:
+                            PipTab(chat: chat, organizer: store, mode: $pipMode,
+                                   reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest,
+                                   planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate },
+                                   isVisible: editor == nil && reviewingTrip == nil)
+                        case .translate:
+                            TranslateTab(store: chat.translator)
+                        case .profile:
+                            ProfileTab(store: store, chat: chat, location: chat.locationDisplay,
+                                       profilePictureURL: profilePictureURL, editor: $editor,
+                                       askPip: { tab = .guide }, signOut: signOut, deleteAccount: deleteAccount)
+                        case .guide:
+                            EmptyView()
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .background(PipAppearance.cream)
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .tint(.blue)
         .task { if !store.loaded { await store.load() } }

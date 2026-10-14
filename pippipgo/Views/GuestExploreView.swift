@@ -320,23 +320,18 @@ struct GuestExploreView: View {
 
     /// Apple Maps-style stack: translate, language and the system location button.
     private var floatingControls: some View {
-        VStack(spacing: 10) {
-            VStack(spacing: 0) {
-                if #available(iOS 17.4, *) {
-                    Button { translating = true } label: {
-                        Image(systemName: "character.bubble").font(.title3).frame(width: 48, height: 48)
-                    }
-                    .accessibilityLabel(Text("Translate"))
-                    .accessibilityIdentifier("guest.translate")
-                    Divider().frame(width: 48)
+        VStack(spacing: 12) {
+            if #available(iOS 17.4, *) {
+                Button { translating = true } label: {
+                    Image(systemName: "translate").font(.title3).frame(width: 48, height: 48).mapControlCircle()
                 }
-                AppLanguageMenu().frame(width: 48, height: 48)
-                Divider().frame(width: 48)
-                AudioOutputButton()
+                .accessibilityLabel(Text("Translate"))
+                .accessibilityIdentifier("guest.translate")
             }
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            AppLanguageMenu().frame(width: 48, height: 48).mapControlCircle()
+            AudioOutputButton().mapControlCircle()
             MapUserLocationButton(scope: mapScope)
-                .buttonBorderShape(.roundedRectangle(radius: 12))
+                .buttonBorderShape(.circle)
             MapCompass(scope: mapScope)
         }
     }
@@ -357,15 +352,17 @@ struct GuestExploreView: View {
                 Text(LocalizedStringKey(errorMessage)).font(.callout).foregroundStyle(.red)
             }
             Button { askingToSignIn = true } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "mic.fill").font(.title2.weight(.bold)).foregroundStyle(.white)
-                        .frame(width: 56, height: 56).background(.blue, in: Circle())
-                    Text("Ask Pip").font(.headline).foregroundStyle(.primary)
-                    Spacer(minLength: 0)
+                HStack(spacing: 8) {
+                    Image(systemName: "mic.fill")
+                    Text(verbatim: "Pip")
                 }
-                .contentShape(Rectangle())
+                .font(.title2.weight(.bold)).foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .frame(minHeight: 56)
+                .background(.blue, in: Capsule())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(Text("Ask Pip"))
             .accessibilityIdentifier("guest.askPip")
 
             if !collapsed {
