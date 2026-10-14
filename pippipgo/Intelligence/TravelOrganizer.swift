@@ -185,7 +185,8 @@ struct TravelOrganizerView: View {
         ZStack {
             // Keep MapKit's drawable owner alive across navigation changes.
             LiveGuideTab(guide: chat.liveGuide, translator: chat.translator,
-                         openProfile: { tab = .profile }, isVisible: tab == .guide)
+                         openProfile: { tab = .profile }, isVisible: tab == .guide,
+                         profileName: store.data.profile?.name, profilePhoto: profilePictureURL)
                 .allowsHitTesting(tab == .guide)
                 .accessibilityHidden(tab != .guide)
             if tab != .guide {

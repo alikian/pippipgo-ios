@@ -696,6 +696,9 @@ struct LiveGuideTab: View {
     var translator: LiveVoiceStore? = nil
     var openProfile: (() -> Void)? = nil
     var isVisible = true
+    /// Shown on the profile button as a photo, or initials such as "SN".
+    var profileName: String? = nil
+    var profilePhoto: URL? = nil
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     @State private var showSettings = false
     @State private var mapLocationFeed: LiveGuideLocationFeed?
@@ -877,9 +880,7 @@ struct LiveGuideTab: View {
         VStack(alignment: .leading, spacing: 8) {
         if let openProfile {
             Button(action: openProfile) {
-                Image(systemName: "person.crop.circle.fill").font(.title2)
-                    .frame(width: 48, height: 48)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                ProfileAvatar(name: profileName, photo: profilePhoto)
             }
             .accessibilityLabel(Text("Profile"))
             .accessibilityIdentifier("navigation.profile")
@@ -961,6 +962,8 @@ struct LiveGuideTab: View {
                 HStack(spacing: 10) {
                     askPipButton
                     Spacer(minLength: 0)
+                    tourGuideMenu
+                    Spacer(minLength: 0)
                     if guide.enabled, guide.announcementSpeaking, !guide.talking {
                         circleButton("forward.end.fill", label: "Skip announcement",
                                      identifier: "liveGuide.skipAnnouncement") { guide.skipAnnouncement() }
@@ -987,10 +990,43 @@ struct LiveGuideTab: View {
         }
         .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
         .background {
+            // Apple's standard bar material, see-through like the iPhone tab bar.
             UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
-                .fill(.regularMaterial).ignoresSafeArea(edges: .bottom)
+                .fill(.bar).ignoresSafeArea(edges: .bottom)
         }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: -2)
+    }
+
+    /// Tour Guide: start a walking or driving tour, stop it, or choose how often Pip talks.
+    private var tourGuideMenu: some View {
+        Menu {
+            if guide.enabled {
+                Button(role: .destructive) { withAnimation(.spring) { guide.enabled = false } } label: {
+                    Label("Stop tour", systemImage: "stop.fill")
+                }
+            } else {
+                ForEach(GuideTourMode.allCases) { mode in
+                    Button {
+                        guide.tourMode = mode
+                        withAnimation(.spring) { guide.enabled = true }
+                    } label: {
+                        Label(LocalizedStringKey(mode.title), systemImage: mode.symbol)
+                    }
+                }
+            }
+            Picker("How often should Pip talk?", selection: $guide.chattiness) {
+                ForEach(GuideChattiness.allCases) { level in
+                    Text(LocalizedStringKey(level.title)).tag(level)
+                }
+            }
+        } label: {
+            VStack(spacing: 2) {
+                Image(systemName: guide.enabled ? guide.tourMode.symbol : "binoculars.fill").font(.title3)
+                Text("Tour Guide").font(.caption2.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+            }
+            .foregroundStyle(guide.enabled ? Color(red: 0.0, green: 0.5, blue: 0.25) : .blue)
+            .frame(minWidth: 64, minHeight: 52)
+        }
+        .accessibilityIdentifier("liveGuide.tourGuide")
     }
 
     /// Ask Pip: a round blue microphone, with the guide's context. Green while Pip listens.
@@ -1295,5 +1331,40 @@ extension View {
         self.frame(width: 48, height: 48)
             .background(.ultraThinMaterial, in: Circle())
             .shadow(color: .black.opacity(0.12), radius: 4, y: 1)
+    }
+}
+
+/// The traveler's photo, or their initials (such as "SN") on a coloured circle.
+struct ProfileAvatar: View {
+    let name: String?
+    let photo: URL?
+
+    var body: some View {
+        Group {
+            if let photo {
+                AsyncImage(url: photo) { image in image.resizable().scaledToFill() } placeholder: { initials }
+            } else {
+                initials
+            }
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(.white.opacity(0.8), lineWidth: 2))
+        .shadow(color: .black.opacity(0.15), radius: 4, y: 1)
+        .frame(width: 48, height: 48)
+    }
+
+    private var initials: some View {
+        let letters = (name ?? "")
+            .split(separator: " ").prefix(2)
+            .compactMap(\.first).map { String($0).uppercased() }.joined()
+        return ZStack {
+            Circle().fill(Color(red: 0.16, green: 0.39, blue: 0.85))
+            if letters.isEmpty {
+                Image(systemName: "person.fill").foregroundStyle(.white)
+            } else {
+                Text(verbatim: letters).font(.headline).foregroundStyle(.white)
+            }
+        }
     }
 }

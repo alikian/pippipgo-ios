@@ -382,9 +382,8 @@ struct GuestExploreView: View {
         .background {
             // Continues behind the home indicator, like an Apple Maps sheet.
             UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
-                .fill(.regularMaterial).ignoresSafeArea(edges: .bottom)
+                .fill(.bar).ignoresSafeArea(edges: .bottom)
         }
-        .shadow(color: .black.opacity(0.12), radius: 12, y: -2)
     }
 }
 
