@@ -1962,7 +1962,7 @@ struct GuideSetup: Codable, Equatable, Sendable {
     var curiosities = ""
     var bucket_list = ""
     var favorite_travel_memory = ""
-    var voice = "ballad"
+    var voice = "coral"
     var personality = "warm"
     var planning_style = "not_set"
     var offer_opinions = true
