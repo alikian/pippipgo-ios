@@ -687,6 +687,7 @@ struct LiveGuideTab: View {
     @State private var nearby = NearbyPlacesModel()
     @State private var finding = false
     @State private var selectedPlace: NearbyPlace?
+    @State private var pinSelection: NearbyPlace.ID?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -710,6 +711,11 @@ struct LiveGuideTab: View {
                     locateMapInitially()
                 }
             }
+            // Tapping a result pin selects the place, the same as tapping it in the list.
+            .onChange(of: pinSelection) { _, id in
+                if let id, let place = nearby.places.first(where: { $0.id == id }) { selectedPlace = place }
+            }
+            .onChange(of: selectedPlace?.id) { _, id in pinSelection = id }
             .onChange(of: nearby.places.map(\.id)) { _, _ in
                 if let region = NearbyFinder.region(for: nearby) { withAnimation { position = .region(region) } }
             }
@@ -767,7 +773,7 @@ struct LiveGuideTab: View {
     }
 
     private var map: some View {
-        Map(position: $position) {
+        Map(position: $position, selection: $pinSelection) {
             UserAnnotation { _ in
                 Button {
                     guide.tourMode = guide.tourMode == .walking ? .driving : .walking
@@ -788,6 +794,7 @@ struct LiveGuideTab: View {
             ForEach(nearby.places) { place in
                 Marker(place.name, systemImage: nearby.category?.symbol ?? "mappin", coordinate: place.coordinate)
                     .tint(nearby.category?.tint ?? .red)
+                    .tag(place.id)
             }
             if let route = guide.route {
                 if route.path.count > 1 {

@@ -211,19 +211,33 @@ struct GuestExploreView: View {
     @State private var model = NearbyPlacesModel()
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selected: NearbyPlace?
+    @State private var pinSelection: NearbyPlace.ID?
     @State private var askingToSignIn = false
     @State private var translating = false
     @Namespace private var mapScope
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        Map(position: $position, scope: mapScope) {
+        Map(position: $position, selection: $pinSelection, scope: mapScope) {
             UserAnnotation()
             ForEach(model.places) { place in
                 Marker(place.name, systemImage: model.category?.symbol ?? "mappin", coordinate: place.coordinate)
                     .tint(model.category?.tint ?? .red)
+                    .tag(place.id)
             }
         }
+        #if DEBUG
+        // Simulator review: `-PipSelectFirst` selects the nearest result once it arrives.
+        .onChange(of: model.places.first?.id) { _, _ in
+            if ProcessInfo.processInfo.arguments.contains("-PipSelectFirst"), selected == nil,
+               let first = model.places.first { selected = first }
+        }
+        #endif
+        // Tapping a pin selects the place, the same as tapping it in the list.
+        .onChange(of: pinSelection) { _, id in
+            if let id, let place = model.places.first(where: { $0.id == id }) { selected = place }
+        }
+        .onChange(of: selected?.id) { _, id in pinSelection = id }
         .mapStyle(.standard(pointsOfInterest: .all))
         .mapControlVisibility(.hidden)
         // The panel insets the map, so Apple's attribution and legal link stay visible above it.
@@ -332,15 +346,27 @@ struct NearbyFinder: View {
     @Binding var selected: NearbyPlace?
     let focus: (NearbyPlace) -> Void
     @Environment(\.openURL) private var openURL
+    /// Apple's own place card (iOS 18+): star rating and reviews, photos, hours, call, website.
+    @State private var detailItem: MKMapItem?
 
     var body: some View {
-        if let selected {
-            placeCard(selected)
-        } else if let category = model.category {
-            results(category)
-        } else {
-            categories
+        Group {
+            if let selected {
+                placeCard(selected)
+            } else if let category = model.category {
+                results(category)
+            } else {
+                categories
+            }
         }
+        .onChange(of: selected?.id) { _, _ in
+            if Self.applePlaceCardAvailable { detailItem = selected?.item }
+        }
+        .modifier(ApplePlaceCard(item: $detailItem))
+    }
+
+    static var applePlaceCardAvailable: Bool {
+        if #available(iOS 18.0, *) { true } else { false }
     }
 
     private var categories: some View {
@@ -457,14 +483,24 @@ struct NearbyFinder: View {
                 }
                 .accessibilityLabel(Text("Close"))
             }
-            Button {
-                place.item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
-            } label: {
-                Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
-                    .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
+            HStack(spacing: 10) {
+                Button {
+                    place.item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
+                } label: {
+                    Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+                        .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("guest.directions")
+                if Self.applePlaceCardAvailable {
+                    Button { detailItem = place.item } label: {
+                        Label("Details", systemImage: "star.bubble")
+                            .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("nearby.details")
+                }
             }
-            .buttonStyle(.bordered)
-            .accessibilityIdentifier("guest.directions")
         }
     }
 
@@ -489,9 +525,35 @@ struct NearbyFinder: View {
             .converted(to: metric ? .kilometers : .miles).formatted(style)
     }
 
+    /// Easy-to-read distances: 0.3 mi under a mile, half miles up to 10, then whole miles
+    /// (metric: 50 m steps under 1 km, half kilometres up to 10, then whole kilometres).
     static func distance(_ meters: CLLocationDistance) -> String {
-        Measurement(value: meters, unit: UnitLength.meters)
-            .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0))))
+        let metric = Locale.current.measurementSystem == .metric
+        let unit: UnitLength
+        let value: Double
+        if metric, meters < 1_000 {
+            unit = .meters; value = max(50, (meters / 50).rounded() * 50)
+        } else {
+            unit = metric ? .kilometers : .miles
+            let amount = metric ? meters / 1_000 : meters / 1_609.344
+            value = amount < 1 ? max(0.1, (amount * 10).rounded() / 10)
+                : amount < 10 ? (amount * 2).rounded() / 2 : amount.rounded()
+        }
+        return Measurement(value: value, unit: unit).formatted(
+            .measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(0...1))))
+    }
+}
+
+/// Presents Apple's place card where the system offers it (iOS 18 and later).
+private struct ApplePlaceCard: ViewModifier {
+    @Binding var item: MKMapItem?
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.mapItemDetailSheet(item: $item, displaysMap: false)
+        } else {
+            content
+        }
     }
 }
 
