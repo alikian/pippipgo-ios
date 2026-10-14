@@ -156,12 +156,9 @@ final class LiveGuideStore {
     static let chattinessKey = "pip.liveGuide.chattiness"
     static let mentionedKey = "pip.liveGuide.mentioned"
 
-    /// Opt-in, per signed-in account; account switches turn it off again.
+    /// Off whenever the app opens: the traveller starts every tour themselves.
     var enabled: Bool {
-        didSet {
-            UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
-            refreshActivity()
-        }
+        didSet { refreshActivity() }
     }
     var chattiness: GuideChattiness {
         didSet {
@@ -232,7 +229,9 @@ final class LiveGuideStore {
         let chattiness = GuideChattiness(rawValue: defaults.string(forKey: Self.chattinessKey) ?? "") ?? .normal
         self.tourMode = GuideTourMode(rawValue: defaults.string(forKey: Self.tourModeKey) ?? "") ?? .walking
         self.chattiness = chattiness
-        self.enabled = defaults.bool(forKey: Self.enabledKey)
+        // Never resume a tour automatically on launch; clear the flag older builds saved.
+        defaults.removeObject(forKey: Self.enabledKey)
+        self.enabled = false
         self.engine = GuideEngine(chattiness: chattiness, mentioned: Set(defaults.stringArray(forKey: Self.mentionedKey) ?? []))
         self.engine.selectTourMode(tourMode)
         self.motion = engine.motion
