@@ -244,6 +244,7 @@ struct GuestExploreView: View {
     @State private var pinSelection: NearbyPlace.ID?
     @State private var askingToSignIn = false
     @State private var translating = false
+    @State private var collapsed = ProcessInfo.processInfo.arguments.contains("-PipPanelCollapsed") && GuestExploreView.debug
     @Namespace private var mapScope
     @Environment(\.scenePhase) private var scenePhase
 
@@ -340,10 +341,18 @@ struct GuestExploreView: View {
         }
     }
 
+    /// Debug-only simulator review flags apply only to debug builds.
+    private static var debug: Bool {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
+    }
+
     private var panel: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Capsule().fill(Color.secondary.opacity(0.4)).frame(width: 36, height: 5)
-                .frame(maxWidth: .infinity).accessibilityHidden(true)
+            PanelHandle(collapsed: $collapsed)
             if let errorMessage {
                 Text(LocalizedStringKey(errorMessage)).font(.callout).foregroundStyle(.red)
             }
@@ -357,6 +366,7 @@ struct GuestExploreView: View {
             .tint(.blue)
             .accessibilityIdentifier("guest.askPip")
 
+            if !collapsed {
             NearbyFinder(model: model, selected: $selected) { place in
                 withAnimation { position = .item(place.item) }
             }
@@ -367,6 +377,7 @@ struct GuestExploreView: View {
                     .accessibilityIdentifier("guest.privacy")
             }
             .font(.caption2).foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
         .background {
@@ -375,6 +386,27 @@ struct GuestExploreView: View {
                 .fill(.regularMaterial).ignoresSafeArea(edges: .bottom)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: -2)
+    }
+}
+
+/// The grab handle on the bottom panel: swipe down or tap to shrink the panel to its main
+/// buttons, swipe up or tap to open it again, like an Apple Maps sheet.
+struct PanelHandle: View {
+    @Binding var collapsed: Bool
+
+    var body: some View {
+        Button { withAnimation(.snappy) { collapsed.toggle() } } label: {
+            Capsule().fill(Color.secondary.opacity(0.5)).frame(width: 40, height: 5)
+                .frame(maxWidth: .infinity, minHeight: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(DragGesture(minimumDistance: 12).onEnded { drag in
+            if drag.translation.height > 30 { withAnimation(.snappy) { collapsed = true } }
+            if drag.translation.height < -30 { withAnimation(.snappy) { collapsed = false } }
+        })
+        .accessibilityLabel(Text(collapsed ? "Show more" : "Show less"))
+        .accessibilityIdentifier("panel.handle")
     }
 }
 

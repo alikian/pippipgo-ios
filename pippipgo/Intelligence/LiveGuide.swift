@@ -701,6 +701,7 @@ struct LiveGuideTab: View {
     @State private var currentMapCamera: MapCamera?
     @State private var nearby = NearbyPlacesModel()
     @State private var finding = false
+    @State private var collapsed = false
     @State private var selectedPlace: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
@@ -906,8 +907,7 @@ struct LiveGuideTab: View {
     /// One Apple Maps-style panel: status, what Pip is saying (or Find nearby), Ask Pip, tour controls.
     private var panel: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Capsule().fill(Color.secondary.opacity(0.4)).frame(width: 36, height: 5)
-                .frame(maxWidth: .infinity).accessibilityHidden(true)
+            PanelHandle(collapsed: $collapsed)
             if guide.enabled, guide.status != .listening {
                 Label(LocalizedStringKey(guide.status.message), systemImage: statusSymbol)
                     .font(.subheadline).foregroundStyle(.secondary)
@@ -927,11 +927,13 @@ struct LiveGuideTab: View {
                 }
                 .buttonStyle(.bordered)
             }
-            if guide.tourMode == .driving {
+            if !collapsed, guide.tourMode == .driving {
                 Label("Driving? Keep your eyes on the road and talk to Pip instead.", systemImage: "car.fill")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            if finding {
+            if collapsed {
+                EmptyView()
+            } else if finding {
                 NearbyFinder(model: nearby, selected: $selectedPlace) { place in
                     withAnimation { position = .item(place.item) }
                 }
@@ -949,7 +951,9 @@ struct LiveGuideTab: View {
                     circleButton("keyboard", label: "Type to Pip", identifier: "navigation.pip", action: openChat)
                 }
                 circleButton(finding ? "xmark" : "magnifyingglass", label: finding ? "Close" : "Search places",
-                             identifier: "liveGuide.findNearby") { withAnimation { finding.toggle() } }
+                             identifier: "liveGuide.findNearby") {
+                    withAnimation { finding.toggle(); if finding { collapsed = false } }
+                }
             }
 
             TimelineView(.periodic(from: .now, by: 0.5)) { _ in
