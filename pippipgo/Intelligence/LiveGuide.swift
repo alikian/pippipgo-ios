@@ -695,6 +695,12 @@ struct LiveGuideTab: View {
     @Bindable var guide: LiveGuideStore
     let chat: TravelChatStore
     let tab: AppTab
+    var selectTab: (AppTab) -> Void = { _ in }
+    var startVoice: () -> Void = {}
+    var openProfile: () -> Void = {}
+    var openHistory: () -> Void = {}
+    var profileName: String? = nil
+    var profilePhoto: URL? = nil
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     /// The first location fix after the app opens zooms to the traveler's neighbourhood.
     @State private var zoomedToStart = false
@@ -706,6 +712,10 @@ struct LiveGuideTab: View {
     /// Height of the floating panel, so the map keeps Apple's attribution and results above it
     /// without resizing the map's drawable.
     @State private var panelHeight: CGFloat = 0
+    /// Screen positions of the map's top and the floating top bar's bottom, so the map frames
+    /// places and the traveler below the search bar while still drawing under the status bar.
+    @State private var mapTop: CGFloat = 0
+    @State private var topBarBottom: CGFloat = 0
     @State private var selectedPlace: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
@@ -721,16 +731,7 @@ struct LiveGuideTab: View {
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { panelHeight = $0 }
                     .onDisappear { panelHeight = 0 }
             }
-            .overlay(alignment: .topLeading) {
-                if let weather { WeatherChip(weather: weather).padding(.leading, 12).padding(.top, 8) }
-            }
-            .overlay(alignment: .topTrailing) { floatingControls }
-            .overlay(alignment: .top) {
-                if let route = guide.route {
-                    LiveGuideRouteCard(route: route, close: guide.clearRoute)
-                        .padding(.horizontal, 72).padding(.top, 8)
-                }
-            }
+            .overlay(alignment: .top) { topBar }
             .onAppear {
                 locateMapInitially()
                 nearby.ratingsProvider = { [guide] category, location, radius in
@@ -865,6 +866,92 @@ struct LiveGuideTab: View {
             currentMapCamera = context.camera
         }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .safeAreaPadding(.top, max(0, topBarBottom - mapTop))
+        // Full screen like Google Maps: the map runs up under the status bar.
+        .ignoresSafeArea(edges: .top)
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { mapTop = $0 }
+    }
+
+    /// Google Maps-style top: one floating search bar, category chips, then weather and the
+    /// round map controls.
+    private var topBar: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Only the full-width search bar and chips cover the map's middle.
+            VStack(alignment: .leading, spacing: 10) {
+                searchBar.padding(.horizontal, 12)
+                categoryChips
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { topBarBottom = $0 }
+            HStack(alignment: .top) {
+                if let weather { WeatherChip(weather: weather) }
+                Spacer(minLength: 8)
+                floatingControls
+            }
+            .padding(.horizontal, 12)
+            if let route = guide.route {
+                LiveGuideRouteCard(route: route, close: guide.clearRoute).padding(.horizontal, 60)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    /// "Search or ask Pip": tap to search nearby, the microphone talks to Pip, the photo is Profile.
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            Button { selectTab(.search) } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    Text("Search or ask Pip").foregroundStyle(.secondary).lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("map.search")
+            Button(action: startVoice) {
+                Image(systemName: "mic.fill").font(.title3).foregroundStyle(.blue).frame(width: 40, height: 40)
+            }
+            .accessibilityLabel(Text("Ask Pip"))
+            .accessibilityIdentifier("map.askPip")
+            Button(action: openProfile) {
+                ProfileAvatar(name: profileName, photo: profilePhoto, size: 36)
+            }
+            .accessibilityLabel(Text("Profile"))
+            .accessibilityIdentifier("navigation.profile")
+        }
+        .font(.body)
+        .padding(.leading, 16).padding(.trailing, 6)
+        .frame(height: 52)
+        .background(.regularMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+    }
+
+    /// One tap: Restrooms, Transit, Food… opens Search with that category on the map.
+    private var categoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(GuestCategory.allCases) { category in
+                    Button {
+                        selectTab(.search)
+                        collapsed = false
+                        selectedPlace = nil
+                        nearby.search(category)
+                    } label: {
+                        Label { Text(category.title) } icon: {
+                            Image(systemName: category.symbol).foregroundStyle(category.tint)
+                        }
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+                        .padding(.horizontal, 12).frame(height: 36)
+                        .background(.regularMaterial, in: Capsule())
+                        .shadow(color: .black.opacity(0.1), radius: 3, y: 1)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("map.chip.\(category.rawValue)")
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 2)
+        }
     }
 
     /// Only while the app is open on screen; every 15 minutes, or after moving about 3 km.
@@ -889,6 +976,13 @@ struct LiveGuideTab: View {
                 .accessibilityLabel(Text("Settings"))
                 .accessibilityIdentifier("liveGuide.settings")
             }
+            if tab == .pip {
+                Button(action: openHistory) {
+                    Image(systemName: "clock.arrow.circlepath").font(.title3).frame(width: 48, height: 48).mapControlCircle()
+                }
+                .accessibilityLabel(Text("Conversation history"))
+                .accessibilityIdentifier("pip.history")
+            }
             Button {
                 withAnimation { position = .userLocation(followsHeading: false, fallback: .automatic) }
             } label: {
@@ -896,7 +990,6 @@ struct LiveGuideTab: View {
             }
             .accessibilityLabel(Text("Recenter"))
         }
-        .padding(.trailing, 12).padding(.top, 8)
     }
 
     /// One Apple Maps-style panel above the tab bar; its content follows the selected tab.

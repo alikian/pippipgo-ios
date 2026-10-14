@@ -234,29 +234,17 @@ struct TravelOrganizerView: View {
         }
     }
 
+    /// The full-screen map; search, Pip, profile and history float over it.
     private var home: some View {
-        NavigationStack {
-            LiveGuideTab(guide: chat.liveGuide, chat: chat, tab: tab)
-                .navigationTitle(LocalizedStringKey(tab.title))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(.visible, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { showingProfile = true } label: {
-                            ProfileAvatar(name: store.data.profile?.name, photo: profilePictureURL, size: 32)
-                        }
-                        .accessibilityLabel(Text("Profile"))
-                        .accessibilityIdentifier("navigation.profile")
-                    }
-                    if tab == .pip {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button { showingHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
-                                .accessibilityLabel("Conversation history")
-                                .accessibilityIdentifier("pip.history")
-                        }
-                    }
-                }
-        }
+        LiveGuideTab(guide: chat.liveGuide, chat: chat, tab: tab,
+                     selectTab: { tab = $0 },
+                     startVoice: {
+                         tab = .pip
+                         if !chat.voice.active { chat.liveGuide.toggleConversation() }
+                     },
+                     openProfile: { showingProfile = true },
+                     openHistory: { showingHistory = true },
+                     profileName: store.data.profile?.name, profilePhoto: profilePictureURL)
     }
 
     private func handleVoiceLaunch() {

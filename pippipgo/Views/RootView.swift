@@ -24,7 +24,17 @@ struct RootView: View {
                 // Signed out, PipPipGo opens on the map (App Review guideline 5.1.1(v)); signing in
                 // is offered from the map and from Ask Pip.
                 case .signedOut:
+                    #if DEBUG
+                    // Simulator layout review only: `-PipPreviewHome` shows the signed-in map
+                    // without an account; network features stay unavailable.
+                    if ProcessInfo.processInfo.arguments.contains("-PipPreviewHome") {
+                        TravelOrganizerView(store: store.organizer, chat: store.chat, signOut: {}, deleteAccount: {})
+                    } else {
+                        GuestExploreView(signIn: { Task { await store.signIn() } })
+                    }
+                    #else
                     GuestExploreView(signIn: { Task { await store.signIn() } })
+                    #endif
                 case .signingIn:
                     GuestExploreView(signIn: {}, signingIn: true)
                 case .signInError(let message):
