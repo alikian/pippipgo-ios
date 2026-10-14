@@ -75,6 +75,58 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
     ]
 }
 
+/// Live Translate inside the map's panel: notice for the other person, the two languages,
+/// live captions and one Start/Stop button. Same look as the rest of the app.
+struct InlineTranslationPanel: View {
+    let store: LiveVoiceStore
+    let close: () -> Void
+    private var pair: TranslationPair { store.mode.translation ?? .saved() }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Translate", systemImage: "character.bubble").font(.title3.weight(.bold))
+                Spacer()
+                Button(action: close) {
+                    Image(systemName: "xmark.circle.fill").font(.title2).foregroundStyle(.secondary)
+                }
+                .accessibilityLabel(Text("Close"))
+            }
+            TranslationBystanderNotice(language: pair.theirs)
+            TranslationLanguageBar(store: store).padding(.horizontal, -22)
+            TranslationHeadphoneControl(store: store)
+            ForEach(store.transcript.messages.suffix(2)) { message in
+                Text(verbatim: message.text)
+                    .font(message.speaker == .pip ? .title3.weight(.semibold) : .body)
+                    .foregroundStyle(message.speaker == .pip ? Color.primary : Color.secondary)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let error = store.error {
+                Text(LocalizedStringKey(error)).font(.footnote).foregroundStyle(.red)
+            } else if store.active {
+                Label(LocalizedStringKey(store.connected ? (store.microphoneReceiving ? "Translating — take turns speaking" : "Starting microphone…") : "Connecting…"),
+                      systemImage: "waveform")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Button {
+                if store.active { store.stop() } else {
+                    if store.mode.translation == nil { store.setMode(.translate(.saved())) }
+                    store.start()
+                }
+            } label: {
+                Label(LocalizedStringKey(store.active ? "Stop translating" : "Start translation"),
+                      systemImage: store.active ? "stop.fill" : "mic.fill")
+                    .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(store.active ? Color(red: 0.75, green: 0.15, blue: 0.12) : .blue)
+            .accessibilityIdentifier("translation.toggle")
+        }
+    }
+}
+
 /// A notice the other person can read in their own language before and during translation.
 struct TranslationBystanderNotice: View {
     let language: TranslationLanguage

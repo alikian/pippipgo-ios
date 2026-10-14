@@ -157,8 +157,8 @@ def run(args):
         device.call('POST', '/execute/sync', {'script': 'mobile: activateApp',
                                              'args': [{'bundleId': 'com.pippipgo.ios'}]})
         device.stop_audio()
-        # Map-first home: Ask Pip, Type to Pip, Translate and Profile float over the tour map.
-        check('Signed-in navigation', lambda: [device.find(x) for x in ['Ask Pip', 'Type to Pip', 'Translate', 'Profile']])
+        # Map-first home: Ask Pip (microphone), walking/driving tour, Translate and Profile.
+        check('Signed-in navigation', lambda: [device.find(x) for x in ['Ask Pip', 'Walking tour', 'Driving tour', 'Translate', 'Profile']])
         device.tap('app.languagePicker')
         check('Interface language choices accessible', lambda: (device.find('English'), device.find('فارسی')))
         device.tap('Recenter')  # dismiss the language menu without starting a conversation
@@ -193,11 +193,8 @@ def run(args):
         check('Settings account controls accessible', lambda: (device.tap('Settings', True), device.find('Sign out'), device.find('account.delete')))
         device.tap('BackButton')
         device.tap('Map')
-        device.tap('Type to Pip')
         device.stop_audio()
-        check('Conversation history opens', lambda: (device.tap('pip.history'), device.wait('Conversations')))
-        device.tap('Done')
-        device.tap('Map')
+        # Live Translate opens inside the map's panel.
         device.tap('Translate')
         check('Translation controls available', lambda: [device.find(x) for x in ['You speak', 'They speak', 'Swap languages', 'Start translation', 'Headphone mode']])
         device.tap('You speak')
@@ -208,9 +205,6 @@ def run(args):
         check('All 13 translation languages present', languages)
         # Selecting the existing checkmark keeps the saved language unchanged.
         device.tap('checkmark', True)
-        device.tap('Translation settings')
-        check('Translation settings accessible', lambda: (device.find('Headphone mode'), device.find('Done')))
-        device.tap('Done')
         device.tap('Start translation')
         check('Translation connects and microphone starts', lambda: device.wait('Translating — take turns speaking', 30))
         device.tap('Stop translating')

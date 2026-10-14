@@ -692,8 +692,8 @@ final class LiveGuideStore {
 /// the blue raised-hand Ask Pip, Find nearby and the walking/driving tour controls.
 struct LiveGuideTab: View {
     @Bindable var guide: LiveGuideStore
-    var openChat: (() -> Void)? = nil
-    var openTranslate: (() -> Void)? = nil
+    /// Live Translate runs inside the map's panel, next to the tour controls.
+    var translator: LiveVoiceStore? = nil
     var openProfile: (() -> Void)? = nil
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     @State private var showSettings = false
@@ -702,6 +702,7 @@ struct LiveGuideTab: View {
     @State private var nearby = NearbyPlacesModel()
     @State private var finding = false
     @State private var collapsed = false
+    @State private var translating = false
     @State private var selectedPlace: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
@@ -873,14 +874,6 @@ struct LiveGuideTab: View {
     private var floatingControls: some View {
         VStack(spacing: 10) {
             VStack(spacing: 0) {
-                if let openTranslate {
-                    Button(action: openTranslate) {
-                        Image(systemName: "character.bubble").font(.title3).frame(width: 48, height: 48)
-                    }
-                    .accessibilityLabel(Text("Translate"))
-                    .accessibilityIdentifier("navigation.translate")
-                    Divider().frame(width: 48)
-                }
                 AppLanguageMenu().frame(width: 48, height: 48)
                 Divider().frame(width: 48)
                 AudioOutputButton()
@@ -933,6 +926,11 @@ struct LiveGuideTab: View {
             }
             if collapsed {
                 EmptyView()
+            } else if translating, let translator {
+                InlineTranslationPanel(store: translator) {
+                    translator.stop()
+                    withAnimation { translating = false }
+                }
             } else if finding {
                 NearbyFinder(model: nearby, selected: $selectedPlace) { place in
                     withAnimation { position = .item(place.item) }
@@ -948,19 +946,29 @@ struct LiveGuideTab: View {
             // Main row: ask Pip (microphone), start the tour (the main feature), search.
             HStack(spacing: 10) {
                 askPipButton
-                startStopButton
+                tourButtons
                 circleButton(finding ? "xmark" : "magnifyingglass", label: finding ? "Close" : "Search places",
                              identifier: "liveGuide.findNearby") {
-                    withAnimation { finding.toggle(); if finding { collapsed = false } }
+                    withAnimation {
+                        finding.toggle()
+                        if finding { collapsed = false; translating = false }
+                    }
                 }
             }
 
             if !collapsed {
                 TimelineView(.periodic(from: .now, by: 0.5)) { _ in
                     HStack(spacing: 8) {
-                        HStack(spacing: 4) { modeIcons }
-                            .padding(3)
-                            .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                        if translator != nil {
+                            circleButton(translating ? "xmark" : "character.bubble", label: translating ? "Close" : "Translate",
+                                         identifier: "navigation.translate") {
+                                withAnimation {
+                                    if translating { translator?.stop() }
+                                    translating.toggle()
+                                    if translating { finding = false }
+                                }
+                            }
+                        }
                         Spacer(minLength: 0)
                         if guide.enabled, guide.announcementSpeaking, !guide.talking {
                             Button { guide.skipAnnouncement() } label: {
@@ -968,9 +976,6 @@ struct LiveGuideTab: View {
                             }
                             .accessibilityLabel(Text("Skip announcement"))
                             .accessibilityIdentifier("liveGuide.skipAnnouncement")
-                        }
-                        if let openChat {
-                            circleButton("keyboard", label: "Type to Pip", identifier: "navigation.pip", action: openChat)
                         }
                     }
                 }
@@ -982,24 +987,6 @@ struct LiveGuideTab: View {
                 .fill(.regularMaterial).ignoresSafeArea(edges: .bottom)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: -2)
-    }
-
-    /// Walking or driving as universal icons; the names are read by VoiceOver.
-    @ViewBuilder private var modeIcons: some View {
-        ForEach(GuideTourMode.allCases) { mode in
-            let selected = guide.tourMode == mode
-            Button { guide.tourMode = mode } label: {
-                Image(systemName: mode.symbol).font(.title3)
-                    .foregroundStyle(selected ? Color.white : Color.primary)
-                    .frame(width: 52, height: 44)
-                    .background(selected ? PipAppearance.navy : Color.clear, in: RoundedRectangle(cornerRadius: 11))
-                    .contentShape(RoundedRectangle(cornerRadius: 11))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(LocalizedStringKey(mode.title)))
-            .accessibilityAddTraits(selected ? .isSelected : [])
-            .accessibilityIdentifier("liveGuide.mode.\(mode.rawValue)")
-        }
     }
 
     /// Ask Pip: a round blue microphone, with the guide's context. Green while Pip listens.
@@ -1029,26 +1016,41 @@ struct LiveGuideTab: View {
         .accessibilityIdentifier(identifier)
     }
 
-    @ViewBuilder private var startStopButton: some View {
+    /// Walking ▶ and driving ▶: pictures and a play arrow, so choosing and starting a tour needs
+    /// no words. While a tour runs, one red Stop shows which kind is running.
+    @ViewBuilder private var tourButtons: some View {
         if guide.enabled {
             Button(role: .destructive) { withAnimation(.spring) { guide.enabled = false } } label: {
-                Label("Stop tour", systemImage: "stop.fill").font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 48)
+                HStack(spacing: 8) {
+                    Image(systemName: guide.tourMode.symbol)
+                    Image(systemName: "stop.fill")
+                    Text("Stop tour").lineLimit(1).minimumScaleFactor(0.7)
+                }
+                .font(.headline).frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
             .tint(Color(red: 0.75, green: 0.15, blue: 0.12))
             .accessibilityIdentifier("liveGuide.enabled")
         } else {
-            // The main feature: solid green "go", white text for strong contrast.
-            Button { withAnimation(.spring) { guide.enabled = true } } label: {
-                Label("Start tour", systemImage: "play.fill").font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 48)
+            ForEach(GuideTourMode.allCases) { mode in
+                Button {
+                    guide.tourMode = mode
+                    withAnimation(.spring) { guide.enabled = true }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: mode.symbol).font(.title2)
+                        Image(systemName: "play.fill").font(.subheadline)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .tint(Color(red: 0.0, green: 0.5, blue: 0.25))
+                .accessibilityLabel(Text(LocalizedStringKey(mode.title)))
+                .accessibilityHint(Text("Start tour"))
+                .accessibilityIdentifier(mode == .walking ? "liveGuide.enabled" : "liveGuide.start.\(mode.rawValue)")
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .tint(Color(red: 0.0, green: 0.5, blue: 0.25))
-            .accessibilityIdentifier("liveGuide.enabled")
         }
     }
 

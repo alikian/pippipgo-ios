@@ -190,13 +190,12 @@ struct TravelOrganizerView: View {
                 PipTab(chat: chat, organizer: store, mode: $pipMode, reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest, planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate }, isVisible: tab == .pip && editor == nil && reviewingTrip == nil)
             case .guide:
                 LiveGuideTab(guide: chat.liveGuide,
-                             openChat: { pipMode = .chat; tab = .pip },
-                             openTranslate: { tab = .translate },
+                             translator: chat.translator,
                              openProfile: { tab = .profile })
             case .translate:
                 TranslateTab(store: chat.translator)
             case .profile:
-                ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, askPip: { pipMode = .chat; tab = .pip }, signOut: signOut, deleteAccount: deleteAccount)
+                ProfileTab(store: store, chat: chat, location: chat.locationDisplay, profilePictureURL: profilePictureURL, editor: $editor, askPip: { tab = .guide }, signOut: signOut, deleteAccount: deleteAccount)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -230,9 +229,10 @@ struct TravelOrganizerView: View {
             isActive: scenePhase == .active,
             blocked: editor != nil || reviewingTrip != nil || chat.busy || chat.pending != nil || chat.translator.active
         ) else { return }
-        pipMode = .voice
-        tab = .pip
-        voiceStartRequest = request
+        // "Talk to Pip" from Siri opens the conversation on the map, where Ask Pip lives.
+        _ = request
+        tab = .guide
+        if !chat.voice.active { chat.liveGuide.toggleConversation() }
     }
 }
 
