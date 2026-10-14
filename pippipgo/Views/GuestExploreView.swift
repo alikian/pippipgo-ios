@@ -615,7 +615,7 @@ struct StarRating: View {
                 Image(systemName: "star.fill").foregroundStyle(.orange).accessibilityHidden(true)
                 Text(stars.formatted(.number.precision(.fractionLength(1)))).foregroundStyle(.primary)
                 if let count = rating.user_rating_count {
-                    Text("(\(count.formatted()))").foregroundStyle(.secondary)
+                    Text(verbatim: "(\(count.formatted()))").foregroundStyle(.secondary)
                 }
             }
             .font(.caption.weight(.semibold))
@@ -630,7 +630,8 @@ struct AudioOutputButton: View {
 
     var body: some View {
         ZStack {
-            Image(systemName: headphones ? "headphones" : "speaker.wave.2.fill")
+            // Headphones when they play the sound; otherwise the iPhone's own speaker.
+            Image(systemName: headphones ? "headphones" : "iphone.gen3.radiowaves.left.and.right")
                 .font(.title3).foregroundStyle(.blue)
             if headphones {
                 Circle().fill(.green).frame(width: 9, height: 9).offset(x: 13, y: -13).accessibilityHidden(true)
@@ -640,7 +641,7 @@ struct AudioOutputButton: View {
         .frame(width: 48, height: 48)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Audio output"))
-        .accessibilityValue(Text(headphones ? "Headphones" : "Speaker"))
+        .accessibilityValue(headphones ? Text("Headphones") : Text(verbatim: "iPhone"))
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("audio.output")
         .onAppear(perform: refresh)
