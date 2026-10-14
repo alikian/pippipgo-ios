@@ -8,7 +8,7 @@ import Translation
 // Apple services; nothing is sent to PipPipGo or an AI provider. Ask Pip still needs an account.
 
 enum GuestCategory: String, CaseIterable, Identifiable {
-    case restrooms, transit, groceries, food, hotels, pharmacy, cash, parking
+    case restrooms, transit, food, groceries, pharmacy, hotels, cash, gas, evCharging, parking
     var id: String { rawValue }
 
     var title: LocalizedStringKey {
@@ -20,6 +20,8 @@ enum GuestCategory: String, CaseIterable, Identifiable {
         case .hotels: "Hotels"
         case .pharmacy: "Pharmacy"
         case .cash: "Cash"
+        case .gas: "Gas"
+        case .evCharging: "EV charging"
         case .parking: "Parking"
         }
     }
@@ -33,6 +35,8 @@ enum GuestCategory: String, CaseIterable, Identifiable {
         case .hotels: "bed.double.fill"
         case .pharmacy: "pills.fill"
         case .cash: "banknote.fill"
+        case .gas: "fuelpump.fill"
+        case .evCharging: "ev.charger.fill"
         case .parking: "parkingsign"
         }
     }
@@ -46,6 +50,8 @@ enum GuestCategory: String, CaseIterable, Identifiable {
         case .hotels: .purple
         case .pharmacy: .green
         case .cash: .teal
+        case .gas: Color(red: 0.55, green: 0.36, blue: 0.18)
+        case .evCharging: Color(red: 0.1, green: 0.5, blue: 0.2)
         case .parking: Color(red: 0.0, green: 0.42, blue: 0.85)
         }
     }
@@ -60,6 +66,8 @@ enum GuestCategory: String, CaseIterable, Identifiable {
         case .hotels: "hotel"
         case .pharmacy: "pharmacy"
         case .cash: "ATM"
+        case .gas: "gas station"
+        case .evCharging: "EV charging station"
         case .parking: "parking"
         }
     }
@@ -73,6 +81,8 @@ enum GuestCategory: String, CaseIterable, Identifiable {
         case .hotels: [.hotel]
         case .pharmacy: [.pharmacy]
         case .cash: [.atm, .bank]
+        case .gas: [.gasStation]
+        case .evCharging: [.evCharger]
         case .parking: [.parking]
         }
     }
@@ -339,16 +349,17 @@ struct NearbyFinder: View {
             if model.locationDenied {
                 Text("Allow location access to find places near you.").font(.callout).foregroundStyle(.secondary)
             }
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 5), spacing: 10) {
                 ForEach(GuestCategory.allCases) { category in
                     Button { model.search(category); selected = nil } label: {
                         VStack(spacing: 6) {
-                            Image(systemName: category.symbol).font(.title3).foregroundStyle(.white)
-                                .frame(width: 52, height: 52).background(category.tint, in: Circle())
-                            Text(category.title).font(.caption).foregroundStyle(.primary)
-                                .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.8)
+                            Image(systemName: category.symbol).font(.body.weight(.semibold)).foregroundStyle(.white)
+                                .frame(width: 46, height: 46).background(category.tint, in: Circle())
+                            Text(category.title).font(.caption2).foregroundStyle(.primary)
+                                .lineLimit(1).minimumScaleFactor(0.6)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 80)
+                        .frame(maxWidth: .infinity, minHeight: 66)
+                        .accessibilityElement(children: .combine)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("guest.category.\(category.rawValue)")
