@@ -1025,7 +1025,23 @@ struct LiveGuideTab: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("map.search")
             Button(action: startVoice) {
-                Image(systemName: "mic.fill").font(.title3).foregroundStyle(.blue).frame(width: 40, height: 40)
+                TimelineView(.periodic(from: .now, by: 0.3)) { _ in
+                    Group {
+                        switch PipVoicePhase(chat.voice) {
+                        case .none:
+                            Image(systemName: "mic.fill").foregroundStyle(.blue)
+                        case .speaking?:
+                            Image(systemName: "waveform").foregroundStyle(.blue)
+                                .symbolEffect(.variableColor.iterative, isActive: true)
+                        case .listening?:
+                            Image(systemName: "mic.fill").foregroundStyle(.green)
+                                .symbolEffect(.pulse, isActive: true)
+                        default:
+                            ProgressView()
+                        }
+                    }
+                    .font(.title3).frame(width: 40, height: 40)
+                }
             }
             .accessibilityLabel(Text("Ask Pip"))
             .accessibilityIdentifier("map.askPip")

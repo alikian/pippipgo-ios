@@ -600,8 +600,7 @@ struct PipPanel: View {
             if let error = voice.error {
                 Text(LocalizedStringKey(error)).font(.footnote).foregroundStyle(.red)
             } else if voice.active {
-                Label(LocalizedStringKey(voice.connected ? (voice.microphoneReceiving ? "Listening — you can speak naturally" : "Starting microphone…") : "Connecting…"), systemImage: "waveform")
-                    .font(.footnote).foregroundStyle(.secondary)
+                PipVoiceStatus(voice: voice)
             }
             Button {
                 if voice.active { voice.stop() } else { chat.liveGuide.toggleConversation() }
@@ -614,6 +613,64 @@ struct PipPanel: View {
             .tint(voice.active ? Color(red: 0.75, green: 0.15, blue: 0.12) : .blue)
             .disabled(chat.translator.active)
             .accessibilityIdentifier("pip.start")
+        }
+    }
+}
+
+/// What Pip is doing right now, from the moment Ask Pip is pressed, so nobody talks too early.
+enum PipVoicePhase: Equatable {
+    case locating, connecting, startingMicrophone, speaking, thinking, listening
+
+    @MainActor init?(_ voice: LiveVoiceStore) {
+        guard voice.active else { return nil }
+        if voice.capturingLocation { self = .locating }
+        else if !voice.connected { self = .connecting }
+        else if !voice.microphoneReceiving { self = .startingMicrophone }
+        else if voice.waitingForWelcome || voice.isPlayingResponse { self = .speaking }
+        else if voice.lookingUp { self = .thinking }
+        else { self = .listening }
+    }
+
+    var message: LocalizedStringKey {
+        switch self {
+        case .locating: "Finding your location…"
+        case .connecting: "Connecting…"
+        case .startingMicrophone: "Starting microphone…"
+        case .speaking: "Pip is speaking…"
+        case .thinking: "Pip is thinking…"
+        case .listening: "Listening — you can speak naturally"
+        }
+    }
+}
+
+/// A large, clear status row: a spinner while getting ready, a moving wave while Pip speaks,
+/// and a green microphone when it is the traveller's turn.
+struct PipVoiceStatus: View {
+    let voice: LiveVoiceStore
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.3)) { _ in
+            if let phase = PipVoicePhase(voice) {
+                HStack(spacing: 10) {
+                    switch phase {
+                    case .speaking:
+                        Image(systemName: "waveform").foregroundStyle(.blue)
+                            .symbolEffect(.variableColor.iterative, isActive: true)
+                    case .listening:
+                        Image(systemName: "mic.fill").foregroundStyle(.green)
+                            .symbolEffect(.pulse, isActive: true)
+                    default:
+                        ProgressView()
+                    }
+                    Text(phase.message).font(.headline)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .background(Color.secondary.opacity(0.12), in: Capsule())
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.updatesFrequently)
+                .accessibilityIdentifier("pip.status")
+            }
         }
     }
 }
