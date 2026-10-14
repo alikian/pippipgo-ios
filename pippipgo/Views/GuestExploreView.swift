@@ -244,6 +244,9 @@ struct GuestExploreView: View {
     @State private var pinSelection: NearbyPlace.ID?
     @State private var askingToSignIn = false
     @State private var translating = false
+    /// Shown once per device before a guest uses the map; bump to show a changed notice again.
+    @AppStorage("pip.guestNoticeVersion") private var noticeSeen = 0
+    static let noticeVersion = 1
     @State private var collapsed = ProcessInfo.processInfo.arguments.contains("-PipPanelCollapsed") && GuestExploreView.debug
     @Namespace private var mapScope
     @Environment(\.scenePhase) private var scenePhase
@@ -316,6 +319,9 @@ struct GuestExploreView: View {
             Text("Pip answers your questions using your profile and AI. Sign in to continue.")
         }
         .sheet(isPresented: $translating) { GuestTranslateSheet() }
+        .sheet(isPresented: Binding(get: { noticeSeen < Self.noticeVersion }, set: { _ in })) {
+            GuestNoticeView { noticeSeen = Self.noticeVersion }
+        }
     }
 
     /// Apple Maps-style stack: translate, language and the system location button.
@@ -384,6 +390,31 @@ struct GuestExploreView: View {
             UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
                 .fill(.bar).ignoresSafeArea(edges: .bottom)
         }
+    }
+}
+
+/// What guests agree to before exploring: privacy (Apple only, nothing sent to us) and safety.
+struct GuestNoticeView: View {
+    let accept: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Before you explore").font(.title2.bold())
+            Label("Uses Apple Maps on your iPhone. Nothing here is sent to PipPipGo.", systemImage: "lock.shield")
+            Label("Places, opening hours and directions come from Apple Maps and may be out of date. Check important details, and in an emergency call your local emergency number.", systemImage: "exclamationmark.triangle")
+            Link("Privacy policy", destination: URL(string: "https://pippipgo.com/privacy")!)
+                .accessibilityIdentifier("guestNotice.privacy")
+            Spacer(minLength: 0)
+            Button(action: accept) {
+                Text("Continue").font(.headline).frame(maxWidth: .infinity, minHeight: 50)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .accessibilityIdentifier("guestNotice.continue")
+        }
+        .padding(24)
+        .presentationDetents([.medium, .large])
+        .interactiveDismissDisabled()
     }
 }
 

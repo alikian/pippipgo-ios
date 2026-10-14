@@ -69816,6 +69816,270 @@
           }
         }
       }
+    },
+    "Before you explore" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قبل أن تستكشف"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before you explore"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antes de explorar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیش از شروع"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bago ka mag-explore"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bago ka mag-explore"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avant d’explorer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prima di esplorare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ご利用の前に"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "둘러보기 전에"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перед началом"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keşfetmeden önce"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trước khi khám phá"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始探索之前"
+          }
+        }
+      }
+    },
+    "Privacy policy" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سياسة الخصوصية"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy policy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Política de privacidad"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سیاست حریم خصوصی"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patakaran sa privacy"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patakaran sa privacy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Politique de confidentialité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informativa sulla privacy"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개인정보 처리방침"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Политика конфиденциальности"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gizlilik politikası"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chính sách quyền riêng tư"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私政策"
+          }
+        }
+      }
+    },
+    "Places, opening hours and directions come from Apple Maps and may be out of date. Check important details, and in an emergency call your local emergency number." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تأتي الأماكن وساعات العمل والاتجاهات من خرائط Apple وقد لا تكون محدّثة. تحقّق من التفاصيل المهمة، وفي حالات الطوارئ اتصل برقم الطوارئ المحلي."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Places, opening hours and directions come from Apple Maps and may be out of date. Check important details, and in an emergency call your local emergency number."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los lugares, horarios y rutas proceden de Apple Maps y pueden no estar actualizados. Comprueba los datos importantes y, en una emergencia, llama al número de emergencias local."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مکان‌ها، ساعت کاری و مسیرها از Apple Maps می‌آیند و ممکن است به‌روز نباشند. جزئیات مهم را بررسی کنید و در شرایط اضطراری با شماره اورژانس محلی تماس بگیرید."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ang mga lugar, oras ng bukas at direksyon ay mula sa Apple Maps at maaaring hindi napapanahon. Suriin ang mahahalagang detalye, at kapag may emergency, tumawag sa lokal na emergency number."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ang mga lugar, oras ng bukas at direksyon ay mula sa Apple Maps at maaaring hindi napapanahon. Suriin ang mahahalagang detalye, at kapag may emergency, tumawag sa lokal na emergency number."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les lieux, horaires et itinéraires proviennent de Plans d’Apple et peuvent ne pas être à jour. Vérifiez les informations importantes et, en cas d’urgence, appelez le numéro d’urgence local."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luoghi, orari e indicazioni provengono da Mappe di Apple e potrebbero non essere aggiornati. Verifica i dettagli importanti e, in caso di emergenza, chiama il numero di emergenza locale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所、営業時間、経路は Apple マップのもので、最新でない場合があります。重要な情報は確認し、緊急時は現地の緊急通報番号に電話してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "장소, 영업시간, 경로는 Apple 지도 정보이며 최신이 아닐 수 있습니다. 중요한 정보는 확인하고, 응급 상황에서는 현지 긴급 전화번호로 연락하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Места, часы работы и маршруты берутся из Apple Карт и могут быть неактуальны. Проверяйте важные сведения, а в экстренной ситуации звоните по местному номеру экстренных служб."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yerler, çalışma saatleri ve yol tarifleri Apple Haritalar'dan gelir ve güncel olmayabilir. Önemli ayrıntıları kontrol edin; acil bir durumda yerel acil numarayı arayın."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Địa điểm, giờ mở cửa và chỉ đường lấy từ Apple Maps và có thể chưa cập nhật. Hãy kiểm tra thông tin quan trọng và khi khẩn cấp, hãy gọi số khẩn cấp tại địa phương."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地点、营业时间和路线来自 Apple 地图，可能不是最新的。请核实重要信息；遇到紧急情况，请拨打当地紧急电话。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
