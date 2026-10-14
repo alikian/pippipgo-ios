@@ -75,23 +75,14 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
     ]
 }
 
-/// Live Translate inside the map's panel: notice for the other person, the two languages,
-/// live captions and one Start/Stop button. Same look as the rest of the app.
+/// The Translation tab's panel over the map: notice for the other person, the two languages,
+/// live captions and one Start/Stop button.
 struct InlineTranslationPanel: View {
     let store: LiveVoiceStore
-    let close: () -> Void
     private var pair: TranslationPair { store.mode.translation ?? .saved() }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label("Translate", systemImage: "character.bubble").font(.title3.weight(.bold))
-                Spacer()
-                Button(action: close) {
-                    Image(systemName: "xmark.circle.fill").font(.title2).foregroundStyle(.secondary)
-                }
-                .accessibilityLabel(Text("Close"))
-            }
             TranslationBystanderNotice(language: pair.theirs)
             TranslationLanguageBar(store: store).padding(.horizontal, -22)
             TranslationHeadphoneControl(store: store)

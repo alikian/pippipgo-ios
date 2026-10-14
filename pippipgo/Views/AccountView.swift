@@ -126,12 +126,13 @@ struct AISharingConsentView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("Allow sharing with OpenAI?").font(.title2.bold())
-                    Text("ai.sharing.details")
-                    Text("Pip can make mistakes. Check important details, and in an emergency call your local emergency number.").font(.callout)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Allow sharing with OpenAI?").font(.title3.bold())
+                    Text("ai.sharing.details").font(.footnote)
+                    Text("Pip can make mistakes. Check important details, and in an emergency call your local emergency number.").font(.footnote)
                     Link("Privacy policy", destination: URL(string: "https://pippipgo.com/privacy")!)
-                    Text("ai.sharing.acceptance").font(.callout)
+                        .font(.subheadline)
+                    Text("ai.sharing.acceptance").font(.footnote)
                     Button("Allow sharing with OpenAI") { consent.resolve(true) }
                         .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("aiConsent.allow")
@@ -140,7 +141,7 @@ struct AISharingConsentView: View {
                         .tint(.red)
                         .accessibilityIdentifier("aiConsent.deny")
                 }
-                .padding(24)
+                .padding(20)
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
             }

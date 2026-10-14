@@ -24,7 +24,7 @@ enum GuideChattiness: String, CaseIterable, Codable, Sendable, Identifiable {
 }
 
 /// The traveller's explicit choice stays stable when a car stops at a light.
-enum GuideTourMode: String, CaseIterable, Identifiable {
+enum GuideTourMode: String, CaseIterable, Identifiable, Hashable {
     case walking, driving
     var id: String { rawValue }
     var title: String { self == .walking ? "Walking tour" : "Driving tour" }

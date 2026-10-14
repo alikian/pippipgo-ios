@@ -139,26 +139,44 @@ final class OrganizerStore {
     }
 }
 
-enum AppTab: String, Hashable { case pip, guide, translate, profile }
-enum PipMode: String, Hashable { case chat, voice }
+enum AppTab: String, Hashable, CaseIterable {
+    case pip, guide, translate, search
+    var title: String {
+        switch self {
+        case .pip: "Pip"
+        case .guide: "Guide"
+        case .translate: "Translation"
+        case .search: "Search"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .pip: "bubble.left.and.bubble.right.fill"
+        case .guide: "map.fill"
+        case .translate: "translate"
+        case .search: "magnifyingglass"
+        }
+    }
+}
 
-/// Signed-in shell: one tab per top-level destination. Editors are modal tasks owned here so
-/// every tab presents the same sheet and Siri voice launches know when a sheet is open.
+/// Signed-in shell: one map that stays on screen, the selected tab's name at the top, and a
+/// standard tab bar with Pip, Guide, Translation and Search. The traveler's picture opens
+/// Profile, where trips and companions are edited.
 struct TravelOrganizerView: View {
     @Bindable var store: OrganizerStore
     let chat: TravelChatStore
     var profilePictureURL: URL? = nil
     let signOut: () -> Void
     let deleteAccount: () -> Void
-    /// The tour map is home; Ask Pip chat, Translate and Profile open over it with a way back.
     @State private var tab = TravelOrganizerView.launchTab
-    @State private var pipMode = PipMode.voice
+    @State private var showingProfile = false
+    @State private var showingHistory = false
     @State private var editor: OrganizerEditorKind?
     @State private var reviewingTrip: OrganizerTrip?
-    @State private var voiceStartRequest: UUID?
+    @AppStorage("pip.language") private var language = "en"
     @Environment(\.scenePhase) private var scenePhase
 
-    /// Debug-only simulator review: `-PipHomeTab profile|pip|translate`.
+    /// Debug-only simulator review: `-PipHomeTab pip|guide|translate|search`.
     private static var launchTab: AppTab {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -168,85 +186,143 @@ struct TravelOrganizerView: View {
         return .guide
     }
 
-    private var backToMap: some View {
-        HStack {
-            Button { tab = .guide } label: {
-                Label("Map", systemImage: "chevron.backward").font(.headline)
-                    .frame(minHeight: 44).contentShape(Rectangle())
-            }
-            .accessibilityIdentifier("navigation.map")
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .background(PipAppearance.cream)
-    }
-
     var body: some View {
-        ZStack {
-            // Keep MapKit's drawable owner alive across navigation changes.
-            LiveGuideTab(guide: chat.liveGuide, translator: chat.translator,
-                         openProfile: { tab = .profile }, isVisible: tab == .guide,
-                         profileName: store.data.profile?.name, profilePhoto: profilePictureURL)
-                .allowsHitTesting(tab == .guide)
-                .accessibilityHidden(tab != .guide)
-            if tab != .guide {
-                VStack(spacing: 0) {
-                    backToMap
-                    Group {
-                        switch tab {
-                        case .pip:
-                            PipTab(chat: chat, organizer: store, mode: $pipMode,
-                                   reviewingTrip: $reviewingTrip, voiceStartRequest: $voiceStartRequest,
-                                   planTrip: { editor = .trip(UUID()) }, openTranslation: { tab = .translate },
-                                   isVisible: editor == nil && reviewingTrip == nil)
-                        case .translate:
-                            TranslateTab(store: chat.translator)
-                        case .profile:
-                            ProfileTab(store: store, chat: chat, location: chat.locationDisplay,
-                                       profilePictureURL: profilePictureURL, editor: $editor,
-                                       askPip: { tab = .guide }, signOut: signOut, deleteAccount: deleteAccount)
-                        case .guide:
-                            EmptyView()
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .background(PipAppearance.cream)
-            }
+        // The tab bar sits below the map, never over it, so panels end above the bar.
+        VStack(spacing: 0) {
+            home
+            AppTabBar(selection: $tab, language: language)
+                .overlay(alignment: .top) { Divider() }
+                .background(.bar, ignoresSafeAreaEdges: .bottom)
         }
         .tint(.blue)
         .task { if !store.loaded { await store.load() } }
-        .sheet(item: $editor) { kind in OrganizerEditor(store: store, kind: kind) }
+        .sheet(isPresented: $showingProfile) {
+            ProfileTab(store: store, chat: chat, location: chat.locationDisplay,
+                       profilePictureURL: profilePictureURL, editor: $editor,
+                       askPip: { showingProfile = false; tab = .pip }, close: { showingProfile = false },
+                       signOut: signOut, deleteAccount: deleteAccount)
+                .sheet(item: $editor) { kind in OrganizerEditor(store: store, kind: kind) }
+        }
+        .sheet(isPresented: $showingHistory) {
+            NavigationStack {
+                TravelChatView(store: chat, organizer: store, reviewingTrip: $reviewingTrip,
+                               showsComposer: false, fullHistory: true)
+                    .navigationTitle("Conversations")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingHistory = false } } }
+            }
+        }
         .onChange(of: TalkToPipLaunch.shared.requestID, initial: true) { _, _ in handleVoiceLaunch() }
         .onChange(of: scenePhase) { _, _ in handleVoiceLaunch() }
-        // A live session (billed while open) never carries over into or out of the Live Guide;
-        // there it starts only from the Talk button.
-        .onChange(of: tab) { old, new in
-            if chat.voice.active && (old == .guide || new == .guide) { chat.voice.stop() }
-        }
         .onChange(of: scenePhase, initial: true) { _, phase in
             chat.liveGuide.setForeground(phase == .active)
             if phase == .background { chat.liveGuide.useTTSInBackground() }
         }
-        .onChange(of: editor?.id) { _, _ in handleVoiceLaunch() }
-        .onChange(of: reviewingTrip?.id) { _, _ in handleVoiceLaunch() }
+        .onChange(of: showingProfile) { _, _ in handleVoiceLaunch() }
+        .onChange(of: showingHistory) { _, _ in handleVoiceLaunch() }
         .onChange(of: chat.busy) { _, _ in handleVoiceLaunch() }
         .onChange(of: chat.pending == nil) { _, _ in handleVoiceLaunch() }
         .onChange(of: chat.translator.active) { _, _ in handleVoiceLaunch() }
-        // The microphone is only ever live while the Talk to Pip page is on screen.
+        // A live (billed) session runs only while its own tab is selected.
+        .onChange(of: tab) { old, _ in
+            if old == .pip { chat.voice.stop() }
+            if old == .translate { chat.translator.stop() }
+        }
         .onChange(of: chat.voice.active) { _, active in
-            if active && !((tab == .pip && pipMode == .voice) || tab == .guide) { chat.voice.stop(clearCaptions: true) }
+            if active && tab != .pip { chat.voice.stop(clearCaptions: true) }
+            if !active { Task { await chat.loadGuide(refresh: true) } }
         }
     }
+
+    private var home: some View {
+        NavigationStack {
+            LiveGuideTab(guide: chat.liveGuide, chat: chat, tab: tab)
+                .navigationTitle(LocalizedStringKey(tab.title))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { showingProfile = true } label: {
+                            ProfileAvatar(name: store.data.profile?.name, photo: profilePictureURL, size: 32)
+                        }
+                        .accessibilityLabel(Text("Profile"))
+                        .accessibilityIdentifier("navigation.profile")
+                    }
+                    if tab == .pip {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { showingHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+                                .accessibilityLabel("Conversation history")
+                                .accessibilityIdentifier("pip.history")
+                        }
+                    }
+                }
+        }
+    }
+
     private func handleVoiceLaunch() {
-        guard let request = TalkToPipLaunch.shared.take(
+        guard TalkToPipLaunch.shared.take(
             isActive: scenePhase == .active,
-            blocked: editor != nil || reviewingTrip != nil || chat.busy || chat.pending != nil || chat.translator.active
-        ) else { return }
-        // "Talk to Pip" from Siri opens the conversation on the map, where Ask Pip lives.
-        _ = request
-        tab = .guide
+            blocked: showingProfile || showingHistory || chat.busy || chat.pending != nil || chat.translator.active
+        ) != nil else { return }
+        // "Talk to Pip" from Siri is an explicit request to start, so it opens Pip and starts.
+        tab = .pip
         if !chat.voice.active { chat.liveGuide.toggleConversation() }
+    }
+}
+
+/// The standard iOS tab bar. A UIKit bar is used because the map stays on screen under every
+/// tab, which a SwiftUI TabView (one page per tab) cannot do.
+struct AppTabBar: UIViewRepresentable {
+    @Binding var selection: AppTab
+    /// The in-app language; titles are re-read when it changes.
+    let language: String
+    @Environment(\.layoutDirection) private var layoutDirection
+
+    func makeCoordinator() -> Coordinator { Coordinator(selection: $selection) }
+
+    func makeUIView(context: Context) -> UITabBar {
+        let bar = UITabBar()
+        // SwiftUI draws the bar material so it continues behind the home indicator.
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        bar.standardAppearance = appearance
+        bar.scrollEdgeAppearance = appearance
+        bar.delegate = context.coordinator
+        bar.accessibilityIdentifier = "navigation.tabBar"
+        return bar
+    }
+
+    func updateUIView(_ bar: UITabBar, context: Context) {
+        context.coordinator.selection = $selection
+        bar.semanticContentAttribute = layoutDirection == .rightToLeft ? .forceRightToLeft : .forceLeftToRight
+        if context.coordinator.language != language || bar.items == nil {
+            context.coordinator.language = language
+            bar.items = AppTab.allCases.enumerated().map { index, tab in
+                let item = UITabBarItem(
+                    title: String(localized: String.LocalizationValue(tab.title), bundle: AppLanguage.currentBundle,
+                                  locale: AppLanguage.currentLocale),
+                    image: UIImage(systemName: tab.symbol), tag: index)
+                item.accessibilityIdentifier = "tab.\(tab.rawValue)"
+                return item
+            }
+        }
+        if let index = AppTab.allCases.firstIndex(of: selection), bar.selectedItem != bar.items?[index] {
+            bar.selectedItem = bar.items?[index]
+        }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITabBar, context: Context) -> CGSize? {
+        let width = proposal.width ?? UIView.layoutFittingExpandedSize.width
+        return CGSize(width: width, height: uiView.sizeThatFits(CGSize(width: width, height: 0)).height)
+    }
+
+    final class Coordinator: NSObject, UITabBarDelegate {
+        var selection: Binding<AppTab>
+        var language = ""
+        init(selection: Binding<AppTab>) { self.selection = selection }
+        func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+            selection.wrappedValue = AppTab.allCases[item.tag]
+        }
     }
 }
 
@@ -496,168 +572,46 @@ enum PipAppearance {
     static let secondary = Color(red: 94 / 255, green: 112 / 255, blue: 135 / 255)
 }
 
-/// One signed-in conversation surface, backed by the existing text and voice stores.
-struct PipTab: View {
-    @Bindable var chat: TravelChatStore
-    @Bindable var organizer: OrganizerStore
-    @Binding var mode: PipMode
-    @Binding var reviewingTrip: OrganizerTrip?
-    @Binding var voiceStartRequest: UUID?
-    let planTrip: () -> Void
-    let openTranslation: () -> Void
-    var isVisible = true
-    @State private var showingHistory = false
-    @State private var editingText = false
-    @State private var hasOpenedVoice = false
-    @State private var lastVoiceEntry: Date?
-    @Environment(\.scenePhase) private var scenePhase
+/// Pip's panel over the map. Nothing starts on its own: the live (billed) session begins only
+/// when the traveler taps Start, and ends with End or when they leave the tab.
+struct PipPanel: View {
+    let chat: TravelChatStore
+    var collapsed = false
+    private var voice: LiveVoiceStore { chat.voice }
 
     var body: some View {
-        NavigationStack {
-            GeometryReader { geometry in
-                VStack(spacing: 0) {
-                    if !editingText {
-                        PipCompanionHero(compact: hasConversation, availableHeight: geometry.size.height)
-                            .padding(.horizontal, 24)
-                    }
-                    if mode == .voice {
-                        LiveVoiceView(store: chat.voice, showsControls: false, companionStyle: true)
-                    } else {
-                        TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip,
-                                       name: organizer.data.profile?.name, showsComposer: false, companionStyle: true)
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            if !collapsed {
+                if voice.transcript.messages.isEmpty {
+                    Text("Hi, I’m Pip.").font(.title3.weight(.semibold))
+                    Text("Where are we going today?").foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .background(PipAppearance.cream.ignoresSafeArea())
-            .preferredColorScheme(.light)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    PipComposer(store: chat, beginTyping: {
-                        mode = .chat
-                    }, editingChanged: { editingText = $0 }, companionStyle: true) {
-                        editingText = false
-                        mode = .voice
-                        hasOpenedVoice = true
-                        lastVoiceEntry = Date()
-                        chat.voice.start()
-                    }
-                    // Trips, Translate and the Live Guide have their own tabs; no duplicate shortcuts.
-                    Color.clear.frame(height: 8)
-                }.background(PipAppearance.cream)
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    AppLanguageMenu()
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
-                        .accessibilityLabel("Conversation history")
-                        .accessibilityIdentifier("pip.history")
+                ForEach(voice.transcript.messages.suffix(3)) { message in
+                    Text(verbatim: message.text)
+                        .font(message.speaker == .pip ? .body.weight(.semibold) : .body)
+                        .foregroundStyle(message.speaker == .pip ? Color.primary : Color.secondary)
+                        .lineLimit(4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .toolbarBackground(PipAppearance.cream, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingHistory) {
-                NavigationStack {
-                    TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip,
-                                   showsComposer: false, fullHistory: true)
-                        .navigationTitle("Conversations")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingHistory = false } } }
-                }
+            if let error = voice.error {
+                Text(LocalizedStringKey(error)).font(.footnote).foregroundStyle(.red)
+            } else if voice.active {
+                Label(LocalizedStringKey(voice.connected ? (voice.microphoneReceiving ? "Listening — you can speak naturally" : "Starting microphone…") : "Connecting…"), systemImage: "waveform")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
-            .onChange(of: chat.voice.active) { _, active in
-                if !active && mode == .voice {
-                    Task { await chat.loadGuide(refresh: true) }
-                }
+            Button {
+                if voice.active { voice.stop() } else { chat.liveGuide.toggleConversation() }
+            } label: {
+                Label(voice.active ? "End" : "Ask Pip", systemImage: voice.active ? "stop.fill" : "mic.fill")
+                    .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
             }
-            .onChange(of: chat.busy) { _, busy in if !busy { startWelcomeIfDue() } }
-            .onChange(of: scenePhase, initial: true) { _, _ in startRequestedConversation() }
-            .onChange(of: voiceStartRequest) { _, _ in startRequestedConversation() }
-            .onChange(of: mode) { _, selected in
-                if selected == .voice, isVisible, scenePhase == .active {
-                    hasOpenedVoice = true
-                    chat.voice.start()
-                } else if selected == .chat { chat.voice.stop() }
-            }
-            .onChange(of: chat.composer) { _, text in
-                if !text.isEmpty { mode = .chat }
-            }
-            .task(id: isVisible && scenePhase == .active) {
-                guard isVisible, scenePhase == .active else { return }
-                await chat.loadGuide()
-                guard !Task.isCancelled, isVisible, scenePhase == .active else { return }
-                startWelcomeIfDue()
-                await chat.loadGuide(refresh: true)
-            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(voice.active ? Color(red: 0.75, green: 0.15, blue: 0.12) : .blue)
+            .disabled(chat.translator.active)
+            .accessibilityIdentifier("pip.start")
         }
-    }
-
-    private func startWelcomeIfDue() {
-        guard isVisible, scenePhase == .active, chat.loaded,
-              !chat.voice.active, !chat.translator.active, !editingText,
-              (mode == .voice && !hasOpenedVoice) || chat.guide?.welcome_due == true,
-              chat.pending == nil, !chat.busy, chat.composer.isEmpty,
-              lastVoiceEntry.map({ Date().timeIntervalSince($0) >= 1800 }) ?? true else { return }
-        lastVoiceEntry = Date()
-        hasOpenedVoice = true
-        mode = .voice
-        chat.beginVisit()
-        chat.voice.start()
-    }
-
-    private var hasConversation: Bool {
-        mode == .voice ? !chat.voice.transcript.messages.isEmpty : !chat.visibleMessages.isEmpty
-    }
-
-    private func suggestion(_ title: LocalizedStringKey, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Label(title, systemImage: icon).font(.caption.weight(.medium)).padding(.horizontal, 12).padding(.vertical, 10) }
-            .buttonStyle(.plain)
-            .foregroundStyle(PipAppearance.navy)
-            .background(.white.opacity(0.8), in: Capsule())
-            .frame(minHeight: 44)
-    }
-
-    private func startRequestedConversation() {
-        guard scenePhase == .active, voiceStartRequest != nil else { return }
-        voiceStartRequest = nil
-        lastVoiceEntry = Date()
-        hasOpenedVoice = true
-        mode = .voice
-        chat.voice.start()
-    }
-}
-
-/// Shared approved artwork, framed in the UI without changing the source image.
-private struct PipCompanionHero: View {
-    var compact: Bool
-    var availableHeight: CGFloat
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    var body: some View {
-        VStack(spacing: compact ? 4 : 10) {
-            PipWelcomeArtwork()
-                .frame(width: imageWidth, height: imageWidth * 700 / 851)
-                .clipShape(RoundedRectangle(cornerRadius: 32))
-            Text("Hi, I’m Pip.")
-                .font(compact ? .title3.weight(.semibold) : .largeTitle.weight(.semibold))
-                .foregroundStyle(PipAppearance.navy)
-            if !compact {
-                Text("Where are we going today?")
-                    .font(.title3).foregroundStyle(PipAppearance.secondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .padding(.top, compact ? 4 : 12)
-        .padding(.bottom, 8)
-    }
-
-    private var imageWidth: CGFloat {
-        if typeSize.isAccessibilitySize { return compact ? 60 : 100 }
-        return compact ? 100 : min(300, max(130, availableHeight * 0.56))
     }
 }
 
@@ -671,6 +625,7 @@ struct ProfileTab: View {
     var profilePictureURL: URL? = nil
     @Binding var editor: OrganizerEditorKind?
     let askPip: () -> Void
+    let close: () -> Void
     let signOut: () -> Void
     let deleteAccount: () -> Void
     @State private var confirmSignOut = false
@@ -730,6 +685,11 @@ struct ProfileTab: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { AppLanguageMenu() }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close", systemImage: "xmark", action: close)
+                        .labelStyle(.iconOnly)
+                        .accessibilityIdentifier("profile.close")
+                }
             }
             .toolbarBackground(PipAppearance.cream, for: .navigationBar)
             .navigationDestination(item: $destination) { destination in

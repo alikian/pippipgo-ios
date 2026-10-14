@@ -1,0 +1,2 @@
+PipPipGo App Store listing screenshots — October 13, 2026
+Native iPhone 16 Pro/iOS 18.6 captures of current SwiftUI views, using an isolated com.pippipgo.screenshots capture app and fictional local data. Shipping source and real accounts were not changed. No backend or OpenAI calls, no live audio recording, and no real location data were used. Tour Guide capture shows its idle state. Capture-only entry bypasses authentication and the consent gate to show feature screens; this is not review evidence for those flows. Confirm UI parity with the submitted build before uploading.
