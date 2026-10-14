@@ -244,7 +244,22 @@ struct TravelOrganizerView: View {
                      },
                      openProfile: { showingProfile = true },
                      openHistory: { showingHistory = true },
-                     profileName: store.data.profile?.name, profilePhoto: profilePictureURL)
+                     profileName: store.data.profile?.name, profilePhoto: profilePictureURL,
+                     hotel: currentHotel)
+    }
+
+    /// The stay covering today, or the next one within 30 days, from the saved trips.
+    private var currentHotel: TripHotel? {
+        let today = Calendar.current.startOfDay(for: Date())
+        let stays = store.data.trips.flatMap(\.stops).compactMap { stop -> (TripHotel, Date, Date)? in
+            let name = stop.hotel.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty, let start = OrganizerDay.date(stop.check_in) ?? OrganizerDay.date(stop.arrival) else { return nil }
+            let end = OrganizerDay.date(stop.check_out) ?? OrganizerDay.date(stop.departure) ?? start
+            return (TripHotel(name: name, address: stop.hotel_address), start, end)
+        }
+        if let now = stays.first(where: { $0.1 <= today && today <= $0.2 }) { return now.0 }
+        return stays.filter { $0.1 > today && $0.1.timeIntervalSince(today) < 30 * 86_400 }
+            .min { $0.1 < $1.1 }?.0
     }
 
     private func handleVoiceLaunch() {

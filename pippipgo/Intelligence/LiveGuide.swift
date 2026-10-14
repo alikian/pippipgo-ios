@@ -710,6 +710,8 @@ struct LiveGuideTab: View {
     var openHistory: () -> Void = {}
     var profileName: String? = nil
     var profilePhoto: URL? = nil
+    /// Tonight's (or the next) hotel from Trips, shown on the map.
+    var hotel: TripHotel? = nil
     @State private var position: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     /// The first location fix after the app opens zooms to the traveler's neighbourhood.
     @State private var zoomedToStart = false
@@ -732,6 +734,11 @@ struct LiveGuideTab: View {
     @State private var picks: [PipPick] = []
     @State private var picksFetched: (location: CLLocation, at: Date)?
     @State private var selectedPick: PipPick?
+    @State private var hotelCoordinate: CLLocationCoordinate2D?
+    @State private var lastLocation: CLLocation?
+    /// "lat,lon,unix time" of where the car was left; forgotten after a day.
+    @AppStorage("pip.parking") private var parking = ""
+    @AppStorage("pip.mapSatellite") private var satellite = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
@@ -753,6 +760,14 @@ struct LiveGuideTab: View {
             }
             .onChange(of: tab) { _, _ in collapsed = false; syncNearby() }
             .onChange(of: scenePhase) { _, _ in syncNearby() }
+            // Driving, then walking: that is where the car was left.
+            .onChange(of: guide.motion) { old, new in
+                if old.isDriving, new == .walking { rememberParking() }
+            }
+            .onChange(of: guide.tourMode) { old, new in
+                if guide.enabled, old == .driving, new == .walking { rememberParking() }
+            }
+            .task(id: hotel) { await locateHotel() }
             .onChange(of: guide.enabled) { _, enabled in
                 if !enabled {
                     // Restore MapKit's continuous user tracking when the tour ends.
@@ -771,6 +786,13 @@ struct LiveGuideTab: View {
                 if let region = NearbyFinder.region(for: nearby) { withAnimation { position = .region(region) } }
             }
             #if DEBUG
+            // Simulator review: `-PipSampleMap` shows sample weather with air quality and a parked car.
+            .task {
+                guard ProcessInfo.processInfo.arguments.contains("-PipSampleMap") else { return }
+                weather = CurrentWeather(temperature_celsius: 24, condition: "CLEAR", description: "Sunny",
+                                         is_daytime: true, time_zone: nil, aqi: 72, aqi_category: "Good air quality")
+                parking = "32.9412,-117.2318,\(Date().timeIntervalSince1970)"
+            }
             // Simulator review: `-PipSamplePicks` shows sample picks without an account.
             .task {
                 guard ProcessInfo.processInfo.arguments.contains("-PipSamplePicks") else { return }
@@ -822,6 +844,7 @@ struct LiveGuideTab: View {
             guard location.horizontalAccuracy >= 0,
                   abs(location.timestamp.timeIntervalSinceNow) < 15,
                   CLLocationCoordinate2DIsValid(location.coordinate) else { return }
+            lastLocation = location
             refreshWeather(location)
             refreshPicks(location)
             if !zoomedToStart {
@@ -865,12 +888,19 @@ struct LiveGuideTab: View {
                        coordinate: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
                     .tint(place.tier == .mustSee ? .orange : .blue)
             }
+            // The traveller's own places show on every tab.
+            if let hotel, let hotelCoordinate {
+                Marker(hotel.name, systemImage: "bed.double.fill", coordinate: hotelCoordinate).tint(.indigo)
+            }
+            if let car = parkedCar {
+                Marker("You parked here", systemImage: "car.fill", coordinate: car.coordinate).tint(.blue)
+            }
+            if let pick = selectedPick {
+                Marker(pick.name, systemImage: "star.fill",
+                       coordinate: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude))
+                    .tint(.purple)
+            }
             if tab == .search {
-                if let pick = selectedPick {
-                    Marker(pick.name, systemImage: "star.fill",
-                           coordinate: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude))
-                        .tint(.purple)
-                }
                 ForEach(nearby.places) { place in
                     Marker(place.name, systemImage: nearby.category?.symbol ?? "mappin", coordinate: place.coordinate)
                         .tint(nearby.category?.tint ?? .red)
@@ -895,11 +925,58 @@ struct LiveGuideTab: View {
         .onMapCameraChange(frequency: .onEnd) { context in
             currentMapCamera = context.camera
         }
-        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .mapStyle(satellite ? .hybrid(pointsOfInterest: .excludingAll) : .standard(pointsOfInterest: .excludingAll))
         .safeAreaPadding(.top, max(0, topBarBottom - mapTop))
         // Full screen like Google Maps: the map runs up under the status bar.
         .ignoresSafeArea(edges: .top)
         .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { mapTop = $0 }
+    }
+
+    private var parkedCar: CLLocation? {
+        let parts = parking.split(separator: ",").compactMap { Double($0) }
+        guard parts.count == 3, Date().timeIntervalSince1970 - parts[2] < 86_400 else { return nil }
+        return CLLocation(latitude: parts[0], longitude: parts[1])
+    }
+
+    private func rememberParking() {
+        guard let location = lastLocation else { return }
+        parking = "\(location.coordinate.latitude),\(location.coordinate.longitude),\(Date().timeIntervalSince1970)"
+    }
+
+    /// "🚗 Car · 6 min": walking directions back to the car; hold to forget the spot.
+    private func parkingChip(_ car: CLLocation) -> some View {
+        let minutes = lastLocation.map { max(1, Int(($0.distance(from: car) / 80).rounded())) }
+        return Button {
+            let item = MKMapItem(placemark: MKPlacemark(coordinate: car.coordinate))
+            item.name = String(localized: "You parked here", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)
+            item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "car.fill").foregroundStyle(.blue)
+                Text("Car")
+                if let minutes {
+                    Text(Duration.seconds(minutes * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated)))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button("Forget parking spot", systemImage: "trash", role: .destructive) { parking = "" }
+        }
+        .accessibilityIdentifier("map.parking")
+    }
+
+    /// Finds the hotel's address with Apple Maps, on the phone.
+    private func locateHotel() async {
+        hotelCoordinate = nil
+        guard let hotel else { return }
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = [hotel.name, hotel.address].filter { !$0.isEmpty }.joined(separator: ", ")
+        hotelCoordinate = try? await MKLocalSearch(request: request).start().mapItems.first?.placemark.coordinate
     }
 
     /// Google Maps-style top: one floating search bar, category chips, then weather and the
@@ -913,7 +990,15 @@ struct LiveGuideTab: View {
             }
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { topBarBottom = $0 }
             HStack(alignment: .top) {
-                if let weather { WeatherChip(weather: weather) }
+                VStack(alignment: .leading, spacing: 8) {
+                    if let weather { WeatherChip(weather: weather) }
+                    if let car = parkedCar { parkingChip(car) }
+                    Button { satellite.toggle() } label: {
+                        Image(systemName: satellite ? "map" : "square.2.layers.3d").font(.title3).mapControlCircle()
+                    }
+                    .accessibilityLabel(Text("Map style"))
+                    .accessibilityIdentifier("map.style")
+                }
                 Spacer(minLength: 8)
                 floatingControls
             }
@@ -1332,6 +1417,14 @@ struct CurrentWeather: Decodable, Sendable, Equatable {
     let description: String?
     let is_daytime: Bool?
     let time_zone: String?
+    var aqi: Int? = nil
+    var aqi_category: String? = nil
+}
+
+/// Tonight's or the next hotel from the traveller's trips.
+struct TripHotel: Equatable, Hashable {
+    let name: String
+    let address: String
 }
 
 /// Apple Maps-style weather chip with temperature in local units.
@@ -1350,10 +1443,17 @@ struct WeatherChip: View {
                             .formatted(.measurement(width: .narrow, usage: .weather,
                                                     numberFormatStyle: .number.precision(.fractionLength(0)))))
                     }
+                    if let aqi = weather.aqi {
+                        // Universal AQI: higher is cleaner air.
+                        Circle().fill(aqi >= 60 ? Color.green : aqi >= 40 ? .yellow : aqi >= 20 ? .orange : .red)
+                            .frame(width: 8, height: 8).accessibilityHidden(true)
+                        Text(verbatim: "AQI \(aqi)").foregroundStyle(.secondary)
+                    }
                 }
                 .font(.subheadline.weight(.semibold))
                 if expanded {
                     if let description = weather.description { Text(verbatim: description).font(.caption) }
+                    if let category = weather.aqi_category { Text(verbatim: category).font(.caption) }
                     Text(verbatim: "Google Weather").font(.caption2).foregroundStyle(.secondary)
                 }
             }
