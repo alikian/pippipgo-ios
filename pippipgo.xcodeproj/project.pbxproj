@@ -45,6 +45,7 @@
 		ECAEF52020C52402613158E3 /* pippipgo/Authentication/OAuthCallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E4DC20534F270500B78BDD /* pippipgo/Authentication/OAuthCallback.swift */; };
 		EEFF00112233445566778800 /* pippipgoTests/ConversationContextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFF00112233445566778801 /* pippipgoTests/ConversationContextTests.swift */; };
 		EEFF00112233445566779900 /* pippipgoTests/LiveTranslationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFF00112233445566779901 /* pippipgoTests/LiveTranslationTests.swift */; };
+		AB10A0000000000000000001 /* pippipgoTests/NearbyRatingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10A0000000000000000002 /* pippipgoTests/NearbyRatingsTests.swift */; };
 		FE92C7C39C5007460E9702EA /* pippipgo/Intelligence/TravelerIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7432E3FE07086621256F7BE /* pippipgo/Intelligence/TravelerIntelligence.swift */; };
 /* End PBXBuildFile section */
 
@@ -104,6 +105,7 @@
 		E33000000000000000000002 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EEFF00112233445566778801 /* pippipgoTests/ConversationContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/ConversationContextTests.swift; sourceTree = SOURCE_ROOT; };
 		EEFF00112233445566779901 /* pippipgoTests/LiveTranslationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/LiveTranslationTests.swift; sourceTree = SOURCE_ROOT; };
+		AB10A0000000000000000002 /* pippipgoTests/NearbyRatingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/NearbyRatingsTests.swift; sourceTree = SOURCE_ROOT; };
 		F0FB40147CE94E8F6D0F626A /* pippipgo/Networking/APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Networking/APIClient.swift; sourceTree = SOURCE_ROOT; };
 		F7432E3FE07086621256F7BE /* pippipgo/Intelligence/TravelerIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/TravelerIntelligence.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -195,6 +197,7 @@
 				EEFF00112233445566778801 /* pippipgoTests/ConversationContextTests.swift */,
 				1A7E5C0D2B3F4A5B6C7D8E06 /* pippipgoTests/LiveGuideEngineTests.swift */,
 				EEFF00112233445566779901 /* pippipgoTests/LiveTranslationTests.swift */,
+				AB10A0000000000000000002 /* pippipgoTests/NearbyRatingsTests.swift */,
 				0DCF3D26A0C5089D31AC26BA /* pippipgoTests/APIClientTests.swift */,
 				29707B315ECB0F7B45832291 /* pippipgoTests/OAuthCallbackTests.swift */,
 				B54AE6BF7A17282BD9447BE2 /* pippipgoTests/TokenSetTests.swift */,
@@ -364,6 +367,7 @@
 				EEFF00112233445566778800 /* pippipgoTests/ConversationContextTests.swift in Sources */,
 				1A7E5C0D2B3F4A5B6C7D8E05 /* pippipgoTests/LiveGuideEngineTests.swift in Sources */,
 				EEFF00112233445566779900 /* pippipgoTests/LiveTranslationTests.swift in Sources */,
+				AB10A0000000000000000001 /* pippipgoTests/NearbyRatingsTests.swift in Sources */,
 				61CD483D2A54398A61F34769 /* pippipgoTests/APIClientTests.swift in Sources */,
 				13942DEE7CC5ED9161D3E70E /* pippipgoTests/OAuthCallbackTests.swift in Sources */,
 				9CE9C45DDE146537EF2B33C5 /* pippipgoTests/TokenSetTests.swift in Sources */,

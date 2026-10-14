@@ -244,6 +244,15 @@ final class LiveGuideStore {
         AppLanguage.selected(UserDefaults.standard.string(forKey: "pip.language") ?? "en").rawValue
     }
 
+    /// Live Google ratings for Find nearby (signed in only); nil when unavailable.
+    func placeRatings(category: GuestCategory, location: CLLocation, radius: CLLocationDistance) async -> [GooglePlaceRating]? {
+        let body = PlaceRatingsRequest(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
+                                       radius_meters: Int(min(25_000, max(50, radius))), category: category.rawValue,
+                                       language: language)
+        let response: PlaceRatingsResponse? = try? await client.send(.post(.placeRatings, body: body), using: authentication)
+        return response?.places
+    }
+
     // MARK: Lifecycle
 
     func setForeground(_ active: Bool) {
@@ -701,7 +710,12 @@ struct LiveGuideTab: View {
                         .padding(.horizontal, 72).padding(.top, 8)
                 }
             }
-            .onAppear { locateMapInitially() }
+            .onAppear {
+                locateMapInitially()
+                nearby.ratingsProvider = { [guide] category, location, radius in
+                    await guide.placeRatings(category: category, location: location, radius: radius)
+                }
+            }
             .onChange(of: guide.enabled) { _, enabled in
                 if !enabled {
                     // Restore MapKit's continuous user tracking when the tour ends.
@@ -846,6 +860,8 @@ struct LiveGuideTab: View {
                 }
                 AppLanguageMenu().frame(width: 48, height: 48)
                 Divider().frame(width: 48)
+                AudioOutputButton()
+                Divider().frame(width: 48)
                 Button { showSettings = true } label: {
                     Image(systemName: "gearshape").font(.title3).frame(width: 48, height: 48)
                 }
@@ -984,13 +1000,13 @@ struct LiveGuideTab: View {
     @ViewBuilder private var startStopButton: some View {
         if guide.enabled {
             Button(role: .destructive) { withAnimation(.spring) { guide.enabled = false } } label: {
-                Text("Stop").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                Text("Stop tour").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.bordered)
             .accessibilityIdentifier("liveGuide.enabled")
         } else {
             Button { withAnimation(.spring) { guide.enabled = true } } label: {
-                Text("Start").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                Text("Start tour").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.bordered)
             .tint(.blue)

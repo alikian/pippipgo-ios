@@ -1,3 +1,5 @@
+import AVFoundation
+import AVKit
 import CoreLocation
 import MapKit
 import SwiftUI
@@ -108,6 +110,9 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
     static let radii: [CLLocationDistance] = Locale.current.measurementSystem == .metric
         ? [1_000, 5_000, 25_000] : [804.672, 4_828.032, 24_140.16]
     private(set) var radius = NearbyPlacesModel.radii[0]
+    /// Google stars matched to Apple results; set only for signed-in travellers.
+    private(set) var ratings: [NearbyPlace.ID: GooglePlaceRating] = [:]
+    @ObservationIgnored var ratingsProvider: (@MainActor (GuestCategory, CLLocation, CLLocationDistance) async -> [GooglePlaceRating]?)?
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var searchID = UUID()
 
@@ -142,7 +147,7 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
 
     func clear() {
         searchID = UUID()
-        category = nil; places = []; searching = false; failed = false
+        category = nil; places = []; searching = false; failed = false; ratings = [:]
     }
 
     func setRadius(_ radius: CLLocationDistance) {
@@ -154,7 +159,7 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
     /// widens to the next distance (shown as selected), then tries a filtered plain-text search.
     func search(_ category: GuestCategory, widen: Bool = true) {
         let ticket = UUID(); searchID = ticket
-        self.category = category; places = []; failed = false
+        self.category = category; places = []; failed = false; ratings = [:]
         searching = true
         guard let location else {
             if manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
@@ -200,7 +205,32 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
                 .prefix(15).map { $0 }
             failed = places.isEmpty && errors == attempts
             searching = false
+            if let ratingsProvider, !places.isEmpty,
+               let google = await ratingsProvider(category, location, used), searchID == ticket {
+                ratings = Self.match(places, google)
+            }
         }
+    }
+
+    /// Pairs Apple results with Google ratings: very close, or nearby with a similar name.
+    static func match(_ places: [NearbyPlace], _ google: [GooglePlaceRating]) -> [NearbyPlace.ID: GooglePlaceRating] {
+        func words(_ name: String) -> Set<String> {
+            Set(name.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { $0.count > 2 })
+        }
+        var result: [NearbyPlace.ID: GooglePlaceRating] = [:]
+        for place in places {
+            let here = CLLocation(latitude: place.coordinate.latitude, longitude: place.coordinate.longitude)
+            let mine = words(place.name)
+            let best = google
+                .filter { $0.rating != nil }
+                .map { ($0, here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude))) }
+                .filter { candidate, distance in
+                    distance < 40 || (distance < 150 && !mine.isDisjoint(with: words(candidate.name)))
+                }
+                .min { $0.1 < $1.1 }
+            if let best { result[place.id] = best.0 }
+        }
+        return result
     }
 }
 
@@ -300,6 +330,8 @@ struct GuestExploreView: View {
                     Divider().frame(width: 48)
                 }
                 AppLanguageMenu().frame(width: 48, height: 48)
+                Divider().frame(width: 48)
+                AudioOutputButton()
             }
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             MapUserLocationButton(scope: mapScope)
@@ -433,7 +465,10 @@ struct NearbyFinder: View {
                                 focus(place)
                             } label: {
                                 HStack {
-                                    Text(verbatim: place.name).font(.body).foregroundStyle(.primary).lineLimit(2)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(verbatim: place.name).font(.body).foregroundStyle(.primary).lineLimit(2)
+                                        if let rating = model.ratings[place.id] { StarRating(rating: rating) }
+                                    }
                                     Spacer(minLength: 8)
                                     Text(NearbyFinder.distance(place.distance)).font(.callout).foregroundStyle(.secondary)
                                 }
@@ -446,6 +481,9 @@ struct NearbyFinder: View {
                     }
                 }
                 .frame(maxHeight: 260)
+                if !model.ratings.isEmpty {
+                    Text("Ratings from Google Maps.").font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -475,6 +513,7 @@ struct NearbyFinder: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(verbatim: place.name).font(.title2.weight(.bold))
+                    if let rating = model.ratings[place.id] { StarRating(rating: rating) }
                     Text(NearbyFinder.distance(place.distance)).font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -542,6 +581,89 @@ struct NearbyFinder: View {
         return Measurement(value: value, unit: unit).formatted(
             .measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(0...1))))
     }
+}
+
+struct PlaceRatingsRequest: Encodable, Sendable {
+    let latitude: Double
+    let longitude: Double
+    let radius_meters: Int
+    let category: String
+    let language: String
+}
+
+struct GooglePlaceRating: Decodable, Sendable, Equatable {
+    let id: String
+    let name: String
+    let latitude: Double
+    let longitude: Double
+    let rating: Double?
+    let user_rating_count: Int?
+    let google_maps_uri: String?
+}
+
+struct PlaceRatingsResponse: Decodable, Sendable {
+    let places: [GooglePlaceRating]
+}
+
+/// "★ 4.3 (1,234)"
+struct StarRating: View {
+    let rating: GooglePlaceRating
+
+    var body: some View {
+        if let stars = rating.rating {
+            HStack(spacing: 3) {
+                Image(systemName: "star.fill").foregroundStyle(.orange).accessibilityHidden(true)
+                Text(stars.formatted(.number.precision(.fractionLength(1)))).foregroundStyle(.primary)
+                if let count = rating.user_rating_count {
+                    Text("(\(count.formatted()))").foregroundStyle(.secondary)
+                }
+            }
+            .font(.caption.weight(.semibold))
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
+
+/// Headphones or speaker: opens Apple's audio output picker. Green dot only when headphones play.
+struct AudioOutputButton: View {
+    @State private var headphones = false
+
+    var body: some View {
+        ZStack {
+            Image(systemName: headphones ? "headphones" : "speaker.wave.2.fill")
+                .font(.title3).foregroundStyle(.blue)
+            if headphones {
+                Circle().fill(.green).frame(width: 9, height: 9).offset(x: 13, y: -13).accessibilityHidden(true)
+            }
+            SystemRoutePicker().frame(width: 48, height: 48)
+        }
+        .frame(width: 48, height: 48)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Audio output"))
+        .accessibilityValue(Text(headphones ? "Headphones" : "Speaker"))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("audio.output")
+        .onAppear(perform: refresh)
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in refresh() }
+    }
+
+    private func refresh() {
+        let ports = AVAudioSession.sharedInstance().currentRoute.outputs.map(\.portType)
+        headphones = TranslationHeadphoneControl.hasHeadphoneOutput(ports)
+    }
+}
+
+/// Apple's own picker, transparent over our icon so it keeps the system menu.
+private struct SystemRoutePicker: UIViewRepresentable {
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let picker = AVRoutePickerView()
+        picker.tintColor = .clear
+        picker.activeTintColor = .clear
+        picker.prioritizesVideoDevices = false
+        return picker
+    }
+
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
 
 /// Presents Apple's place card where the system offers it (iOS 18 and later).
