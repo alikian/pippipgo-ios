@@ -258,3 +258,9 @@ Local backend restarted and readiness passed. Hosted Dev/Prod deployment remains
 ## October 11 — speed-based driving lead
 
 City driving and highway announcements now use the existing 15-second median GPS speed multiplied by a 45-second lookahead (estimated 40-second TTS plus five-second lead). At 25 mph, reach is 503 m. This is an estimate before generation, not measured audio duration or routed arrival time. Existing forward-direction, corridor, tier and speech-budget rules remain. Walking thresholds and discovery radii are unchanged. No Dev/Prod backend deployment required; iOS rebuild and live driving acceptance pending.
+
+## October 13 — MapKit drawable lifecycle mitigation
+
+Physical-device Xcode console showed a fatal Metal validation assertion for a CAMetalLayer display drawable released while still referenced by a command buffer. Earlier logs included conflicting MapKit height constraints and repeated failed drawable acquisition. Exact root cause is not proven. Removed whole-map identity changes on tour-mode selection; retained annotation identity updates. Bottom panel now overlays the map rather than changing its drawable height. Signed-in navigation retains the map beneath opaque secondary screens, while hiding its accessibility/input and stopping its foreground location/discovery feeds when not visible. Active tour background feed remains separate.
+
+Swift syntax and diff checks passed. Physical-device reproduction, simulator runtime and signed build remain pending; validation is not disabled. No backend deployment required.

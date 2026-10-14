@@ -704,6 +704,9 @@ struct LiveGuideTab: View {
     @State private var finding = false
     @State private var collapsed = false
     @State private var translating = false
+    /// Height of the floating panel, so the map keeps Apple's attribution and results above it
+    /// without resizing the map's drawable.
+    @State private var panelHeight: CGFloat = 0
     @State private var selectedPlace: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
@@ -713,7 +716,11 @@ struct LiveGuideTab: View {
 
     var body: some View {
         map
-            .overlay(alignment: .bottom) { panel.frame(maxWidth: 560) }
+            .safeAreaPadding(.bottom, panelHeight)
+            .overlay(alignment: .bottom) {
+                panel.frame(maxWidth: 560)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { panelHeight = $0 }
+            }
             .overlay(alignment: .topLeading) { profileButton }
             .overlay(alignment: .topTrailing) { floatingControls }
             .overlay(alignment: .leading) { tourButtons.padding(.leading, 12) }
@@ -730,7 +737,10 @@ struct LiveGuideTab: View {
                 }
             }
             .onChange(of: isVisible) { _, visible in
-                if visible { locateMapInitially() }
+                if visible {
+                    locateMapInitially()
+                    if finding { nearby.start() }
+                }
                 else {
                     mapLocationFeed?.stop()
                     mapLocationFeed = nil
