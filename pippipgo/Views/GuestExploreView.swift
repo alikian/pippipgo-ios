@@ -357,13 +357,15 @@ struct GuestExploreView: View {
                 Text(LocalizedStringKey(errorMessage)).font(.callout).foregroundStyle(.red)
             }
             Button { askingToSignIn = true } label: {
-                Label("Ask Pip", systemImage: "hand.raised.fill")
-                    .font(.title3.weight(.bold))
-                    .frame(maxWidth: .infinity, minHeight: 52)
+                HStack(spacing: 12) {
+                    Image(systemName: "mic.fill").font(.title2.weight(.bold)).foregroundStyle(.white)
+                        .frame(width: 56, height: 56).background(.blue, in: Circle())
+                    Text("Ask Pip").font(.headline).foregroundStyle(.primary)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .tint(.blue)
+            .buttonStyle(.plain)
             .accessibilityIdentifier("guest.askPip")
 
             if !collapsed {
@@ -395,18 +397,20 @@ struct PanelHandle: View {
     @Binding var collapsed: Bool
 
     var body: some View {
-        Button { withAnimation(.snappy) { collapsed.toggle() } } label: {
-            Capsule().fill(Color.secondary.opacity(0.5)).frame(width: 40, height: 5)
-                .frame(maxWidth: .infinity, minHeight: 24)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .simultaneousGesture(DragGesture(minimumDistance: 12).onEnded { drag in
-            if drag.translation.height > 30 { withAnimation(.snappy) { collapsed = true } }
-            if drag.translation.height < -30 { withAnimation(.snappy) { collapsed = false } }
-        })
-        .accessibilityLabel(Text(collapsed ? "Show more" : "Show less"))
-        .accessibilityIdentifier("panel.handle")
+        Capsule().fill(Color.secondary.opacity(0.6)).frame(width: 44, height: 6)
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .contentShape(Rectangle())
+            .onTapGesture { withAnimation(.snappy) { collapsed.toggle() } }
+            .highPriorityGesture(DragGesture(minimumDistance: 8).onEnded { drag in
+                if drag.translation.height > 20 { withAnimation(.snappy) { collapsed = true } }
+                if drag.translation.height < -20 { withAnimation(.snappy) { collapsed = false } }
+            })
+            .padding(.top, -8)
+            .accessibilityElement()
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(Text(collapsed ? "Show more" : "Show less"))
+            .accessibilityAction { withAnimation(.snappy) { collapsed.toggle() } }
+            .accessibilityIdentifier("panel.handle")
     }
 }
 
@@ -496,7 +500,20 @@ struct NearbyFinder: View {
                 Button("Try again") { model.search(category) }
                     .buttonStyle(.bordered)
             } else {
-                ScrollView {
+                if model.places.count <= 4 {
+                    resultRows
+                } else {
+                    ScrollView { resultRows }.frame(height: 260)
+                }
+                if !model.ratings.isEmpty {
+                    Text("Ratings from Google Maps.").font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    /// Short lists take only the room they need; long ones scroll.
+    private var resultRows: some View {
                     VStack(spacing: 0) {
                         ForEach(model.places) { place in
                             Button {
@@ -518,13 +535,6 @@ struct NearbyFinder: View {
                             Divider()
                         }
                     }
-                }
-                .frame(maxHeight: 260)
-                if !model.ratings.isEmpty {
-                    Text("Ratings from Google Maps.").font(.caption2).foregroundStyle(.secondary)
-                }
-            }
-        }
     }
 
     /// Within ½ mi · 3 mi · 15 mi (1 · 5 · 25 km): how far the traveler is willing to go.

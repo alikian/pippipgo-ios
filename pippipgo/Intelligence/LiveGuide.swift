@@ -853,7 +853,8 @@ struct LiveGuideTab: View {
         Task { if let current = await guide.currentWeather(at: location) { weather = current } }
     }
 
-    @ViewBuilder private var profileButton: some View {
+    private var profileButton: some View {
+        VStack(alignment: .leading, spacing: 8) {
         if let openProfile {
             Button(action: openProfile) {
                 Image(systemName: "person.crop.circle.fill").font(.title2)
@@ -862,11 +863,10 @@ struct LiveGuideTab: View {
             }
             .accessibilityLabel(Text("Profile"))
             .accessibilityIdentifier("navigation.profile")
-            .padding(.leading, 12).padding(.top, 8)
         }
-        if let weather {
-            WeatherChip(weather: weather).padding(.leading, 12).padding(.top, 64)
+        if let weather { WeatherChip(weather: weather) }
         }
+        .padding(.leading, 12).padding(.top, 8)
     }
 
     /// Apple Maps-style floating buttons.
@@ -945,30 +945,34 @@ struct LiveGuideTab: View {
                 LiveGuideMentionView(mention: mention, guide: guide)
             }
 
+            // Main row: ask Pip (microphone), start the tour (the main feature), search.
             HStack(spacing: 10) {
                 askPipButton
-                if let openChat {
-                    circleButton("keyboard", label: "Type to Pip", identifier: "navigation.pip", action: openChat)
-                }
+                startStopButton
                 circleButton(finding ? "xmark" : "magnifyingglass", label: finding ? "Close" : "Search places",
                              identifier: "liveGuide.findNearby") {
                     withAnimation { finding.toggle(); if finding { collapsed = false } }
                 }
             }
 
-            TimelineView(.periodic(from: .now, by: 0.5)) { _ in
-                HStack(spacing: 8) {
-                    HStack(spacing: 4) { modeIcons }
-                        .padding(3)
-                        .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
-                    if guide.enabled, guide.announcementSpeaking, !guide.talking {
-                        Button { guide.skipAnnouncement() } label: {
-                            Image(systemName: "forward.end.fill").frame(width: 44, height: 44)
+            if !collapsed {
+                TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+                    HStack(spacing: 8) {
+                        HStack(spacing: 4) { modeIcons }
+                            .padding(3)
+                            .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                        Spacer(minLength: 0)
+                        if guide.enabled, guide.announcementSpeaking, !guide.talking {
+                            Button { guide.skipAnnouncement() } label: {
+                                Image(systemName: "forward.end.fill").frame(width: 44, height: 44)
+                            }
+                            .accessibilityLabel(Text("Skip announcement"))
+                            .accessibilityIdentifier("liveGuide.skipAnnouncement")
                         }
-                        .accessibilityLabel(Text("Skip announcement"))
-                        .accessibilityIdentifier("liveGuide.skipAnnouncement")
+                        if let openChat {
+                            circleButton("keyboard", label: "Type to Pip", identifier: "navigation.pip", action: openChat)
+                        }
                     }
-                    startStopButton
                 }
             }
         }
@@ -998,20 +1002,18 @@ struct LiveGuideTab: View {
         }
     }
 
-    /// The one blue button everywhere: raise your hand to ask Pip, with the guide's context.
+    /// Ask Pip: a round blue microphone, with the guide's context. Green while Pip listens.
     private var askPipButton: some View {
         Button { guide.toggleConversation() } label: {
-            Label {
-                Text(guide.talking ? "Listening… tap to end" : "Ask Pip").lineLimit(1).minimumScaleFactor(0.7)
-            } icon: {
-                Image(systemName: "hand.raised.fill").symbolEffect(.variableColor.iterative, isActive: guide.listening)
-            }
-            .font(.title3.weight(.bold))
-            .frame(maxWidth: .infinity, minHeight: 52)
+            Image(systemName: "mic.fill")
+                .font(.title2.weight(.bold)).foregroundStyle(.white)
+                .symbolEffect(.variableColor.iterative, isActive: guide.listening)
+                .frame(width: 56, height: 56)
+                .background(guide.talking ? Color(red: 0, green: 0.45, blue: 0.2) : .blue, in: Circle())
+                .shadow(color: .blue.opacity(0.3), radius: 6, y: 2)
         }
-        .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.capsule)
-        .tint(guide.talking ? Color(red: 0, green: 0.45, blue: 0.2) : .blue)
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(guide.talking ? "Listening… tap to end" : "Ask Pip"))
         .accessibilityIdentifier("liveGuide.talk")
     }
 
@@ -1030,16 +1032,22 @@ struct LiveGuideTab: View {
     @ViewBuilder private var startStopButton: some View {
         if guide.enabled {
             Button(role: .destructive) { withAnimation(.spring) { guide.enabled = false } } label: {
-                Text("Stop tour").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                Label("Stop tour", systemImage: "stop.fill").font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 48)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(Color(red: 0.75, green: 0.15, blue: 0.12))
             .accessibilityIdentifier("liveGuide.enabled")
         } else {
+            // The main feature: solid green "go", white text for strong contrast.
             Button { withAnimation(.spring) { guide.enabled = true } } label: {
-                Text("Start tour").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+                Label("Start tour", systemImage: "play.fill").font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 48)
             }
-            .buttonStyle(.bordered)
-            .tint(.blue)
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(Color(red: 0.0, green: 0.5, blue: 0.25))
             .accessibilityIdentifier("liveGuide.enabled")
         }
     }
