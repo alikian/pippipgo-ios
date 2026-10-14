@@ -801,6 +801,12 @@ struct ProfileTab: View {
                 Section {
                     Toggle("Pip’s waiting hum", isOn: $waitingHum)
                 }
+                Section {
+                    Link("Privacy policy", destination: URL(string: "https://pippipgo.com/privacy")!)
+                        .accessibilityIdentifier("settings.privacy")
+                } footer: {
+                    Text("Pip can make mistakes. Check important details, and in an emergency call your local emergency number.")
+                }
                 Section { AppVersionView() }
             }
         }

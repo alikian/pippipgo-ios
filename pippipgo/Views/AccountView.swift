@@ -48,7 +48,8 @@ struct AccountErrorView: View {
 @MainActor @Observable
 final class AISharingConsent {
     static let shared = AISharingConsent()
-    private static let disclosureVersion = 1
+    /// 2: 30-day retention, Live Translate not kept, safety note (October 13, 2026).
+    private static let disclosureVersion = 2
     private var accountKey: String?
     private var epoch = UUID()
     private(set) var allowed = false
@@ -128,6 +129,7 @@ struct AISharingConsentView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     Text("Allow sharing with OpenAI?").font(.title2.bold())
                     Text("ai.sharing.details")
+                    Text("Pip can make mistakes. Check important details, and in an emergency call your local emergency number.").font(.callout)
                     Link("Privacy policy", destination: URL(string: "https://pippipgo.com/privacy")!)
                     Text("ai.sharing.acceptance").font(.callout)
                     Button("Allow sharing with OpenAI") { consent.resolve(true) }

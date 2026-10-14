@@ -360,6 +360,13 @@ struct GuestExploreView: View {
             NearbyFinder(model: model, selected: $selected) { place in
                 withAnimation { position = .item(place.item) }
             }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("Uses Apple Maps on your iPhone. Nothing here is sent to PipPipGo.")
+                Link("Privacy policy", destination: URL(string: "https://pippipgo.com/privacy")!)
+                    .foregroundStyle(.blue)
+                    .accessibilityIdentifier("guest.privacy")
+            }
+            .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
         .background {

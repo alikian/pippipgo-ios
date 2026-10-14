@@ -5244,85 +5244,85 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يرسل PipPipGo البيانات إلى OpenAI عبر خادمه:\n• الدردشة والصوت: الرسائل والسجل والملف الشخصي والتفضيلات والذكريات واللغة والوقت والموقع عند توفره. يشارك الصوت أيضًا التسجيل الصوتي والرحلات المحفوظة والمرافقين.\n• الترجمة: الصوت واللغات المحددة فقط.\n• الدليل السياحي: الموقع والأماكن القريبة والتفضيلات.\n• الحجوزات: النصوص والصور والملفات المحددة.\nنحتفظ بالنصوص المتاحة وسياق الذكاء الاصطناعي لتقديم الخدمة والدعم. لا نحفظ الصوت المباشر الخام على خادمنا. تنطبق سياسات بيانات OpenAI."
+            "value" : "يرسل PipPipGo البيانات إلى OpenAI عبر خادمه:\n• الدردشة والصوت: الرسائل والسجل والملف الشخصي والتفضيلات والذكريات واللغة والوقت والموقع عند توفره. يشارك الصوت أيضًا التسجيل الصوتي والرحلات المحفوظة والمرافقين.\n• الترجمة: الصوت واللغات المحددة فقط.\n• الدليل السياحي: الموقع والأماكن القريبة والتفضيلات.\n• الحجوزات: النصوص والصور والملفات المحددة.\nيبقى سجل محادثاتك في حسابك حتى تحذفه. تُحذف نسخ الدعم من النصوص وسياق الذكاء الاصطناعي بعد 30 يومًا. لا نحتفظ بمحادثات الترجمة المباشرة. لا نحفظ الصوت المباشر الخام على خادمنا. تنطبق سياسات بيانات OpenAI."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo sends data through its server to OpenAI:\n• Chat and voice: messages, history, profile, preferences, memories, language, time and available location. Voice also shares audio, saved trips and companions.\n• Translation: audio and selected languages only.\n• Tour guide: location, nearby places and preferences.\n• Bookings: selected text, images and files.\nAvailable transcripts and AI context are retained for service and support. Raw live audio is not saved on our backend. OpenAI’s data policies apply."
+            "value" : "PipPipGo sends data through its server to OpenAI:\n• Chat and voice: messages, history, profile, preferences, memories, language, time and available location. Voice also shares audio, saved trips and companions.\n• Translation: audio and selected languages only.\n• Tour guide: location, nearby places and preferences.\n• Bookings: selected text, images and files.\nYour chat history stays in your account until you delete it. Support copies of transcripts and AI context are deleted after 30 days. Live Translate conversations are not kept. Raw live audio is not saved on our backend. OpenAI’s data policies apply."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo envía datos a OpenAI a través de su servidor:\n• Chat y voz: mensajes, historial, perfil, preferencias, recuerdos, idioma, hora y ubicación disponible. La voz también comparte audio, viajes guardados y acompañantes.\n• Traducción: solo audio e idiomas seleccionados.\n• Guía: ubicación, lugares cercanos y preferencias.\n• Reservas: texto, imágenes y archivos seleccionados.\nLas transcripciones disponibles y el contexto de IA se conservan para el servicio y soporte. El audio en directo no se guarda en nuestro servidor. Se aplican las políticas de datos de OpenAI."
+            "value" : "PipPipGo envía datos a OpenAI a través de su servidor:\n• Chat y voz: mensajes, historial, perfil, preferencias, recuerdos, idioma, hora y ubicación disponible. La voz también comparte audio, viajes guardados y acompañantes.\n• Traducción: solo audio e idiomas seleccionados.\n• Guía: ubicación, lugares cercanos y preferencias.\n• Reservas: texto, imágenes y archivos seleccionados.\nTu historial de chat permanece en tu cuenta hasta que lo borres. Las copias de soporte de las transcripciones y del contexto de IA se eliminan a los 30 días. Las conversaciones de traducción en directo no se conservan. El audio en directo no se guarda en nuestro servidor. Se aplican las políticas de datos de OpenAI."
           }
         },
         "fa" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo داده‌ها را از طریق سرور خود به OpenAI می‌فرستد:\n• گفتگو و صدا: پیام‌ها، سابقه، نمایه، ترجیحات، خاطرات، زبان، زمان و موقعیت مکانی در صورت دسترسی. در حالت صوتی، صدا، سفرهای ذخیره‌شده و همراهان نیز ارسال می‌شوند.\n• ترجمه: فقط صدا و زبان‌های انتخاب‌شده.\n• راهنمای گردش: موقعیت مکانی، مکان‌های نزدیک و ترجیحات.\n• رزروها: متن، تصاویر و فایل‌های انتخاب‌شده.\nرونوشت‌های موجود و زمینه هوش مصنوعی برای ارائه خدمات و پشتیبانی نگهداری می‌شوند. صدای زنده خام در سرور ما ذخیره نمی‌شود. سیاست‌های داده OpenAI اعمال می‌شوند."
+            "value" : "PipPipGo داده‌ها را از طریق سرور خود به OpenAI می‌فرستد:\n• گفتگو و صدا: پیام‌ها، سابقه، نمایه، ترجیحات، خاطرات، زبان، زمان و موقعیت مکانی در صورت دسترسی. در حالت صوتی، صدا، سفرهای ذخیره‌شده و همراهان نیز ارسال می‌شوند.\n• ترجمه: فقط صدا و زبان‌های انتخاب‌شده.\n• راهنمای گردش: موقعیت مکانی، مکان‌های نزدیک و ترجیحات.\n• رزروها: متن، تصاویر و فایل‌های انتخاب‌شده.\nتاریخچه گفت‌وگوی شما تا زمانی که حذفش نکنید در حسابتان می‌ماند. نسخه‌های پشتیبانی رونوشت‌ها و زمینه هوش مصنوعی پس از ۳۰ روز حذف می‌شوند. گفت‌وگوهای ترجمه زنده نگهداری نمی‌شوند. صدای زنده خام در سرور ما ذخیره نمی‌شود. سیاست‌های داده OpenAI اعمال می‌شوند."
           }
         },
         "fil" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nIniimbak ang magagamit na transcript at konteksto ng AI para sa serbisyo at suporta. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
+            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nNananatili sa iyong account ang kasaysayan ng chat hanggang burahin mo ito. Binubura pagkalipas ng 30 araw ang mga kopya ng transcript at konteksto ng AI para sa suporta. Hindi iniimbak ang mga usapan sa Live Translate. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
           }
         },
         "fil-PH" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nIniimbak ang magagamit na transcript at konteksto ng AI para sa serbisyo at suporta. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
+            "value" : "Nagpapadala ang PipPipGo ng datos sa OpenAI sa pamamagitan ng server nito:\n• Chat at boses: mga mensahe, kasaysayan, profile, kagustuhan, alaala, wika, oras at lokasyon kung mayroon. Kasama rin sa boses ang audio, mga naka-save na biyahe at kasama.\n• Pagsasalin: audio at napiling mga wika lamang.\n• Gabay sa paglalakbay: lokasyon, malalapit na lugar at kagustuhan.\n• Mga booking: napiling teksto, larawan at file.\nNananatili sa iyong account ang kasaysayan ng chat hanggang burahin mo ito. Binubura pagkalipas ng 30 araw ang mga kopya ng transcript at konteksto ng AI para sa suporta. Hindi iniimbak ang mga usapan sa Live Translate. Hindi iniimbak ang orihinal na live audio sa aming server. Nalalapat ang mga patakaran sa datos ng OpenAI."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo transmet des données à OpenAI par son serveur :\n• Chat et voix : messages, historique, profil, préférences, souvenirs, langue, heure et position disponible. La voix partage aussi l’audio, les voyages enregistrés et les compagnons.\n• Traduction : audio et langues choisies uniquement.\n• Guide : position, lieux proches et préférences.\n• Réservations : textes, images et fichiers sélectionnés.\nLes transcriptions disponibles et le contexte IA sont conservés pour le service et l’assistance. L’audio en direct n’est pas enregistré sur notre serveur. Les politiques de données d’OpenAI s’appliquent."
+            "value" : "PipPipGo transmet des données à OpenAI par son serveur :\n• Chat et voix : messages, historique, profil, préférences, souvenirs, langue, heure et position disponible. La voix partage aussi l’audio, les voyages enregistrés et les compagnons.\n• Traduction : audio et langues choisies uniquement.\n• Guide : position, lieux proches et préférences.\n• Réservations : textes, images et fichiers sélectionnés.\nVotre historique de discussion reste dans votre compte jusqu’à ce que vous le supprimiez. Les copies d’assistance des transcriptions et du contexte IA sont supprimées après 30 jours. Les conversations de traduction en direct ne sont pas conservées. L’audio en direct n’est pas enregistré sur notre serveur. Les politiques de données d’OpenAI s’appliquent."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo invia dati a OpenAI tramite il proprio server:\n• Chat e voce: messaggi, cronologia, profilo, preferenze, ricordi, lingua, ora e posizione disponibile. La voce condivide anche audio, viaggi salvati e compagni.\n• Traduzione: solo audio e lingue selezionate.\n• Guida: posizione, luoghi vicini e preferenze.\n• Prenotazioni: testi, immagini e file selezionati.\nLe trascrizioni disponibili e il contesto IA vengono conservati per il servizio e l’assistenza. L’audio dal vivo non viene salvato sul nostro server. Si applicano le politiche sui dati di OpenAI."
+            "value" : "PipPipGo invia dati a OpenAI tramite il proprio server:\n• Chat e voce: messaggi, cronologia, profilo, preferenze, ricordi, lingua, ora e posizione disponibile. La voce condivide anche audio, viaggi salvati e compagni.\n• Traduzione: solo audio e lingue selezionate.\n• Guida: posizione, luoghi vicini e preferenze.\n• Prenotazioni: testi, immagini e file selezionati.\nLa cronologia delle chat resta nel tuo account finché non la elimini. Le copie per l’assistenza di trascrizioni e contesto IA vengono eliminate dopo 30 giorni. Le conversazioni di traduzione dal vivo non vengono conservate. L’audio dal vivo non viene salvato sul nostro server. Si applicano le politiche sui dati di OpenAI."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGoはサーバーを通じてOpenAIにデータを送信します。\n• チャットと音声：メッセージ、履歴、プロフィール、設定、記憶、言語、時刻、利用可能な位置情報。音声では音声データ、保存した旅行、同行者も共有します。\n• 翻訳：音声と選択した言語のみ。\n• 観光ガイド：位置情報、近くの場所、設定。\n• 予約：選択したテキスト、画像、ファイル。\n利用可能な文字起こしとAIの文脈は、サービスとサポートのために保存されます。生のライブ音声は当社のサーバーに保存されません。OpenAIのデータポリシーが適用されます。"
+            "value" : "PipPipGoはサーバーを通じてOpenAIにデータを送信します。\n• チャットと音声：メッセージ、履歴、プロフィール、設定、記憶、言語、時刻、利用可能な位置情報。音声では音声データ、保存した旅行、同行者も共有します。\n• 翻訳：音声と選択した言語のみ。\n• 観光ガイド：位置情報、近くの場所、設定。\n• 予約：選択したテキスト、画像、ファイル。\nチャット履歴は削除するまでアカウントに残ります。サポート用の文字起こしとAIの文脈のコピーは30日後に削除されます。ライブ翻訳の会話は保存されません。生のライブ音声は当社のサーバーに保存されません。OpenAIのデータポリシーが適用されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo는 서버를 통해 OpenAI에 데이터를 전송합니다.\n• 채팅과 음성: 메시지, 기록, 프로필, 선호 사항, 기억, 언어, 시간 및 사용 가능한 위치. 음성은 오디오, 저장된 여행 및 동행자도 공유합니다.\n• 번역: 오디오와 선택한 언어만 공유합니다.\n• 여행 가이드: 위치, 주변 장소 및 선호 사항.\n• 예약: 선택한 텍스트, 이미지 및 파일.\n사용 가능한 대화 기록과 AI 문맥은 서비스와 지원을 위해 보관됩니다. 실시간 원본 오디오는 서버에 저장되지 않습니다. OpenAI 데이터 정책이 적용됩니다."
+            "value" : "PipPipGo는 서버를 통해 OpenAI에 데이터를 전송합니다.\n• 채팅과 음성: 메시지, 기록, 프로필, 선호 사항, 기억, 언어, 시간 및 사용 가능한 위치. 음성은 오디오, 저장된 여행 및 동행자도 공유합니다.\n• 번역: 오디오와 선택한 언어만 공유합니다.\n• 여행 가이드: 위치, 주변 장소 및 선호 사항.\n• 예약: 선택한 텍스트, 이미지 및 파일.\n채팅 기록은 삭제할 때까지 계정에 남아 있습니다. 지원용 대화 기록과 AI 문맥 사본은 30일 후 삭제됩니다. 실시간 번역 대화는 보관되지 않습니다. 실시간 원본 오디오는 서버에 저장되지 않습니다. OpenAI 데이터 정책이 적용됩니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo отправляет данные в OpenAI через свой сервер:\n• Чат и голос: сообщения, история, профиль, предпочтения, воспоминания, язык, время и доступное местоположение. Голос также передаёт аудио, сохранённые поездки и спутников.\n• Перевод: только аудио и выбранные языки.\n• Гид: местоположение, места поблизости и предпочтения.\n• Бронирования: выбранные тексты, изображения и файлы.\nДоступные расшифровки и контекст ИИ сохраняются для работы сервиса и поддержки. Исходное аудио прямого эфира не сохраняется на нашем сервере. Применяются правила обработки данных OpenAI."
+            "value" : "PipPipGo отправляет данные в OpenAI через свой сервер:\n• Чат и голос: сообщения, история, профиль, предпочтения, воспоминания, язык, время и доступное местоположение. Голос также передаёт аудио, сохранённые поездки и спутников.\n• Перевод: только аудио и выбранные языки.\n• Гид: местоположение, места поблизости и предпочтения.\n• Бронирования: выбранные тексты, изображения и файлы.\nИстория чатов хранится в вашем аккаунте, пока вы её не удалите. Копии расшифровок и контекста ИИ для поддержки удаляются через 30 дней. Разговоры в режиме живого перевода не сохраняются. Исходное аудио прямого эфира не сохраняется на нашем сервере. Применяются правила обработки данных OpenAI."
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo, sunucusu üzerinden OpenAI’a veri gönderir:\n• Sohbet ve ses: mesajlar, geçmiş, profil, tercihler, anılar, dil, saat ve mevcut konum. Ses ayrıca ses kaydını, kayıtlı seyahatleri ve yol arkadaşlarını paylaşır.\n• Çeviri: yalnızca ses ve seçilen diller.\n• Tur rehberi: konum, yakındaki yerler ve tercihler.\n• Rezervasyonlar: seçilen metinler, görüntüler ve dosyalar.\nMevcut konuşma dökümleri ve yapay zekâ bağlamı hizmet ve destek için saklanır. Ham canlı ses sunucumuzda saklanmaz. OpenAI veri politikaları geçerlidir."
+            "value" : "PipPipGo, sunucusu üzerinden OpenAI’a veri gönderir:\n• Sohbet ve ses: mesajlar, geçmiş, profil, tercihler, anılar, dil, saat ve mevcut konum. Ses ayrıca ses kaydını, kayıtlı seyahatleri ve yol arkadaşlarını paylaşır.\n• Çeviri: yalnızca ses ve seçilen diller.\n• Tur rehberi: konum, yakındaki yerler ve tercihler.\n• Rezervasyonlar: seçilen metinler, görüntüler ve dosyalar.\nSohbet geçmişiniz siz silene kadar hesabınızda kalır. Destek için tutulan konuşma dökümü ve yapay zekâ bağlamı kopyaları 30 gün sonra silinir. Canlı çeviri konuşmaları saklanmaz. Ham canlı ses sunucumuzda saklanmaz. OpenAI veri politikaları geçerlidir."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo gửi dữ liệu qua máy chủ đến OpenAI:\n• Trò chuyện và giọng nói: tin nhắn, lịch sử, hồ sơ, sở thích, ký ức, ngôn ngữ, thời gian và vị trí nếu có. Giọng nói còn chia sẻ âm thanh, chuyến đi đã lưu và người đồng hành.\n• Dịch: chỉ âm thanh và ngôn ngữ đã chọn.\n• Hướng dẫn du lịch: vị trí, địa điểm gần đó và sở thích.\n• Đặt chỗ: văn bản, hình ảnh và tệp đã chọn.\nBản chép lời có sẵn và ngữ cảnh AI được lưu để cung cấp dịch vụ và hỗ trợ. Âm thanh trực tiếp gốc không được lưu trên máy chủ của chúng tôi. Áp dụng chính sách dữ liệu của OpenAI."
+            "value" : "PipPipGo gửi dữ liệu qua máy chủ đến OpenAI:\n• Trò chuyện và giọng nói: tin nhắn, lịch sử, hồ sơ, sở thích, ký ức, ngôn ngữ, thời gian và vị trí nếu có. Giọng nói còn chia sẻ âm thanh, chuyến đi đã lưu và người đồng hành.\n• Dịch: chỉ âm thanh và ngôn ngữ đã chọn.\n• Hướng dẫn du lịch: vị trí, địa điểm gần đó và sở thích.\n• Đặt chỗ: văn bản, hình ảnh và tệp đã chọn.\nLịch sử trò chuyện vẫn nằm trong tài khoản của bạn cho đến khi bạn xóa. Bản sao chép lời và ngữ cảnh AI dùng cho hỗ trợ sẽ bị xóa sau 30 ngày. Các cuộc hội thoại Dịch trực tiếp không được lưu. Âm thanh trực tiếp gốc không được lưu trên máy chủ của chúng tôi. Áp dụng chính sách dữ liệu của OpenAI."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PipPipGo通过服务器将数据发送给OpenAI：\n• 聊天和语音：消息、历史记录、个人资料、偏好、记忆、语言、时间和可用的位置。语音还共享音频、已保存的旅行和同行者。\n• 翻译：仅音频和所选语言。\n• 导游：位置、附近地点和偏好。\n• 预订：所选文字、图片和文件。\n可用的对话文本和AI上下文会被保留，用于服务和支持。我们的服务器不保存原始实时音频。适用OpenAI的数据政策。"
+            "value" : "PipPipGo通过服务器将数据发送给OpenAI：\n• 聊天和语音：消息、历史记录、个人资料、偏好、记忆、语言、时间和可用的位置。语音还共享音频、已保存的旅行和同行者。\n• 翻译：仅音频和所选语言。\n• 导游：位置、附近地点和偏好。\n• 预订：所选文字、图片和文件。\n聊天记录会保留在你的账户中，直到你删除。用于支持的对话文本和AI上下文副本会在30天后删除。实时翻译的对话不会被保留。我们的服务器不保存原始实时音频。适用OpenAI的数据政策。"
           }
         }
       }
@@ -69184,6 +69184,270 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "扬声器"
+          }
+        }
+      }
+    },
+    "Pip can make mistakes. Check important details, and in an emergency call your local emergency number." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قد يخطئ Pip. تحقّق من التفاصيل المهمة، وفي حالات الطوارئ اتصل برقم الطوارئ المحلي."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip can make mistakes. Check important details, and in an emergency call your local emergency number."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip puede equivocarse. Comprueba los datos importantes y, en una emergencia, llama al número de emergencias local."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip ممکن است اشتباه کند. جزئیات مهم را بررسی کنید و در شرایط اضطراری با شماره اورژانس محلی تماس بگیرید."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maaaring magkamali si Pip. Suriin ang mahahalagang detalye, at kapag may emergency, tumawag sa lokal na emergency number."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maaaring magkamali si Pip. Suriin ang mahahalagang detalye, at kapag may emergency, tumawag sa lokal na emergency number."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip peut se tromper. Vérifiez les informations importantes et, en cas d’urgence, appelez le numéro d’urgence local."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip può sbagliare. Verifica i dettagli importanti e, in caso di emergenza, chiama il numero di emergenza locale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pipは間違えることがあります。重要な情報は確認し、緊急時は現地の緊急通報番号に電話してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip은 실수할 수 있습니다. 중요한 정보는 확인하고, 응급 상황에서는 현지 긴급 전화번호로 연락하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip может ошибаться. Проверяйте важные сведения, а в экстренной ситуации звоните по местному номеру экстренных служб."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip hata yapabilir. Önemli ayrıntıları kontrol edin; acil bir durumda yerel acil numarayı arayın."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip có thể mắc lỗi. Hãy kiểm tra các thông tin quan trọng và khi khẩn cấp, hãy gọi số khẩn cấp tại địa phương."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip 可能会出错。请核实重要信息；遇到紧急情况，请拨打当地紧急电话。"
+          }
+        }
+      }
+    },
+    "Uses Apple Maps on your iPhone. Nothing here is sent to PipPipGo." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم خرائط Apple على iPhone. لا يُرسل أي شيء من هنا إلى PipPipGo."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses Apple Maps on your iPhone. Nothing here is sent to PipPipGo."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa Apple Maps en tu iPhone. Nada de esto se envía a PipPipGo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "از Apple Maps روی iPhone شما استفاده می‌کند. چیزی از اینجا به PipPipGo ارسال نمی‌شود."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gumagamit ng Apple Maps sa iyong iPhone. Walang ipinapadala rito sa PipPipGo."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gumagamit ng Apple Maps sa iyong iPhone. Walang ipinapadala rito sa PipPipGo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise Plans d’Apple sur votre iPhone. Rien ici n’est envoyé à PipPipGo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa Mappe di Apple sul tuo iPhone. Nulla qui viene inviato a PipPipGo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneのApple マップを使用します。ここから PipPipGo には何も送信されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone의 Apple 지도를 사용합니다. 여기서는 PipPipGo로 아무것도 전송되지 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использует Apple Карты на вашем iPhone. Отсюда ничего не отправляется в PipPipGo."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone'unuzdaki Apple Haritalar'ı kullanır. Buradan PipPipGo'ya hiçbir şey gönderilmez."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng Apple Maps trên iPhone của bạn. Không có gì ở đây được gửi đến PipPipGo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用你 iPhone 上的 Apple 地图。这里的内容不会发送给 PipPipGo。"
+          }
+        }
+      }
+    },
+    "Driving? Keep your eyes on the road and talk to Pip instead." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هل تقود؟ أبقِ عينيك على الطريق وتحدث إلى Pip بدلًا من ذلك."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Driving? Keep your eyes on the road and talk to Pip instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Conduces? Mantén la vista en la carretera y habla con Pip."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "در حال رانندگی هستید؟ چشمتان به جاده باشد و به‌جای آن با Pip صحبت کنید."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagmamaneho? Ituon ang mata sa daan at kausapin na lang si Pip."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagmamaneho? Ituon ang mata sa daan at kausapin na lang si Pip."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous conduisez ? Gardez les yeux sur la route et parlez à Pip."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stai guidando? Tieni gli occhi sulla strada e parla con Pip."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "運転中ですか？道路から目を離さず、Pipには声で話しかけてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "운전 중인가요? 도로에서 눈을 떼지 말고 Pip에게 말로 하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За рулём? Смотрите на дорогу и говорите с Pip голосом."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Araç mı kullanıyorsunuz? Gözünüzü yoldan ayırmayın ve Pip'le konuşun."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang lái xe? Hãy tập trung nhìn đường và nói chuyện với Pip."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在开车？请注视路面，改用语音和 Pip 交流。"
           }
         }
       }

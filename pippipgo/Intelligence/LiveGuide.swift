@@ -705,6 +705,7 @@ struct LiveGuideTab: View {
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
     @State private var weatherFetched: (location: CLLocation, at: Date)?
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -842,8 +843,9 @@ struct LiveGuideTab: View {
         .ignoresSafeArea(edges: .top)
     }
 
-    /// Every 15 minutes, or after moving about 3 km.
+    /// Only while the app is open on screen; every 15 minutes, or after moving about 3 km.
     private func refreshWeather(_ location: CLLocation) {
+        guard scenePhase == .active else { return }
         if let last = weatherFetched, Date().timeIntervalSince(last.at) < 900,
            location.distance(from: last.location) < 3_000 { return }
         weatherFetched = (location, Date())
@@ -924,6 +926,10 @@ struct LiveGuideTab: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
                 .buttonStyle(.bordered)
+            }
+            if guide.tourMode == .driving {
+                Label("Driving? Keep your eyes on the road and talk to Pip instead.", systemImage: "car.fill")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             if finding {
                 NearbyFinder(model: nearby, selected: $selectedPlace) { place in
