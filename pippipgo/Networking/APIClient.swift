@@ -6,7 +6,7 @@ protocol AccessTokenProviding: Sendable {
 
 /// Fixed routes prevent accidentally sending a bearer token to a caller-supplied host.
 enum APIEndpoint: Sendable, Equatable {
-    case introduction, organizer, travelChat, guide, guideSetup, guideBooking, guideNearby, guideMention, guideSpeech, placeRatings, weather
+    case introduction, organizer, travelChat, guide, guideSetup, guideBooking, guideNearby, guideMention, guideSpeech, placeRatings, weather, guidePicks
     case account, accountExport, journeys, journey(UUID), journeyAction(UUID), journeyImport(UUID)
     case memory, memoryItem(UUID), travelers, traveler(UUID), preferences, sync(after: Int)
     var path: String {
@@ -16,6 +16,7 @@ enum APIEndpoint: Sendable, Equatable {
         case .guideNearby: "/v1/guide/nearby"
         case .placeRatings: "/v1/places/ratings"
         case .weather: "/v1/weather/current"
+        case .guidePicks: "/v1/guide/picks"
         case .guideMention: "/v1/guide/mention"
         case .guideSpeech: "/v1/guide/speech"
         case .guide: "/v1/guide"
@@ -38,18 +39,18 @@ enum APIEndpoint: Sendable, Equatable {
     }
     var sharesWithAI: Bool {
         switch self {
-        case .introduction, .travelChat, .guide, .guideBooking, .guideMention, .guideSpeech, .journeyAction, .journeyImport: true
+        case .introduction, .travelChat, .guide, .guideBooking, .guideMention, .guideSpeech, .guidePicks, .journeyAction, .journeyImport: true
         default: false
         }
     }
 
     var canRead: Bool {
-        switch self { case .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings, .weather, .journeyAction, .journeyImport: false; default: true }
+        switch self { case .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings, .weather, .guidePicks, .journeyAction, .journeyImport: false; default: true }
     }
     var canPut: Bool {
         switch self { case .guideSetup, .guide, .travelChat, .organizer, .introduction, .journey, .journeyAction, .journeyImport, .memoryItem, .traveler, .preferences: true; default: false }
     }
-    var canPost: Bool { [.guide, .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings, .weather].contains(self) }
+    var canPost: Bool { [.guide, .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings, .weather, .guidePicks].contains(self) }
     var canDelete: Bool {
         switch self { case .journey, .memoryItem, .traveler: true; default: false }
     }

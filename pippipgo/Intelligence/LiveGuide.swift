@@ -243,6 +243,15 @@ final class LiveGuideStore {
         AppLanguage.selected(UserDefaults.standard.string(forKey: "pip.language") ?? "en").rawValue
     }
 
+    /// Pip's picks for you: up to three nearby places chosen for this traveller; empty when unavailable.
+    func picks(at location: CLLocation, weather: String?) async -> [PipPick] {
+        let time = Date().formatted(Date.FormatStyle(locale: Locale(identifier: "en_US_POSIX")).weekday(.abbreviated).hour().minute())
+        let body = PicksRequest(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
+                                language: language, local_time: time, weather: weather)
+        let response: PicksResponse? = try? await client.send(.post(.guidePicks, body: body), using: authentication)
+        return response?.picks ?? []
+    }
+
     /// Current conditions for the map's weather chip (signed in only); nil when unavailable.
     func currentWeather(at location: CLLocation) async -> CurrentWeather? {
         let body = WeatherRequest(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
@@ -720,6 +729,9 @@ struct LiveGuideTab: View {
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
     @State private var weatherFetched: (location: CLLocation, at: Date)?
+    @State private var picks: [PipPick] = []
+    @State private var picksFetched: (location: CLLocation, at: Date)?
+    @State private var selectedPick: PipPick?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
@@ -759,6 +771,18 @@ struct LiveGuideTab: View {
                 if let region = NearbyFinder.region(for: nearby) { withAnimation { position = .region(region) } }
             }
             #if DEBUG
+            // Simulator review: `-PipSamplePicks` shows sample picks without an account.
+            .task {
+                guard ProcessInfo.processInfo.arguments.contains("-PipSamplePicks") else { return }
+                picks = [
+                    PipPick(id: "s1", name: "Torrey Pines State Reserve", latitude: 32.92, longitude: -117.25,
+                            rating: 4.8, user_rating_count: 9100, reason: "Sunny 24° · you love coastal walks"),
+                    PipPick(id: "s2", name: "Piazza Carmel Gelato", latitude: 32.94, longitude: -117.23,
+                            rating: 4.6, user_rating_count: 410, reason: "Afternoon treat · fits your budget"),
+                    PipPick(id: "s3", name: "Carmel Valley Library", latitude: 32.95, longitude: -117.24,
+                            rating: 4.5, user_rating_count: 120, reason: "Quiet spot · you enjoy reading"),
+                ]
+            }
             // Simulator review: `-PipHomeTab search -PipGuestCategory restrooms` searches once located.
             .task {
                 let arguments = ProcessInfo.processInfo.arguments
@@ -799,6 +823,7 @@ struct LiveGuideTab: View {
                   abs(location.timestamp.timeIntervalSinceNow) < 15,
                   CLLocationCoordinate2DIsValid(location.coordinate) else { return }
             refreshWeather(location)
+            refreshPicks(location)
             if !zoomedToStart {
                 // Before any fix the map shows a whole continent; never keep that zoom.
                 zoomedToStart = true
@@ -841,6 +866,11 @@ struct LiveGuideTab: View {
                     .tint(place.tier == .mustSee ? .orange : .blue)
             }
             if tab == .search {
+                if let pick = selectedPick {
+                    Marker(pick.name, systemImage: "star.fill",
+                           coordinate: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude))
+                        .tint(.purple)
+                }
                 ForEach(nearby.places) { place in
                     Marker(place.name, systemImage: nearby.category?.symbol ?? "mappin", coordinate: place.coordinate)
                         .tint(nearby.category?.tint ?? .red)
@@ -963,22 +993,33 @@ struct LiveGuideTab: View {
         Task { if let current = await guide.currentWeather(at: location) { weather = current } }
     }
 
+    /// On the Guide tab while the app is open; every 30 minutes, or after moving about 2 km.
+    private func refreshPicks(_ location: CLLocation) {
+        guard scenePhase == .active, tab == .guide else { return }
+        if let last = picksFetched, Date().timeIntervalSince(last.at) < 1_800,
+           location.distance(from: last.location) < 2_000 { return }
+        picksFetched = (location, Date())
+        let summary = weather.map { [$0.description, $0.temperature_celsius.map { "\(Int($0.rounded()))°C" }]
+            .compactMap { $0 }.joined(separator: " ") }
+        Task { picks = await guide.picks(at: location, weather: summary) }
+    }
+
     /// Apple Maps-style floating buttons.
     private var floatingControls: some View {
-        VStack(spacing: 12) {
-            AppLanguageMenu().frame(width: 48, height: 48).mapControlCircle()
+        VStack(spacing: 8) {
+            AppLanguageMenu().mapControlCircle()
             AudioOutputButton().mapControlCircle()
             if tab == .guide {
                 // Settings here are specifically how often Pip speaks during the tour.
                 Button { showSettings = true } label: {
-                    Image(systemName: "speaker.wave.2").font(.title3).frame(width: 48, height: 48).mapControlCircle()
+                    Image(systemName: "speaker.wave.2").font(.title3).mapControlCircle()
                 }
                 .accessibilityLabel(Text("Settings"))
                 .accessibilityIdentifier("liveGuide.settings")
             }
             if tab == .pip {
                 Button(action: openHistory) {
-                    Image(systemName: "clock.arrow.circlepath").font(.title3).frame(width: 48, height: 48).mapControlCircle()
+                    Image(systemName: "clock.arrow.circlepath").font(.title3).mapControlCircle()
                 }
                 .accessibilityLabel(Text("Conversation history"))
                 .accessibilityIdentifier("pip.history")
@@ -986,7 +1027,7 @@ struct LiveGuideTab: View {
             Button {
                 withAnimation { position = .userLocation(followsHeading: false, fallback: .automatic) }
             } label: {
-                Image(systemName: "location.fill").font(.title3).frame(width: 48, height: 48).mapControlCircle()
+                Image(systemName: "location.fill").font(.title3).mapControlCircle()
             }
             .accessibilityLabel(Text("Recenter"))
         }
@@ -1021,7 +1062,47 @@ struct LiveGuideTab: View {
     /// Tour controls, status and what Pip last pointed out. While stopped, a native segmented
     /// control picks walking or driving, with one large Start guide button beneath it, centered
     /// above the tab bar. While running, one large Stop button replaces both.
+    /// "Pip's picks for you": a few places chosen for this traveller, with Pip's reason.
+    @ViewBuilder private var picksRow: some View {
+        if !collapsed, !guide.enabled, !picks.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("Pip’s picks for you", systemImage: "sparkles").font(.headline)
+                    Spacer()
+                    if let pick = selectedPick {
+                        Button {
+                            let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude)))
+                            item.name = pick.name
+                            item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
+                        } label: {
+                            Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.borderedProminent).controlSize(.small)
+                        .accessibilityIdentifier("guide.pick.directions")
+                    }
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(picks) { pick in
+                            PipPickCard(pick: pick, selected: selectedPick?.id == pick.id) {
+                                selectedPick = pick
+                                withAnimation {
+                                    position = .region(MKCoordinateRegion(
+                                        center: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude),
+                                        latitudinalMeters: 700, longitudinalMeters: 700))
+                                }
+                            }
+                        }
+                    }
+                }
+                Text("Places and ratings from Google Maps.").font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+
     @ViewBuilder private var guidePanel: some View {
+        picksRow
         if guide.enabled {
             Button(role: .destructive) { withAnimation(.spring) { guide.enabled = false } } label: {
                 Label("Stop tour", systemImage: "stop.fill")
@@ -1301,7 +1382,7 @@ struct WeatherChip: View {
 extension View {
     /// See-through round map control, spaced apart like Apple Maps buttons.
     func mapControlCircle() -> some View {
-        self.frame(width: 48, height: 48)
+        self.frame(width: 44, height: 44)
             .background(.ultraThinMaterial, in: Circle())
             .shadow(color: .black.opacity(0.12), radius: 4, y: 1)
     }
@@ -1340,5 +1421,66 @@ struct ProfileAvatar: View {
                 Text(verbatim: letters).font(.headline).foregroundStyle(.white)
             }
         }
+    }
+}
+
+struct PicksRequest: Encodable, Sendable {
+    let latitude: Double
+    let longitude: Double
+    let language: String
+    let local_time: String?
+    let weather: String?
+}
+
+struct PipPick: Decodable, Sendable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let latitude: Double
+    let longitude: Double
+    let rating: Double?
+    let user_rating_count: Int?
+    let reason: String?
+}
+
+struct PicksResponse: Decodable, Sendable {
+    let picks: [PipPick]
+}
+
+/// A card for one of Pip's picks: name, stars and Pip's reason. Tap to show it on the map.
+struct PipPickCard: View {
+    let pick: PipPick
+    let selected: Bool
+    let show: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button(action: show) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: pick.name).font(.subheadline.weight(.semibold)).lineLimit(2)
+                        .foregroundStyle(.primary)
+                    if let rating = pick.rating {
+                        HStack(spacing: 3) {
+                            Image(systemName: "star.fill").foregroundStyle(.orange).accessibilityHidden(true)
+                            Text(rating.formatted(.number.precision(.fractionLength(1))))
+                            if let count = pick.user_rating_count {
+                                Text(verbatim: "(\(count.formatted()))").foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.caption.weight(.semibold))
+                    }
+                    if let reason = pick.reason {
+                        Text(verbatim: reason).font(.caption).foregroundStyle(.blue).lineLimit(2)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(10)
+        .frame(width: 190, alignment: .leading)
+        .background(Color.secondary.opacity(selected ? 0.22 : 0.1), in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("guide.pick.\(pick.id)")
     }
 }
