@@ -244,6 +244,12 @@ final class LiveGuideStore {
         AppLanguage.selected(UserDefaults.standard.string(forKey: "pip.language") ?? "en").rawValue
     }
 
+    /// Current conditions for the map's weather chip (signed in only); nil when unavailable.
+    func currentWeather(at location: CLLocation) async -> CurrentWeather? {
+        let body = WeatherRequest(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+        return try? await client.send(.post(.weather, body: body), using: authentication)
+    }
+
     /// Live Google ratings for Find nearby (signed in only); nil when unavailable.
     func placeRatings(category: GuestCategory, location: CLLocation, radius: CLLocationDistance) async -> [GooglePlaceRating]? {
         let body = PlaceRatingsRequest(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
@@ -697,6 +703,8 @@ struct LiveGuideTab: View {
     @State private var finding = false
     @State private var selectedPlace: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
+    @State private var weather: CurrentWeather?
+    @State private var weatherFetched: (location: CLLocation, at: Date)?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -772,6 +780,7 @@ struct LiveGuideTab: View {
             guard location.horizontalAccuracy >= 0,
                   abs(location.timestamp.timeIntervalSinceNow) < 15,
                   CLLocationCoordinate2DIsValid(location.coordinate) else { return }
+            refreshWeather(location)
             var camera = currentMapCamera ?? MapCamera(
                 centerCoordinate: location.coordinate,
                 distance: max(800, location.horizontalAccuracy * 4), heading: 0, pitch: 0)
@@ -833,6 +842,14 @@ struct LiveGuideTab: View {
         .ignoresSafeArea(edges: .top)
     }
 
+    /// Every 15 minutes, or after moving about 3 km.
+    private func refreshWeather(_ location: CLLocation) {
+        if let last = weatherFetched, Date().timeIntervalSince(last.at) < 900,
+           location.distance(from: last.location) < 3_000 { return }
+        weatherFetched = (location, Date())
+        Task { if let current = await guide.currentWeather(at: location) { weather = current } }
+    }
+
     @ViewBuilder private var profileButton: some View {
         if let openProfile {
             Button(action: openProfile) {
@@ -843,6 +860,9 @@ struct LiveGuideTab: View {
             .accessibilityLabel(Text("Profile"))
             .accessibilityIdentifier("navigation.profile")
             .padding(.leading, 12).padding(.top, 8)
+        }
+        if let weather {
+            WeatherChip(weather: weather).padding(.leading, 12).padding(.top, 64)
         }
     }
 
@@ -1169,5 +1189,70 @@ struct LiveGuideRouteCard: View {
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+struct WeatherRequest: Encodable, Sendable {
+    let latitude: Double
+    let longitude: Double
+}
+
+struct CurrentWeather: Decodable, Sendable, Equatable {
+    let temperature_celsius: Double?
+    let condition: String?
+    let description: String?
+    let is_daytime: Bool?
+    let time_zone: String?
+}
+
+/// Apple Maps-style chip: "☀️ 75° · 5:30 PM" in local units and the place's time zone.
+/// Tap for the description and source.
+struct WeatherChip: View {
+    let weather: CurrentWeather
+    @State private var expanded = false
+
+    var body: some View {
+        Button { withAnimation(.snappy) { expanded.toggle() } } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Image(systemName: symbol).symbolRenderingMode(.multicolor)
+                    if let celsius = weather.temperature_celsius {
+                        Text(Measurement(value: celsius, unit: UnitTemperature.celsius)
+                            .formatted(.measurement(width: .narrow, usage: .weather,
+                                                    numberFormatStyle: .number.precision(.fractionLength(0)))))
+                    }
+                    TimelineView(.everyMinute) { context in
+                        Text(context.date, format: Date.FormatStyle(date: .omitted, time: .shortened,
+                                                                    timeZone: zone))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+                if expanded {
+                    if let description = weather.description { Text(verbatim: description).font(.caption) }
+                    Text(verbatim: "Google Weather").font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("map.weather")
+    }
+
+    private var zone: TimeZone { weather.time_zone.flatMap(TimeZone.init(identifier:)) ?? .current }
+
+    private var symbol: String {
+        let day = weather.is_daytime ?? true
+        let type = weather.condition ?? ""
+        if type.contains("THUNDER") { return "cloud.bolt.rain.fill" }
+        if type.contains("SNOW") || type.contains("HAIL") { return "cloud.snow.fill" }
+        if type.contains("RAIN") || type.contains("SHOWER") || type.contains("DRIZZLE") { return "cloud.rain.fill" }
+        if type.contains("FOG") || type.contains("HAZE") { return "cloud.fog.fill" }
+        if type.contains("WIND") { return "wind" }
+        if type == "CLEAR" { return day ? "sun.max.fill" : "moon.stars.fill" }
+        if type.contains("PARTLY") || type.contains("MOSTLY_CLEAR") { return day ? "cloud.sun.fill" : "cloud.moon.fill" }
+        if type.contains("CLOUD") { return "cloud.fill" }
+        return day ? "sun.max.fill" : "moon.fill"
     }
 }

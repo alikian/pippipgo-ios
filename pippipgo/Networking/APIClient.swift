@@ -6,7 +6,7 @@ protocol AccessTokenProviding: Sendable {
 
 /// Fixed routes prevent accidentally sending a bearer token to a caller-supplied host.
 enum APIEndpoint: Sendable, Equatable {
-    case introduction, organizer, travelChat, guide, guideSetup, guideBooking, guideNearby, guideMention, guideSpeech, placeRatings
+    case introduction, organizer, travelChat, guide, guideSetup, guideBooking, guideNearby, guideMention, guideSpeech, placeRatings, weather
     case account, accountExport, journeys, journey(UUID), journeyAction(UUID), journeyImport(UUID)
     case memory, memoryItem(UUID), travelers, traveler(UUID), preferences, sync(after: Int)
     var path: String {
@@ -15,6 +15,7 @@ enum APIEndpoint: Sendable, Equatable {
         case .guideBooking: "/v1/guide/booking"
         case .guideNearby: "/v1/guide/nearby"
         case .placeRatings: "/v1/places/ratings"
+        case .weather: "/v1/weather/current"
         case .guideMention: "/v1/guide/mention"
         case .guideSpeech: "/v1/guide/speech"
         case .guide: "/v1/guide"
@@ -43,12 +44,12 @@ enum APIEndpoint: Sendable, Equatable {
     }
 
     var canRead: Bool {
-        switch self { case .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings, .journeyAction, .journeyImport: false; default: true }
+        switch self { case .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings, .weather, .journeyAction, .journeyImport: false; default: true }
     }
     var canPut: Bool {
         switch self { case .guideSetup, .guide, .travelChat, .organizer, .introduction, .journey, .journeyAction, .journeyImport, .memoryItem, .traveler, .preferences: true; default: false }
     }
-    var canPost: Bool { [.guide, .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings].contains(self) }
+    var canPost: Bool { [.guide, .guideBooking, .guideNearby, .guideMention, .guideSpeech, .placeRatings, .weather].contains(self) }
     var canDelete: Bool {
         switch self { case .journey, .memoryItem, .traveler: true; default: false }
     }
