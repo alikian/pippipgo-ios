@@ -1,8 +1,9 @@
 import Foundation
 
-// Live local guide, phase 1. Pure decision logic with no Core Location, networking or UI, so
-// every timing rule is unit-testable. The phone decides when Pip speaks; the backend only
-// supplies tiered candidates and writes the words.
+// Live local guide. Pure decision logic with no Core Location, networking or UI, so every
+// timing rule is unit-testable. The phone decides when Pip speaks; the backend only supplies
+// tiered candidates and writes the words. Walking looks around the traveller; driving looks
+// ahead of the car and introduces worthwhile places a few minutes before reaching them.
 
 enum GuideTier: String, Codable, Sendable, Equatable {
     case mustSee = "must_see", notable, minor
@@ -51,7 +52,16 @@ struct GuideCandidate: Codable, Sendable, Identifiable, Equatable {
     var rating: Double?
     var user_rating_count: Int?
     var profile_match: Double = 0.5
+    /// Prominence weighted by how much visitors get from this kind of place (backend).
+    var appeal: Double?
+    /// Google's kind of place, e.g. "shopping_mall"; its open state; the town it is in.
+    var primary_type: String?
+    var open_now: Bool?
+    var locality: String?
     var isArea: Bool { radius_meters > 0 }
+    /// Older backends and Apple's fallback places have no appeal; prominence stands in.
+    var visitorAppeal: Double { appeal ?? prominence * 0.8 }
+    var isScenic: Bool { categories.contains("scenic") }
 }
 
 struct GuideNearbyRequest: Codable, Sendable, Equatable {
@@ -60,6 +70,8 @@ struct GuideNearbyRequest: Codable, Sendable, Equatable {
     var horizontal_accuracy_meters: Double?
     var radius_meters: Int
     var language: String
+    /// "ahead" while driving: a wider circle centred in front of the car.
+    var scope: String? = nil
 }
 
 struct GuideNearbyResponse: Codable, Sendable {
@@ -69,6 +81,46 @@ struct GuideNearbyResponse: Codable, Sendable {
     var interests: [String] = []
     var sources: [String] = []
     var candidates: [GuideCandidate] = []
+    var sun: GuideSun?
+    var diagnostics: GuideNearbyDiagnostics?
+}
+
+/// Today's sunrise and sunset at the searched point (ISO 8601 UTC).
+struct GuideSun: Codable, Sendable, Equatable {
+    var sunrise: String?
+    var sunset: String?
+    var sunsetDate: Date? { sunset.flatMap { ISO8601DateFormatter.guide.date(from: $0) } }
+}
+
+extension ISO8601DateFormatter {
+    /// Accepts the backend's "2026-10-16T01:17:00+00:00", with or without fractional seconds.
+    nonisolated(unsafe) static let guide: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+}
+
+/// What the backend searched and why places were left out; only written to the debug log.
+struct GuideNearbyDiagnostics: Codable, Sendable {
+    struct Group: Codable, Sendable {
+        var types: Int?
+        var returned: Int?
+        var error: String?
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            types = try? c.decodeIfPresent(Int.self, forKey: .types)
+            returned = try? c.decodeIfPresent(Int.self, forKey: .returned)
+            error = (try? c.decodeIfPresent(String.self, forKey: .error))
+                ?? (try? c.decodeIfPresent(Int.self, forKey: .error)).flatMap { $0.map(String.init) }
+        }
+    }
+    struct Dropped: Codable, Sendable { var name: String; var reason: String }
+    var scope: String?
+    var radius_meters: Int?
+    var groups: [String: Group]?
+    var candidates: Int?
+    var dropped: [Dropped]?
 }
 
 /// The candidate shape the backend accepts back (no ratings or Google review content).
@@ -83,6 +135,9 @@ struct GuideMentionPlace: Codable, Sendable, Equatable {
     /// Lets the model tell apart places that share a name.
     var latitude: Double?
     var longitude: Double?
+    var primary_type: String?
+    var open_now: Bool?
+    var locality: String?
 }
 
 struct GuideMentionRequest: Codable, Sendable, Equatable {
@@ -95,6 +150,15 @@ struct GuideMentionRequest: Codable, Sendable, Equatable {
     var within: String?
     /// Ask the backend for Pip's voice as MP3 (text-to-speech), so no live session is needed.
     var audio: Bool = false
+    /// Wall-clock time with its offset ("2026-10-15T17:30:00-07:00") and the map's weather.
+    var local_time: String?
+    var weather: String?
+    /// Driving: estimated from distance along the direction of travel and current speed.
+    var minutes_ahead: Int?
+    /// How far the place lies from the line the car is travelling along.
+    var off_route_meters: Int?
+    /// Only when geometry says it is close beside the traveller; Pip never claims sight otherwise.
+    var in_view: Bool?
 }
 
 struct GuideMentionResponse: Codable, Sendable {
@@ -128,7 +192,10 @@ struct GuideFix: Sendable, Equatable {
     }
 }
 
-enum GuideSituation: String, Sendable { case stoppedNearby = "stopped_nearby", approaching, enteredArea = "entered_area", asked }
+enum GuideSituation: String, Sendable {
+    case stoppedNearby = "stopped_nearby", approaching, upcoming, enteredArea = "entered_area", asked
+    case approachingCity = "approaching_city", enteringCity = "entering_city"
+}
 
 struct GuideDecision: Sendable, Equatable {
     var place: GuideCandidate
@@ -141,6 +208,9 @@ struct GuideDecision: Sendable, Equatable {
     var breaksBudget: Bool
     /// Name of the venue (zoo, park) the traveler and this place are inside.
     var within: String? = nil
+    var minutesAhead: Int? = nil
+    var offRoute: Double? = nil
+    var inView: Bool? = nil
 
     func request(language: String) -> GuideMentionRequest {
         GuideMentionRequest(
@@ -149,7 +219,10 @@ struct GuideDecision: Sendable, Equatable {
             situation: situation.rawValue,
             mode: motion.isDriving ? "driving" : "walking",
             language: language,
-            within: within.map { String($0.prefix(160)) })
+            within: within.map { String($0.prefix(160)) },
+            minutes_ahead: minutesAhead.map { min(90, max(0, $0)) },
+            off_route_meters: offRoute.map { Int(min(20_000, max(0, $0.rounded()))) },
+            in_view: inView)
     }
 }
 
@@ -159,9 +232,13 @@ extension GuideMentionPlace {
                   categories: Array(candidate.categories.filter { GuideMentionPlace.allowedCategories.contains($0) }.prefix(8)),
                   summary: candidate.summary.map { String($0.prefix(1200)) },
                   distance_meters: distance.map { min(20_000, max(0, $0.rounded())) }, side: side,
-                  latitude: candidate.latitude, longitude: candidate.longitude)
+                  latitude: candidate.latitude, longitude: candidate.longitude,
+                  primary_type: candidate.primary_type.flatMap { $0.range(of: "^[a-z_]{1,40}$", options: .regularExpression) != nil ? $0 : nil },
+                  open_now: candidate.open_now,
+                  locality: candidate.locality.map { String($0.prefix(80)) }.flatMap { $0.isEmpty ? nil : $0 })
     }
-    static let allowedCategories: Set<String> = ["history", "art", "nature", "food", "family", "culture", "shopping", "landmark"]
+    static let allowedCategories: Set<String> = ["history", "art", "nature", "food", "family", "culture", "shopping", "landmark",
+                                                 "scenic", "entertainment", "neighborhood", "practical"]
 }
 
 enum GuideGeo {
@@ -208,6 +285,46 @@ enum GuideGeo {
     }
 }
 
+/// Configurable starting values for driving discovery, not fixed rules. Search circles are
+/// centred ahead of the car (city ≈ 0–3 mi ahead, highway ≈ 0–8 mi ahead), and worthwhile places
+/// are introduced a few minutes before the car reaches them.
+struct GuideDrivingConfig: Sendable {
+    var cityAhead = 2_000.0
+    var cityRadius = 3_000
+    var highwayAhead = 6_000.0
+    var highwayRadius = 7_000
+    /// Look again once this far into the searched stretch (each search costs four lookups).
+    var cityRefetch = 1_500.0
+    var highwayRefetch = 5_000.0
+    /// Introduce a place this many seconds before reaching it ("in a few minutes…").
+    var upcoming: ClosedRange<TimeInterval> = 100...330
+    /// Within this many seconds it is "coming up on your right", if it was never introduced.
+    var passing: TimeInterval = 100
+    /// How far off the line of travel a place may lie and still be worth suggesting.
+    func detour(_ tier: GuideTier, highway: Bool) -> Double {
+        switch (tier, highway) {
+        case (.mustSee, true): 5_000
+        case (.notable, true): 2_500
+        case (.minor, true): 0
+        case (.mustSee, false): 2_000
+        case (.notable, false): 1_000
+        case (.minor, false): 300
+        }
+    }
+    /// Passing mentions are only for places right beside the road.
+    func beside(highway: Bool) -> Double { highway ? 500 : 250 }
+    /// Places introduced together when they sit this close to each other.
+    var groupRadius = 1_500.0
+    /// Sunset spots get priority this many minutes before sunset.
+    var sunsetWindow: ClosedRange<Double> = 10...75
+}
+
+/// Why a candidate was or wasn't chosen, for the debug log ("why didn't Pip mention X?").
+struct GuideTrace: Sendable, Equatable {
+    var name: String
+    var reason: String
+}
+
 struct GuideEngine {
     // Thresholds from the design doc ("Location and triggering", "Choosing what to mention").
     static let maxAccuracy = 50.0
@@ -218,14 +335,25 @@ struct GuideEngine {
     static let notableWalkingRange = 10.0
     static let mustSeeWalkingRange = 125.0
     static let minorWalkingRange = 25.0
-    static let cityDrivingCorridor = 200.0
-    static let highwayDrivingCorridor = 400.0
-    // TTS currently targets 70–90 words, approximately 40 seconds of audio.
-    static let drivingAnnouncementDuration: TimeInterval = 40
-    static let drivingAnnouncementLead: TimeInterval = 5
     static let groupRadius = 60.0
     static let minimumGap: TimeInterval = 45  // never talk over the previous mention
     static let fetchInterval: TimeInterval = 20
+    /// A town is announced at most once in this long, however often GPS drifts across its edge.
+    static let areaMemory: TimeInterval = 2 * 3600
+    /// A new town counts once two lookups at least this far apart agree.
+    static let areaConfirmation: TimeInterval = 20
+
+    var driving = GuideDrivingConfig()
+    /// Today's sunset where the traveller is, from the backend.
+    var sunset: Date?
+    /// Candidates checked by the last `decide`, with the reason each was or wasn't chosen.
+    private(set) var lastTrace: [GuideTrace] = []
+    /// The town (and, for the most talkative setting, neighbourhood) the traveller is in.
+    private(set) var currentArea: String?
+    private(set) var pendingArea: (name: String, since: Date)?
+    private(set) var announcedAreas: [String: Date] = [:]
+    /// A town arrival or approach waiting for a quiet moment.
+    private(set) var areaEvent: (name: String, situation: GuideSituation, at: Date)?
 
     var chattiness: GuideChattiness = .normal
     private(set) var candidates: [GuideCandidate] = []
@@ -321,23 +449,24 @@ struct GuideEngine {
 
     // MARK: Fetching candidates (one Google lookup per area, never per GPS update)
 
-    /// Where and how wide to look, sized for speed: walking around you, driving ahead of you.
+    /// Where and how wide to look: walking around you; driving in a wide circle centred ahead of
+    /// the car, so places several minutes up the road are known before you reach them.
     func fetchPlan() -> GuideNearbyRequest? {
         guard let fix = latest else { return nil }
-        let center: (Double, Double)
+        let ahead: Double
         let radius: Int
         switch motion {
-        case .highway:
-            radius = 1500
-            center = fix.course >= 0 ? GuideGeo.offset(fix.latitude, fix.longitude, meters: 1000, bearing: fix.course) : (fix.latitude, fix.longitude)
-        case .cityDriving:
-            radius = 900
-            center = fix.course >= 0 ? GuideGeo.offset(fix.latitude, fix.longitude, meters: 400, bearing: fix.course) : (fix.latitude, fix.longitude)
+        case .highway: (ahead, radius) = (driving.highwayAhead, driving.highwayRadius)
+        case .cityDriving: (ahead, radius) = (driving.cityAhead, driving.cityRadius)
         case .walking, .unknown:
-            radius = 500
-            center = (fix.latitude, fix.longitude)
+            return GuideNearbyRequest(latitude: fix.latitude, longitude: fix.longitude, horizontal_accuracy_meters: fix.accuracy,
+                                      radius_meters: 500, language: "en")
         }
-        return GuideNearbyRequest(latitude: center.0, longitude: center.1, horizontal_accuracy_meters: fix.accuracy, radius_meters: radius, language: "en")
+        // Without a direction yet, centre on the car so nothing nearby is missed.
+        let center = fix.course >= 0 ? GuideGeo.offset(fix.latitude, fix.longitude, meters: ahead, bearing: fix.course)
+                                     : (fix.latitude, fix.longitude)
+        return GuideNearbyRequest(latitude: center.0, longitude: center.1, horizontal_accuracy_meters: fix.accuracy,
+                                  radius_meters: radius, language: "en", scope: "ahead")
     }
 
     func needsFetch(at now: Date) -> Bool {
@@ -345,24 +474,51 @@ struct GuideEngine {
         if let attempt = lastFetchAttempt, now.timeIntervalSince(attempt) < Self.fetchInterval { return false }
         guard let area = fetchedCenter, let fetchedAt else { return true }
         if now.timeIntervalSince(fetchedAt) > 30 * 60 { return true }
-        // Refetch before the covered area runs out (sooner on the highway, where look-ahead is 900 m).
-        let travelled = GuideGeo.distance(area.latitude, area.longitude, fix.latitude, fix.longitude)
-        return travelled > area.radius * (motion == .highway ? 0.4 : 0.5)
+        switch motion {
+        // Driving searches reach several minutes ahead: look again after covering part of that
+        // stretch, or when speeding up onto a highway needs a wider search.
+        case .highway:
+            return area.radius < Double(driving.highwayRadius) || distanceFromFetch > driving.highwayRefetch
+        case .cityDriving:
+            return distanceFromFetch > driving.cityRefetch
+        case .walking, .unknown:
+            let travelled = GuideGeo.distance(area.latitude, area.longitude, fix.latitude, fix.longitude)
+            return travelled > area.radius * 0.5
+        }
+    }
+
+    /// Where the traveller was when the last search was planned.
+    private(set) var fetchOrigin: (latitude: Double, longitude: Double)?
+    private var distanceFromFetch: Double {
+        guard let origin = fetchOrigin, let fix = latest else { return .infinity }
+        return GuideGeo.distance(origin.latitude, origin.longitude, fix.latitude, fix.longitude)
     }
 
     mutating func markFetchAttempt(at now: Date) { lastFetchAttempt = now }
 
-    mutating func update(candidates: [GuideCandidate], for request: GuideNearbyRequest, at now: Date) {
-        self.candidates = candidates
+    /// Driving keeps places found earlier that are still ahead and unmentioned, so a theme park
+    /// spotted ten minutes away is not forgotten by the next search.
+    mutating func update(candidates: [GuideCandidate], for request: GuideNearbyRequest, at now: Date, sunset: Date? = nil) {
+        let fresh = Set(candidates.map(\.id))
+        var kept: [GuideCandidate] = []
+        if request.scope == "ahead", let fix = latest {
+            kept = self.candidates.filter { old in
+                !fresh.contains(old.id) && !mentioned.contains(old.id)
+                    && GuideGeo.distance(fix.latitude, fix.longitude, old.latitude, old.longitude) <= 15_000
+            }
+        }
+        self.candidates = Array((candidates + kept).prefix(120))
         fetchedCenter = (request.latitude, request.longitude, Double(request.radius_meters))
+        fetchOrigin = latest.map { ($0.latitude, $0.longitude) }
         fetchedAt = now
+        if let sunset { self.sunset = sunset }
     }
 
     // MARK: Choosing what to mention
 
     func eligible(_ candidate: GuideCandidate) -> Bool {
         guard !mentioned.contains(candidate.id) else { return false }
-        if motion == .highway { return candidate.tier == .mustSee }
+        if motion.isDriving { return eligibleWhileDriving(candidate) }
         switch (chattiness, candidate.tier) {
         case (_, .mustSee): return true
         case (.quiet, _): return false
@@ -370,6 +526,20 @@ struct GuideEngine {
         case (.normal, .minor): return false
         case (.tourGuide, .notable): return true
         case (.tourGuide, .minor): return candidate.summary != nil && motion == .walking
+        }
+    }
+
+    /// From the road, broadly appealing places matter as much as personal ones; practical stops
+    /// (Costco, groceries) only for travellers who said they want them.
+    func eligibleWhileDriving(_ candidate: GuideCandidate) -> Bool {
+        if candidate.categories == ["practical"] { return candidate.profile_match >= 1 && chattiness != .quiet }
+        switch (chattiness, candidate.tier) {
+        case (_, .mustSee): return true
+        case (.quiet, _): return false
+        case (.normal, .notable): return candidate.visitorAppeal >= 0.45 || candidate.profile_match >= 1
+        case (.normal, .minor): return false
+        case (.tourGuide, .notable): return true
+        case (.tourGuide, .minor): return motion == .cityDriving && candidate.profile_match >= 1 && candidate.visitorAppeal >= 0.35
         }
     }
 
@@ -393,10 +563,10 @@ struct GuideEngine {
         }
     }
 
-    func budgetOpen(at now: Date, mustSee: Bool, inVenue: Bool = false) -> Bool {
+    func budgetOpen(at now: Date, mustSee: Bool, inVenue: Bool = false, dense: Bool = false) -> Bool {
         guard let last = lastMentionAt else { return true }
         let elapsed = now.timeIntervalSince(last)
-        return elapsed >= (mustSee ? Self.minimumGap : (inVenue ? venueBudget : budget))
+        return elapsed >= (mustSee ? Self.minimumGap : (inVenue ? venueBudget : budget * (dense ? 0.75 : 1)))
     }
 
     /// The notable zoo, park or campus the traveler is inside, if any.
@@ -460,6 +630,7 @@ struct GuideEngine {
         let travelDirection = self.direction(heading: heading)
         switch motion {
         case .walking:
+            if let neighbourhood = areaDecision(at: now, fix: fix) { return neighbourhood }
             let stopped = isStopped(at: now)
             let venue = enclosingVenue()
             let pool = candidates.map { promoted($0, in: venue) }
@@ -496,29 +667,189 @@ struct GuideEngine {
                                  distance: distance, motion: .walking, breaksBudget: place.tier == .mustSee,
                                  within: within)
         case .cityDriving, .highway:
-            guard let course = travelDirection else { return nil }
-            let reach = speed * (Self.drivingAnnouncementDuration + Self.drivingAnnouncementLead)
-            let corridor = motion == .highway ? Self.highwayDrivingCorridor : Self.cityDrivingCorridor
-            var best: (GuideCandidate, Double, Double, Double)?
-            for candidate in candidates where eligible(candidate) {
-                let distance = GuideGeo.distance(fix.latitude, fix.longitude, candidate.latitude, candidate.longitude)
-                let angle = GuideGeo.relative(GuideGeo.bearing(fix.latitude, fix.longitude, candidate.latitude, candidate.longitude), to: course)
-                let along = distance * cos(angle * .pi / 180)
-                let across = abs(distance * sin(angle * .pi / 180))
-                // Coming up ahead, reached within the look-ahead window, near the projected path.
-                guard along > 0, along <= reach + candidate.radius_meters, across <= corridor + candidate.radius_meters else { continue }
-                guard budgetOpen(at: now, mustSee: candidate.tier == .mustSee) else { continue }
-                let value = score(candidate, distance: along, range: reach, stopped: false) - Double(candidate.tier.rank) * 0.3
-                if best == nil || value > best!.3 { best = (candidate, distance, angle, value) }
+            guard let course = travelDirection else {
+                lastTrace = [GuideTrace(name: "—", reason: "no direction of travel yet")]
+                return nil
             }
-            guard let chosen = best else { return nil }
-            let angle = chosen.2
-            let side = abs(angle) < 10 ? "ahead" : (angle > 0 ? "right" : "left")
-            return GuideDecision(place: chosen.0, highlights: [], situation: .approaching, side: side,
-                                 distance: chosen.1, motion: motion, breaksBudget: chosen.0.tier == .mustSee)
+            observeAreaAhead(fix: fix, course: course, at: now)
+            if let city = areaDecision(at: now, fix: fix) { return city }
+            return drivingDecision(at: now, fix: fix, course: course)
         case .unknown:
             return nil
         }
+    }
+
+    /// Where a candidate lies relative to the car: metres along the direction of travel, metres
+    /// off that line, and the signed angle (positive = right).
+    static func geometry(of candidate: GuideCandidate, from fix: GuideFix, course: Double) -> (along: Double, across: Double, angle: Double, distance: Double) {
+        let distance = GuideGeo.distance(fix.latitude, fix.longitude, candidate.latitude, candidate.longitude)
+        let angle = GuideGeo.relative(GuideGeo.bearing(fix.latitude, fix.longitude, candidate.latitude, candidate.longitude), to: course)
+        return (distance * cos(angle * .pi / 180), abs(distance * sin(angle * .pi / 180)), angle, distance)
+    }
+
+    /// Minutes until sunset, when known.
+    func minutesToSunset(at now: Date) -> Double? { sunset.map { $0.timeIntervalSince(now) / 60 } }
+
+    /// The best place a few minutes up the road (introduced before the car gets there), or one
+    /// right beside the road that was never introduced. Records why each candidate was skipped.
+    private mutating func drivingDecision(at now: Date, fix: GuideFix, course: Double) -> GuideDecision? {
+        let highway = motion == .highway
+        let pace = max(speed, 3)
+        let sunsetSoon = minutesToSunset(at: now).map { driving.sunsetWindow.contains($0) } ?? false
+        var trace: [(GuideTrace, Double)] = []
+        var best: (place: GuideCandidate, situation: GuideSituation, eta: Double, across: Double, angle: Double, distance: Double, value: Double)?
+        let ahead = candidates.filter { !mentioned.contains($0.id) }
+        // Many worthwhile places ahead: Pip may speak a little more often to keep up.
+        let dense = ahead.filter { eligible($0) }.count >= 8
+        for candidate in ahead {
+            func skip(_ reason: String) { trace.append((GuideTrace(name: candidate.name, reason: reason), candidate.visitorAppeal)) }
+            guard eligible(candidate) else { skip("not eligible (\(candidate.tier.rawValue), appeal \(String(format: "%.2f", candidate.visitorAppeal)))"); continue }
+            let g = Self.geometry(of: candidate, from: fix, course: course)
+            guard g.along > -candidate.radius_meters else { skip("behind"); continue }
+            let eta = max(0, g.along - candidate.radius_meters) / pace
+            let detour = driving.detour(candidate.tier, highway: highway)
+            guard g.across <= detour + candidate.radius_meters else { skip("\(Int(g.across)) m off the way (limit \(Int(detour)))"); continue }
+            let situation: GuideSituation
+            if driving.upcoming.contains(eta) {
+                situation = .upcoming
+            } else if eta < driving.passing, g.across <= driving.beside(highway: highway) + candidate.radius_meters {
+                situation = .approaching
+            } else if eta < driving.passing {
+                skip("too close to suggest a detour"); continue
+            } else {
+                skip("\(Int(eta / 60)) min ahead: later"); continue
+            }
+            let timely = sunsetSoon && candidate.isScenic
+            guard budgetOpen(at: now, mustSee: candidate.tier == .mustSee || timely, dense: dense) else { skip("waiting: talked recently"); continue }
+            var value = candidate.visitorAppeal * 0.35 + candidate.profile_match * 0.3
+            value += candidate.tier == .mustSee ? 0.3 : candidate.tier == .notable ? 0.15 : 0
+            value += timely ? 0.25 : 0
+            value -= min(1, g.across / max(detour, 1)) * 0.15
+            if best == nil || value > best!.value {
+                best = (candidate, situation, eta, g.across, g.angle, g.distance, value)
+            }
+            skip(String(format: "candidate, score %.2f", value))
+        }
+        guard let chosen = best else {
+            lastTrace = trace.sorted { $0.1 > $1.1 }.prefix(12).map(\.0)
+            return nil
+        }
+        let highlights = drivingGroup(around: chosen.place, fix: fix, course: course)
+        lastTrace = [GuideTrace(name: chosen.place.name, reason: "chosen: \(chosen.situation.rawValue), \(Int(chosen.eta / 60)) min ahead, \(Int(chosen.across)) m off the way")]
+            + trace.filter { $0.0.name != chosen.place.name }.sorted { $0.1 > $1.1 }.prefix(11).map(\.0)
+        if chosen.situation == .upcoming, let town = townIntroduction(for: chosen.place, fix: fix, at: now) { return town }
+        // The side of the line of travel the place lies on, so a place a few kilometres up the
+        // road is still "on your left" (a curve ahead can change this; nearer mentions refine it).
+        let side = chosen.distance < 1_000
+            ? (abs(chosen.angle) < 10 ? "ahead" : (chosen.angle > 0 ? "right" : "left"))
+            : (chosen.across < 150 ? "ahead" : (chosen.angle > 0 ? "right" : "left"))
+        return GuideDecision(place: chosen.place, highlights: highlights, situation: chosen.situation, side: side,
+                             distance: chosen.distance, motion: motion, breaksBudget: chosen.place.tier == .mustSee,
+                             minutesAhead: chosen.situation == .upcoming ? max(1, Int((chosen.eta / 60).rounded())) : nil,
+                             offRoute: chosen.across,
+                             inView: chosen.across < 250 && chosen.distance < 600)
+    }
+
+    /// Other worthwhile places beside the chosen one (One Paseo and Del Mar Highlands), so they
+    /// are introduced together in one natural sentence.
+    func drivingGroup(around place: GuideCandidate, fix: GuideFix, course: Double) -> [GuideCandidate] {
+        candidates
+            .filter { other in
+                other.id != place.id && eligible(other) && other.tier != .minor
+                    && GuideGeo.distance(place.latitude, place.longitude, other.latitude, other.longitude) <= driving.groupRadius
+                    && Self.geometry(of: other, from: fix, course: course).along > 0
+            }
+            .sorted { $0.visitorAppeal > $1.visitorAppeal }
+            .prefix(2).map { $0 }
+    }
+
+    // MARK: Towns and neighbourhoods
+
+    /// Feeds the town the traveller is in (from the phone's reverse geocoder). A change counts
+    /// only after two agreeing lookups, so GPS drift across a boundary is never announced, and
+    /// each town is welcomed at most once every two hours.
+    mutating func observeArea(_ name: String?, at now: Date) {
+        guard let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return }
+        if currentArea == nil {
+            // The tour starts here: no welcome to the town you are already in.
+            currentArea = name; announcedAreas[Self.key(name)] = now; pendingArea = nil
+            return
+        }
+        guard Self.key(name) != Self.key(currentArea!) else { pendingArea = nil; return }
+        guard let pending = pendingArea, Self.key(pending.name) == Self.key(name) else {
+            pendingArea = (name, now); return
+        }
+        guard now.timeIntervalSince(pending.since) >= Self.areaConfirmation else { return }
+        currentArea = name; pendingArea = nil
+        if recentlyAnnounced(name, at: now) { return }
+        // Already introduced as "heading toward" a few minutes ago: no second welcome.
+        if let event = areaEvent, Self.key(event.name) == Self.key(name), event.situation == .approachingCity { areaEvent = nil }
+        announcedAreas[Self.key(name)] = now
+        areaEvent = (name, .enteringCity, now)
+    }
+
+    /// While driving, the town most upcoming places belong to, when it differs from the current
+    /// one: "You're heading toward Carlsbad…". Uses Google's address data for those places.
+    mutating func observeAreaAhead(fix: GuideFix, course: Double, at now: Date) {
+        guard motion.isDriving, let current = currentArea, areaEvent == nil else { return }
+        let pace = max(speed, 3)
+        // The nearest other town that places a few minutes ahead belong to; never one further on
+        // while a nearer town is still to come.
+        var nearest: (name: String, along: Double)?
+        for candidate in candidates {
+            guard let town = candidate.locality, Self.key(town) != Self.key(current) else { continue }
+            let g = Self.geometry(of: candidate, from: fix, course: course)
+            guard g.along > 0, g.across <= 3_000, (60...300).contains(g.along / pace) else { continue }
+            if nearest == nil || g.along < nearest!.along { nearest = (town, g.along) }
+        }
+        guard let town = nearest?.name, !recentlyAnnounced(town, at: now) else { return }
+        announcedAreas[Self.key(town)] = now
+        areaEvent = (town, .approachingCity, now)
+    }
+
+    func recentlyAnnounced(_ town: String, at now: Date) -> Bool {
+        announcedAreas[Self.key(town)].map { now.timeIntervalSince($0) < Self.areaMemory } ?? false
+    }
+
+    /// "Carlsbad is coming up! LEGOLAND, the outlets…": when the best place ahead is in a town not
+    /// yet introduced, the town is introduced with it and its other highlights.
+    private mutating func townIntroduction(for place: GuideCandidate, fix: GuideFix, at now: Date) -> GuideDecision? {
+        guard let town = place.locality, let current = currentArea, Self.key(town) != Self.key(current),
+              !recentlyAnnounced(town, at: now) else { return nil }
+        announcedAreas[Self.key(town)] = now
+        let others = candidates.filter { other in
+            other.id != place.id && eligible(other) && other.tier != .minor
+                && other.locality.map { Self.key($0) == Self.key(town) } ?? false
+        }
+        let highlights = [place] + others.sorted { $0.visitorAppeal > $1.visitorAppeal }.prefix(2)
+        let area = GuideCandidate(id: "locality:\(town)", name: town, latitude: fix.latitude, longitude: fix.longitude,
+                                  categories: ["neighborhood"], prominence: 1, tier: .mustSee)
+        lastTrace.insert(GuideTrace(name: town, reason: "town ahead, introduced with \(place.name)"), at: 0)
+        return GuideDecision(place: area, highlights: highlights, situation: .approachingCity, side: nil, distance: 0,
+                             motion: motion, breaksBudget: true)
+    }
+
+    /// A pending town announcement, with up to three of its best places as highlights.
+    private mutating func areaDecision(at now: Date, fix: GuideFix) -> GuideDecision? {
+        guard let event = areaEvent else { return nil }
+        // Stale news is dropped rather than announced late.
+        guard now.timeIntervalSince(event.at) < 180 else { areaEvent = nil; return nil }
+        guard budgetOpen(at: now, mustSee: true) else { return nil }
+        let inTown = candidates.filter { candidate in
+            !mentioned.contains(candidate.id) && candidate.tier != .minor && candidate.categories != ["practical"]
+                && candidate.locality.map { Self.key($0) == Self.key(event.name) } ?? false
+        }
+        let highlights = Array(inTown.sorted { $0.visitorAppeal > $1.visitorAppeal }.prefix(3))
+        let town = GuideCandidate(id: "locality:\(event.name)", name: event.name, latitude: fix.latitude, longitude: fix.longitude,
+                                  categories: ["neighborhood"], prominence: 1, tier: .mustSee)
+        lastTrace = [GuideTrace(name: event.name, reason: "town: \(event.situation.rawValue), \(highlights.count) highlights")]
+        return GuideDecision(place: town, highlights: highlights, situation: event.situation, side: nil, distance: 0,
+                             motion: motion, breaksBudget: true)
+    }
+
+    /// Case- and accent-insensitive town key ("Solana Beach" from Apple matches Google's).
+    static func key(_ name: String) -> String {
+        name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
     }
 
     /// Several places clustered in a square: one sentence about the whole, two or three names.
@@ -541,6 +872,7 @@ struct GuideEngine {
     }
 
     mutating func markMentioned(_ decision: GuideDecision, at now: Date) {
+        if decision.situation == .enteringCity || decision.situation == .approachingCity { areaEvent = nil }
         mentioned.insert(decision.place.id)
         for highlight in decision.highlights { mentioned.insert(highlight.id) }
         lastMentionAt = now

@@ -86,7 +86,9 @@ struct LiveGuideEngineTests {
         #expect(!e.isStopped(at: now))
         let stoppedDecision = e.decide(at: now)
         #expect(stoppedDecision == nil)
-        #expect(e.fetchPlan()?.radius_meters == 900)
+        // Driving looks ahead in a wider circle (parked, with no direction yet, it centres on the car).
+        #expect(e.fetchPlan()?.radius_meters == 3000)
+        #expect(e.fetchPlan()?.scope == "ahead")
         e.ingest(fix(at: now.addingTimeInterval(20), speed: 27, course: 0))
         #expect(e.motion == .highway)
     }
@@ -197,29 +199,41 @@ struct LiveGuideEngineTests {
         #expect(decision.request(language: "en").mode == "driving")
     }
 
-    @Test func drivingLeadScalesWithSpeed() {
-        // At 25 mph, a 400 m landmark is within the 45 s window. At 10 mph it is not.
-        for (speed, shouldAnnounce) in [(11.176, true), (4.4704, false)] {
-            var e = engine([place("ahead", tier: .mustSee, north: 400)])
+    @Test func drivingIntroducesPlacesMinutesBeforeReachingThem() throws {
+        // At 30 mph (13.4 m/s) a must-see 3 km ahead is about 4 minutes away: introduce it now.
+        // One 8 km ahead (10 minutes) waits until it is closer.
+        for (north, shouldAnnounce) in [(3_000.0, true), (8_000.0, false)] {
+            var e = engine([place("theme park", tier: .mustSee, north: north, east: 800)])
             e.selectTourMode(.driving)
             for second in 0...4 {
-                e.ingest(fix(at: t0.addingTimeInterval(Double(second)), speed: speed, course: 0))
+                e.ingest(fix(at: t0.addingTimeInterval(Double(second)), speed: 13.4, course: 0))
             }
-            #expect((e.decide(at: t0.addingTimeInterval(4)) != nil) == shouldAnnounce)
+            let decision = e.decide(at: t0.addingTimeInterval(4))
+            #expect((decision != nil) == shouldAnnounce)
+            if let decision {
+                #expect(decision.situation == .upcoming)
+                #expect(decision.minutesAhead == 4)
+                #expect(decision.side == "right")
+                #expect(decision.inView == false)
+                let request = decision.request(language: "en")
+                #expect(request.minutes_ahead == 4 && request.off_route_meters == 800)
+            }
         }
     }
 
     @Test func drivingLeadRejectsBehindAndOutsideCorridor() {
         var e = engine([place("behind", tier: .mustSee, north: -300),
-                        place("off road", tier: .mustSee, north: 300, east: 250)])
+                        place("off road", tier: .mustSee, north: 300, east: 2_500)])
         e.selectTourMode(.driving)
         for second in 0...4 {
             e.ingest(fix(at: t0.addingTimeInterval(Double(second)), speed: 11.176, course: 0))
         }
         #expect(e.decide(at: t0.addingTimeInterval(4)) == nil)
+        #expect(e.lastTrace.contains(GuideTrace(name: "behind", reason: "behind")))
+        #expect(e.lastTrace.contains { $0.name == "off road" && $0.reason.contains("off the way") })
     }
 
-    @Test func highwayOnlyMentionsMustSees() {
+    @Test func highwayPrefersMustSees() {
         var e = engine([place("museum", tier: .notable, north: 500), place("landmark", tier: .mustSee, north: 700, east: -150)])
         for second in 0...4 {
             e.ingest(fix(north: Double(second) * 30 - 120, at: t0.addingTimeInterval(Double(second)), speed: 30, course: 0))
@@ -322,5 +336,224 @@ struct LiveGuideEngineTests {
         #expect(!json.contains("rating"))
         #expect(!json.contains("unknown"))
         #expect(json.contains("\"situation\":\"stopped_nearby\""))
+    }
+}
+
+/// The October 2026 test drive, replayed: Carmel Valley → Del Mar Highlands → One Paseo →
+/// I-5 North → Del Mar Fairgrounds → Solana Beach → Carlsbad. Positions are approximate real
+/// coordinates; places mirror what the backend returned for this route (tier, appeal, town).
+struct LiveGuideDriveReplayTests {
+    struct Mentioned { var decision: GuideDecision; var at: Date; var along: Double }
+
+    static func spot(_ id: String, _ lat: Double, _ lon: Double, _ tier: GuideTier, appeal: Double,
+                     _ categories: [String], town: String?, match: Double = 0.5) -> GuideCandidate {
+        GuideCandidate(id: id, name: id, latitude: lat, longitude: lon, categories: categories,
+                       prominence: appeal, tier: tier, profile_match: match, appeal: appeal, locality: town)
+    }
+
+    static let places: [GuideCandidate] = [
+        spot("Del Mar Highlands Town Center", 32.9506, -117.2337, .notable, appeal: 0.59, ["shopping"], town: "San Diego"),
+        spot("One Paseo", 32.9555, -117.2383, .notable, appeal: 0.48, ["shopping"], town: "San Diego"),
+        spot("Torrey Pines High School", 32.9585, -117.2405, .minor, appeal: 0.26, ["history"], town: nil),
+        spot("Torrey Pines State Beach", 32.9330, -117.2600, .notable, appeal: 0.60, ["scenic", "nature"], town: "San Diego"),
+        spot("Del Mar Fairgrounds", 32.9750, -117.2600, .notable, appeal: 0.72, ["entertainment"], town: "Del Mar"),
+        spot("Fletcher Cove Beach Park", 32.9910, -117.2730, .notable, appeal: 0.60, ["scenic"], town: "Solana Beach"),
+        spot("Cedros Avenue Design District", 32.9930, -117.2700, .notable, appeal: 0.62, ["art", "shopping"], town: "Solana Beach"),
+        spot("San Diego Botanic Garden", 33.0530, -117.2810, .notable, appeal: 0.62, ["nature"], town: "Encinitas"),
+        spot("Moonlight State Beach", 33.0480, -117.2980, .notable, appeal: 0.66, ["scenic"], town: "Encinitas"),
+        spot("LEGOLAND California Resort", 33.1260, -117.3110, .mustSee, appeal: 0.98, ["family"], town: "Carlsbad"),
+        spot("Carlsbad Premium Outlets", 33.1270, -117.3200, .notable, appeal: 0.68, ["shopping"], town: "Carlsbad"),
+        spot("In-N-Out Burger", 33.1300, -117.3235, .notable, appeal: 0.61, ["food"], town: "Carlsbad"),
+        spot("Costco Wholesale", 33.1275, -117.3010, .notable, appeal: 0.33, ["practical"], town: "Carlsbad"),
+    ]
+
+    /// Driving route: (latitude, longitude, metres per second) waypoints.
+    static let northbound: [(Double, Double, Double)] = [
+        (32.9330, -117.2330, 13), (32.9540, -117.2333, 13),   // El Camino Real north, past Del Mar Highlands
+        (32.9556, -117.2440, 13),                              // Del Mar Heights Rd west, past One Paseo
+        (32.9790, -117.2540, 29), (32.9960, -117.2600, 29),   // I-5 North past the Fairgrounds, Solana Beach
+        (33.0450, -117.2860, 29), (33.0950, -117.3050, 29),   // Encinitas, Carlsbad
+        (33.1370, -117.3290, 29),
+    ]
+
+    static func town(at latitude: Double) -> String {
+        switch latitude {
+        case ..<32.9580: "San Diego"
+        case ..<32.9850: "Del Mar"
+        case ..<33.0040: "Solana Beach"
+        case ..<33.0900: "Encinitas"
+        default: "Carlsbad"
+        }
+    }
+
+    /// One fix per second along the route; the backend is simulated from `places`; Pip is asked
+    /// every 5 s (like the phone's ticker) and each mention is treated as delivered at once.
+    static func drive(_ route: [(Double, Double, Double)], chattiness: GuideChattiness = .normal,
+                      sunsetIn minutes: Double? = nil, places: [GuideCandidate] = places) -> (mentions: [Mentioned], engine: GuideEngine) {
+        var engine = GuideEngine(chattiness: chattiness)
+        engine.selectTourMode(.driving)
+        var now = Date(timeIntervalSince1970: 1_000_000)
+        let sunset = minutes.map { now.addingTimeInterval($0 * 60) }
+        var mentions: [Mentioned] = []
+        var travelled = 0.0
+        for (from, to) in zip(route, route.dropFirst()) {
+            let length = GuideGeo.distance(from.0, from.1, to.0, to.1)
+            let course = GuideGeo.bearing(from.0, from.1, to.0, to.1)
+            var covered = 0.0
+            while covered < length {
+                let position = GuideGeo.offset(from.0, from.1, meters: covered, bearing: course)
+                engine.ingest(GuideFix(latitude: position.0, longitude: position.1, accuracy: 8, speed: to.2, course: course, timestamp: now))
+                if engine.needsFetch(at: now), let plan = engine.fetchPlan() {
+                    engine.markFetchAttempt(at: now)
+                    let found = places.filter { GuideGeo.distance(plan.latitude, plan.longitude, $0.latitude, $0.longitude) <= Double(plan.radius_meters) }
+                    engine.update(candidates: found, for: plan, at: now, sunset: sunset)
+                }
+                let second = Int(now.timeIntervalSince1970)
+                if second % 30 == 0 { engine.observeArea(town(at: position.0), at: now) }
+                if second % 5 == 0, let decision = engine.decide(at: now) {
+                    engine.markMentioned(decision, at: now)
+                    let g = GuideEngine.geometry(of: decision.place, from: engine.latest!, course: course)
+                    mentions.append(Mentioned(decision: decision, at: now, along: g.along))
+                }
+                covered += to.2
+                travelled += to.2
+                now = now.addingTimeInterval(1)
+            }
+        }
+        return (mentions, engine)
+    }
+
+    static func names(_ mentions: [Mentioned]) -> [String] {
+        mentions.flatMap { [$0.decision.place.name] + $0.decision.highlights.map(\.name) }
+    }
+
+    @Test func pipIntroducesTheDrivesHighlightsBeforeReachingThem() throws {
+        let (mentions, _) = Self.drive(Self.northbound)
+        let said = Self.names(mentions)
+        for expected in ["Del Mar Highlands Town Center", "One Paseo", "Del Mar Fairgrounds", "LEGOLAND California Resort",
+                         "Carlsbad Premium Outlets"] {
+            #expect(said.contains(expected), "Pip never mentioned \(expected); said \(said)")
+        }
+        // Every place is introduced before the car passes it, never after.
+        for mention in mentions where !mention.decision.place.id.hasPrefix("locality:") {
+            #expect(mention.along > 0, "\(mention.decision.place.name) was mentioned after passing it")
+        }
+        // LEGOLAND comes with Carlsbad: "Carlsbad is coming up! LEGOLAND, the outlets…".
+        let carlsbad = try #require(mentions.first { $0.decision.place.name == "Carlsbad" })
+        #expect(carlsbad.decision.situation == .approachingCity)
+        #expect(carlsbad.decision.highlights.first?.name == "LEGOLAND California Resort")
+        // One Paseo is introduced together with Del Mar Highlands, before reaching either.
+        let highlands = try #require(mentions.first { $0.decision.place.name == "Del Mar Highlands Town Center" })
+        #expect(highlands.decision.situation == .upcoming)
+        #expect(highlands.decision.highlights.map(\.name) == ["One Paseo"])
+    }
+
+    @Test func schoolsAndPracticalStopsStayQuietWithoutAnInterest() {
+        let said = Self.names(Self.drive(Self.northbound).mentions)
+        #expect(!said.contains("Torrey Pines High School"))
+        #expect(!said.contains("Costco Wholesale"))
+        // Someone who said they love road-trip stops hears about Costco.
+        let shopper = Self.places.map { place in
+            var copy = place
+            if place.name == "Costco Wholesale" { copy.profile_match = 1 }
+            return copy
+        }
+        let (mentions, _) = Self.drive(Self.northbound, chattiness: .tourGuide, places: shopper)
+        #expect(Self.names(mentions).contains("Costco Wholesale"))
+    }
+
+    @Test func townsAreWelcomedOnceWithTheirHighlights() throws {
+        let (mentions, _) = Self.drive(Self.northbound)
+        let towns = mentions.filter { $0.decision.place.id.hasPrefix("locality:") }
+        let townNames = towns.map(\.decision.place.name)
+        // No welcome to the town the tour started in, and no town twice.
+        #expect(!townNames.contains("San Diego"))
+        #expect(Set(townNames).count == townNames.count)
+        #expect(townNames.contains("Carlsbad"))
+        let carlsbad = try #require(towns.first { $0.decision.place.name == "Carlsbad" })
+        // Announced ahead of time from the places waiting there, with them as highlights.
+        #expect(carlsbad.decision.situation == .approachingCity)
+        #expect(carlsbad.decision.highlights.map(\.name).contains("LEGOLAND California Resort"))
+        #expect(!carlsbad.decision.highlights.map(\.name).contains("Costco Wholesale"))
+        // Del Mar comes before Solana Beach, which comes before Encinitas.
+        let order = townNames.filter { ["Del Mar", "Solana Beach", "Encinitas"].contains($0) }
+        #expect(order == ["Del Mar", "Solana Beach", "Encinitas"])
+    }
+
+    @Test func gpsDriftAcrossATownLineIsNotAnnouncedAgain() {
+        var engine = GuideEngine()
+        let t = Date(timeIntervalSince1970: 0)
+        engine.observeArea("San Diego", at: t)
+        engine.observeArea("Del Mar", at: t.addingTimeInterval(30))
+        #expect(engine.areaEvent == nil) // one lookup is not enough
+        engine.observeArea("Del Mar", at: t.addingTimeInterval(60))
+        #expect(engine.areaEvent?.name == "Del Mar" && engine.areaEvent?.situation == .enteringCity)
+        engine.observeArea("San Diego", at: t.addingTimeInterval(90))
+        engine.observeArea("San Diego", at: t.addingTimeInterval(120))
+        engine.observeArea("Del Mar", at: t.addingTimeInterval(150))
+        engine.observeArea("Del Mar", at: t.addingTimeInterval(180))
+        // Back and forth across the line: San Diego was already known and Del Mar already welcomed.
+        #expect(engine.areaEvent?.at == t.addingTimeInterval(60))
+        #expect(GuideEngine.key("Solana Beach") == GuideEngine.key("solana beach"))
+    }
+
+    @Test func pipDoesNotTalkConstantly() {
+        let (mentions, _) = Self.drive(Self.northbound, chattiness: .normal)
+        for (earlier, later) in zip(mentions, mentions.dropFirst()) {
+            #expect(later.at.timeIntervalSince(earlier.at) >= GuideEngine.minimumGap)
+        }
+        // About 25 km in roughly 17 minutes: a handful of moments, not a running commentary.
+        #expect((4...12).contains(mentions.count), "Pip spoke \(mentions.count) times")
+    }
+
+    @Test func sidesFollowTheDirectionOfTravel() throws {
+        // The Del Mar Fairgrounds are west of I-5: left going north, right going south.
+        var fairgrounds = try #require(Self.places.first { $0.name == "Del Mar Fairgrounds" })
+        fairgrounds.locality = nil
+        let interstate = [(32.9200, -117.2330, 29.0), (32.9440, -117.2400, 29.0), (32.9790, -117.2540, 29.0),
+                          (32.9960, -117.2600, 29.0), (33.0200, -117.2780, 29.0)]
+        func first(_ route: [(Double, Double, Double)], _ place: GuideCandidate) -> GuideDecision? {
+            Self.drive(route, places: [place]).mentions.first { $0.decision.place.id == place.id }?.decision
+        }
+        #expect(try #require(first(interstate, fairgrounds)).side == "left")
+        #expect(try #require(first(interstate.reversed(), fairgrounds)).side == "right")
+        // LEGOLAND is east of I-5: right going north, left going south.
+        var legoland = try #require(Self.places.first { $0.name == "LEGOLAND California Resort" })
+        legoland.locality = nil
+        let route = [(33.1080, -117.3100, 13.0), (33.1450, -117.3330, 13.0)]
+        #expect(try #require(first(route, legoland)).side == "right")
+        #expect(try #require(first(route.reversed(), legoland)).side == "left")
+    }
+
+    @Test func decodesTheBackendsAheadResponse() throws {
+        let json = """
+        {"status":"ok","scope":"ahead","interests":[],"sources":["google","wikipedia"],"candidates":[{"id":"g-lego","name":"LEGOLAND California Resort",
+        "latitude":33.126,"longitude":-117.311,"radius_meters":0,"categories":["family"],"prominence":0.98,
+        "tier":"must_see","profile_match":0.5,"appeal":0.98,"primary_type":"amusement_park","open_now":true,
+        "locality":"Carlsbad","sources":["google"]}],
+        "sun":{"sunrise":"2026-10-16T13:52:52+00:00","sunset":"2026-10-16T01:17:10+00:00"},
+        "diagnostics":{"scope":"ahead","radius_meters":7000,"groups":{"food":{"types":7,"error":400},
+        "scenic":{"types":6,"error":"unavailable"},"attractions":{"types":19,"returned":20}},
+        "candidates":1,"dropped":[{"name":"The Flower Fields","reason":"google: closed_temporarily"}]}}
+        """
+        let response = try JSONDecoder().decode(GuideNearbyResponse.self, from: Data(json.utf8))
+        let lego = try #require(response.candidates.first)
+        #expect(lego.visitorAppeal == 0.98 && lego.locality == "Carlsbad" && lego.open_now == true)
+        #expect(response.sun?.sunsetDate == Date(timeIntervalSince1970: 1_792_113_430))
+        #expect(response.diagnostics?.groups?["food"]?.error == "400")
+        #expect(response.diagnostics?.groups?["scenic"]?.error == "unavailable")
+        #expect(response.diagnostics?.dropped?.first?.reason == "google: closed_temporarily")
+        let place = GuideMentionPlace(lego, distance: 900, side: "right")
+        #expect(place.primary_type == "amusement_park" && place.locality == "Carlsbad")
+    }
+
+    @Test func aSunsetBeachWinsShortlyBeforeSunset() throws {
+        let route = [(32.9790, -117.2540, 29.0), (33.0450, -117.2860, 29.0)]
+        let beach = Self.spot("Sunset beach", 33.0080, -117.2820, .notable, appeal: 0.55, ["scenic"], town: "Solana Beach")
+        let mall = Self.spot("Big mall", 33.0080, -117.2600, .notable, appeal: 0.65, ["shopping"], town: "Solana Beach")
+        let evening = try #require(Self.drive(route, sunsetIn: 30, places: [beach, mall]).mentions.first)
+        #expect(evening.decision.place.name == "Sunset beach")
+        let night = try #require(Self.drive(route, sunsetIn: -60, places: [beach, mall]).mentions.first)
+        #expect(night.decision.place.name == "Big mall")
     }
 }

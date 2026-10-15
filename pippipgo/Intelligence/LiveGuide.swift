@@ -3,6 +3,7 @@ import CoreLocation
 import Foundation
 import MapKit
 import Observation
+import OSLog
 import SwiftUI
 
 // A started guide continues location-triggered TTS with the screen locked.
@@ -213,6 +214,15 @@ final class LiveGuideStore {
     /// Speak once as soon as the guide starts, so pressing Start always gets an answer.
     @ObservationIgnored private var greetPending = false
     @ObservationIgnored private var startedAt: Date?
+    /// The map's latest weather ("Sunny, 24°C"), so Pip can suit suggestions to it.
+    @ObservationIgnored private var weatherSummary: String?
+    /// Town lookups (Apple's reverse geocoder), throttled well below Apple's limits.
+    @ObservationIgnored private let geocoder = CLGeocoder()
+    @ObservationIgnored private var lastAreaLookup: Date = .distantPast
+    @ObservationIgnored private var lastTraceLogged: (names: [String], at: Date) = ([], .distantPast)
+    /// "Why didn't Pip mention X?": searches, ranking and decisions, on the device only.
+    /// Place names are public data; coordinates are never logged.
+    private static let log = Logger(subsystem: "com.pippipgo.ios", category: "LiveGuide")
     @ObservationIgnored private var lastMovementFix: GuideFix?
     @ObservationIgnored private var lastSharedFix: GuideFix?
     private let speech = AVSpeechSynthesizer()
@@ -255,7 +265,14 @@ final class LiveGuideStore {
     /// Current conditions for the map's weather chip (signed in only); nil when unavailable.
     func currentWeather(at location: CLLocation) async -> CurrentWeather? {
         let body = WeatherRequest(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-        return try? await client.send(.post(.weather, body: body), using: authentication)
+        let weather: CurrentWeather? = try? await client.send(.post(.weather, body: body), using: authentication)
+        if let weather {
+            let words = weather.description ?? weather.condition
+            let temperature = weather.temperature_celsius.map { "\(Int($0.rounded()))°C" }
+            weatherSummary = [words, temperature].compactMap { $0 }.joined(separator: ", ").prefix(80).description
+            if weatherSummary?.isEmpty == true { weatherSummary = nil }
+        }
+        return weather
     }
 
     /// Live Google ratings for Find nearby (signed in only); nil when unavailable.
@@ -362,7 +379,26 @@ final class LiveGuideStore {
         if isWalking { movingMapFix = fix }
         motion = engine.motion
         if status != .unavailable { status = .listening }
+        lookUpArea(location, ticket: ticket)
         advance(now: Date())
+    }
+
+    /// Which town the traveller is in, every 30 s while driving and every 60 s on foot.
+    private func lookUpArea(_ location: CLLocation, ticket: UUID) {
+        let now = Date()
+        guard now.timeIntervalSince(lastAreaLookup) >= (motion.isDriving ? 30 : 60), !geocoder.isGeocoding else { return }
+        lastAreaLookup = now
+        geocoder.reverseGeocodeLocation(location, preferredLocale: AppLanguage.currentLocale) { [weak self] placemarks, _ in
+            Task { @MainActor in
+                guard let self, self.epoch == ticket, let mark = placemarks?.first else { return }
+                let area = mark.locality ?? mark.subLocality
+                let before = self.engine.currentArea
+                self.engine.observeArea(area, at: Date())
+                if self.engine.currentArea != before, let area = self.engine.currentArea {
+                    Self.log.info("area: now in \(area, privacy: .public)")
+                }
+            }
+        }
     }
 
     /// Core Location may go quiet when the traveler stands still; a still traveler is stopped.
@@ -460,7 +496,8 @@ final class LiveGuideStore {
             do {
                 let response: GuideNearbyResponse = try await client.send(.post(.guideNearby, body: plan), using: authentication)
                 guard self.epoch == ticket else { return }
-                engine.update(candidates: response.candidates, for: plan, at: Date())
+                engine.update(candidates: response.candidates, for: plan, at: Date(), sunset: response.sun?.sunsetDate)
+                Self.logSearch(plan, response, kept: engine.candidates.count)
                 candidateCount = response.candidates.count
                 places = response.candidates.filter { $0.tier != .minor }
                 status = .listening
@@ -480,6 +517,34 @@ final class LiveGuideStore {
         }
     }
 
+    private static func logSearch(_ plan: GuideNearbyRequest, _ response: GuideNearbyResponse, kept: Int) {
+        let groups = (response.diagnostics?.groups ?? [:]).sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value.returned.map(String.init) ?? "error \($0.value.error ?? "?")")" }
+            .joined(separator: " ")
+        let top = response.candidates.filter { $0.tier != .minor }.prefix(10)
+            .map { "\($0.name) [\($0.tier.rawValue) \(String(format: "%.2f", $0.visitorAppeal))]" }
+            .joined(separator: "; ")
+        let dropped = (response.diagnostics?.dropped ?? []).prefix(10).map { "\($0.name): \($0.reason)" }.joined(separator: "; ")
+        log.info("search \(plan.scope ?? "around", privacy: .public) radius=\(plan.radius_meters) m found=\(response.candidates.count) keeping=\(kept) groups: \(groups, privacy: .public)")
+        log.info("ranked: \(top, privacy: .public)")
+        if !dropped.isEmpty { log.info("left out: \(dropped, privacy: .public)") }
+    }
+
+    /// Logs why candidates were skipped at most every 30 s, and every decision.
+    private func logTrace(_ decision: GuideDecision?) {
+        let trace = engine.lastTrace
+        let names = trace.map(\.name)
+        let now = Date()
+        guard decision != nil || (names != lastTraceLogged.names && now.timeIntervalSince(lastTraceLogged.at) >= 30) else { return }
+        lastTraceLogged = (names, now)
+        let text = trace.map { "\($0.name): \($0.reason)" }.joined(separator: " | ")
+        if let decision {
+            Self.log.info("speak \(decision.situation.rawValue, privacy: .public) \(decision.place.name, privacy: .public) with \(decision.highlights.map(\.name).joined(separator: ", "), privacy: .public) — \(text, privacy: .public)")
+        } else if !text.isEmpty {
+            Self.log.debug("quiet — \(text, privacy: .public)")
+        }
+    }
+
     // MARK: Speaking
 
     private var busyElsewhere: Bool {
@@ -487,14 +552,21 @@ final class LiveGuideStore {
     }
 
     private func evaluate(now: Date) {
-        guard deliverTask == nil, !asking, !busyElsewhere,
-              let decision = engine.decide(at: now, heading: heading) else { return }
-        deliver(decision, asked: false)
+        // Never interrupts a conversation, translation or Pip already speaking.
+        guard deliverTask == nil, !asking, !busyElsewhere else { return }
+        let decision = engine.decide(at: now, heading: heading)
+        logTrace(decision)
+        if let decision { deliver(decision, asked: false) }
     }
 
     private func deliver(_ decision: GuideDecision, asked: Bool) {
         let ticket = epoch
-        let request = decision.request(language: language)
+        var request = decision.request(language: language)
+        let clock = ISO8601DateFormatter()
+        clock.timeZone = .current
+        clock.formatOptions = [.withInternetDateTime]
+        request.local_time = clock.string(from: Date())
+        request.weather = weatherSummary
         deliverTask = Task { [weak self] in
             guard let self else { return }
             let backgroundRequest = GuideBackgroundRequest()
@@ -570,7 +642,14 @@ final class LiveGuideStore {
     }
 
     static func localLine(_ decision: GuideDecision) -> String {
-        let lead = String(format: String(localized: "You’re at %@.", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale), decision.place.name)
+        let format: String.LocalizationValue = switch decision.situation {
+        case .enteringCity: "Welcome to %@!"
+        case .approachingCity: "You’re heading toward %@."
+        case .upcoming, .approaching: "Coming up: %@."
+        default: "You’re at %@."
+        }
+        let lead = String(format: String(localized: format, bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale), decision.place.name)
+        if decision.situation == .enteringCity || decision.situation == .approachingCity { return lead }
         guard let summary = decision.place.summary else { return lead }
         return lead + " " + firstSentence(summary)
     }
@@ -599,7 +678,8 @@ final class LiveGuideStore {
             case .zoo, .aquarium, .amusementPark: kind = "family"
             case .museum: kind = "history"
             case .theater: kind = "culture"
-            case .park, .nationalPark, .beach, .marina: kind = "nature"
+            case .beach, .marina: kind = "scenic"
+            case .park, .nationalPark: kind = "nature"
             default: kind = "landmark"
             }
             let notable = major.contains(category)
