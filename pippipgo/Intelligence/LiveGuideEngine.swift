@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 // Live local guide. Pure decision logic with no Core Location, networking or UI, so every
 // timing rule is unit-testable. The phone decides when Pip speaks; the backend only supplies
@@ -161,6 +162,8 @@ struct GuideMentionRequest: Codable, Sendable, Equatable {
     var off_route_meters: Int?
     /// Only when geometry says it is close beside the traveller; Pip never claims sight otherwise.
     var in_view: Bool?
+    var visit_kind: String? = nil
+    var tour_remaining_minutes: Int? = nil
 }
 
 struct GuideMentionResponse: Codable, Sendable {
@@ -174,7 +177,14 @@ struct GuideMentionResponse: Codable, Sendable {
 struct GuideSpeechRequest: Codable, Sendable { var text: String; var language: String }
 
 /// Where the traveler is when a conversation starts from the Live Guide (X-Pip-Guide header).
-struct GuideStartContext: Codable, Sendable { var venue: String?; var nearby: [GuideMentionPlace] }
+struct GuideStartContext: Codable, Sendable {
+    var venue: String?
+    var nearby: [GuideMentionPlace]
+    var tour_mode: String? = nil
+    var planning_tour = false
+    var heading: Double? = nil
+    var heading_captured_at: String? = nil
+}
 
 struct GuideFix: Sendable, Equatable {
     var latitude: Double
@@ -413,6 +423,7 @@ struct GuideEngine {
     static let areaConfirmation: TimeInterval = 20
 
     var driving = GuideDrivingConfig()
+    var plannedOnly = false
     var experienceWeights = GuideExperienceWeights()
     /// Routes must explicitly match the travel mode; existing voice directions are walking.
     private(set) var activeRoute: GuideRoute?
@@ -732,7 +743,7 @@ struct GuideEngine {
         let travelDirection = self.direction(heading: heading)
         switch motion {
         case .walking:
-            if let neighbourhood = areaDecision(at: now, fix: fix) { return neighbourhood }
+            if !plannedOnly, let neighbourhood = areaDecision(at: now, fix: fix) { return neighbourhood }
             let stopped = isStopped(at: now)
             let venue = enclosingVenue()
             let pool = candidates.map { promoted($0, in: venue) }
@@ -773,8 +784,8 @@ struct GuideEngine {
                 lastTrace = [GuideTrace(name: "—", reason: "no direction of travel yet")]
                 return nil
             }
-            observeAreaAhead(fix: fix, course: course, at: now)
-            if let city = areaDecision(at: now, fix: fix) { return city }
+            if !plannedOnly { observeAreaAhead(fix: fix, course: course, at: now) }
+            if !plannedOnly, let city = areaDecision(at: now, fix: fix) { return city }
             return drivingDecision(at: now, fix: fix, course: course)
         case .unknown:
             return nil
@@ -1098,11 +1109,272 @@ struct GuideRoute: Equatable, Sendable {
             return nil
         }
         while index < bytes.count, points.count < 5000 {
-            guard let dLat = next(), let dLon = next() else { break }
+            guard let dLat = next(), let dLon = next() else { return [] }
             latitude += dLat; longitude += dLon
             guard (-9_000_000...9_000_000).contains(latitude), (-18_000_000...18_000_000).contains(longitude) else { return [] }
             points.append(Point(latitude: Double(latitude) / 1e5, longitude: Double(longitude) / 1e5))
         }
         return points
+    }
+}
+
+/// A tour is a transient proposal until explicitly started. It never edits saved trips.
+struct GuideTourRequest: Codable, Sendable, Equatable {
+    struct Origin: Codable, Sendable, Equatable {
+        var latitude: Double
+        var longitude: Double
+        var horizontal_accuracy_meters: Double?
+        var captured_at: String
+    }
+    var origin: Origin
+    var mode: String
+    var duration_minutes: Int
+    var direction: String
+    var destination: String?
+    var heading: Double?
+    var round_trip: Bool
+    var language: String
+    var moods: [String] = []
+    var companions: String? = nil
+    var energy: String = "balanced"
+    var food: String = "none"
+    var cuisine: String? = nil
+    var dietary: String? = nil
+    var walking_limit_meters: Int = 4000
+}
+
+struct GuideTourPlan: Codable, Sendable, Equatable {
+    struct Point: Codable, Sendable, Equatable { var latitude: Double; var longitude: Double; var name: String? }
+    struct Photo: Codable, Sendable, Equatable {
+        struct Author: Codable, Sendable, Equatable { var displayName: String?; var uri: String? }
+        var url: String
+        var authors: [Author]
+    }
+    struct Stop: Codable, Sendable, Equatable {
+        var place: GuideCandidate
+        var stop_seconds: Int
+        var reason: String
+        var travel_mode: String? = nil
+        var visit_kind: String? = nil
+        var photo: Photo? = nil
+    }
+    struct Walk: Codable, Sendable, Equatable {
+        var stop_seconds: Int? = nil
+        var anchor_id: String
+        var place: GuideCandidate
+        var polyline: String
+        var seconds: Int
+        var distance_meters: Double
+    }
+    var offline_package: GuideOfflinePackage? = nil
+    var food_status: String? = nil
+    var request: GuideTourRequest? = nil
+    var walking_segments: [Walk]? = nil
+    var id: String
+    var created_at: String
+    var offline: Bool? = nil
+    var language: String? = nil
+    var attribution: String? = nil
+    var parking_seconds: Int? = nil
+    var walking_seconds: Int? = nil
+    var driving_seconds: Int? = nil
+    var walking_meters: Double? = nil
+    var mode: String
+    var duration_minutes: Int
+    var round_trip: Bool
+    var origin: Point
+    var destination: Point
+    var estimated_seconds: Int
+    var travel_seconds: Int
+    var stop_seconds: Int
+    var buffer_seconds: Int
+    var distance_meters: Double
+    var polyline: String
+    var stops: [Stop]
+
+    var googleMapsURL: URL? {
+        var url = URLComponents(string: "https://www.google.com/maps/dir/")!
+        url.queryItems = [URLQueryItem(name: "api", value: "1"),
+                          URLQueryItem(name: "origin", value: "\(origin.latitude),\(origin.longitude)"),
+                          URLQueryItem(name: "destination", value: "\(destination.latitude),\(destination.longitude)"),
+                          URLQueryItem(name: "travelmode", value: mode == "walking" ? "walking" : "driving"),
+                          URLQueryItem(name: "waypoints", value: stops.filter { GuideGeo.distance($0.place.latitude, $0.place.longitude, destination.latitude, destination.longitude) > 20 }.prefix(3).map { "\($0.place.latitude),\($0.place.longitude)" }.joined(separator: "|"))]
+        return url.url
+    }
+    var route: GuideRoute {
+        var route = GuideRoute(name: destination.name ?? stops.last?.place.name ?? "", destination: .init(latitude: destination.latitude, longitude: destination.longitude),
+                               minutes: Int(ceil(Double(estimated_seconds) / 60)), meters: Int(distance_meters), path: GuideRoute.decode(polyline))
+        route.mode = mode == "walking" ? .walking : .driving
+        return route
+    }
+    var isUsable: Bool {
+        ["walking", "driving", "mixed"].contains(mode) && (5...480).contains(duration_minutes)
+            && estimated_seconds > 0 && estimated_seconds <= duration_minutes * 60
+            && distance_meters.isFinite && (0...40_000_000).contains(distance_meters)
+            && !stops.isEmpty && (offline == true || route.path.count >= 2) && stops.count <= 4
+            && Set(stops.map { $0.place.id }).count == stops.count
+            && stops.allSatisfy { (-90...90).contains($0.place.latitude) && (-180...180).contains($0.place.longitude) && $0.stop_seconds >= 0 }
+            && (mode != "mixed" || offline == true || walking_segments?.isEmpty == false)
+    }
+}
+
+struct GuideTourReply: Decodable, Sendable {
+    var status: String
+    var plan: GuideTourPlan?
+    var minimum_minutes: Int?
+    private enum CodingKeys: String, CodingKey { case status, minimum_minutes }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        status = try c.decode(String.self, forKey: .status)
+        minimum_minutes = try c.decodeIfPresent(Int.self, forKey: .minimum_minutes)
+        plan = status == "ok" ? try GuideTourPlan(from: decoder) : nil
+    }
+}
+
+struct GuideOfflineRequest: Encodable, Sendable {
+    struct Stop: Encodable, Sendable {
+        var name: String; var latitude: Double; var longitude: Double
+        var travel_mode: String = "walking"; var stop_seconds: Int = 300; var return_to_anchor: Bool = false
+    }
+    var stops: [Stop]
+    var duration_minutes: Int
+    var language: String
+    var mode: String
+    var preferences: Preferences
+    var round_trip: Bool
+    var origin: Stop
+    struct Preferences: Encodable, Sendable {
+        var moods: [String]; var companions: String; var energy: String; var interests: String = ""
+    }
+}
+
+struct GuideOfflinePackage: Codable, Sendable, Equatable {
+    struct OfflineImage: Codable, Sendable, Equatable {
+        var stop_index: Int; var data: String; var sha256: String; var bytes: Int
+        var credit: String; var source: String; var license: String; var license_url: String; var modified: String
+    }
+    var images: [OfflineImage]? = nil
+    struct Clip: Codable, Sendable, Equatable, Identifiable {
+        var id: String; var kind: String; var stop_index: Int?; var title: String; var text: String
+        var question: String?; var fact_ids: [Int]
+    }
+    struct Audio: Codable, Sendable, Equatable {
+        var data: String; var sha256: String; var bytes: Int; var voice: String; var model: String
+    }
+    var version: Int; var script_model: String; var tts_model: String; var voice: String; var personality: String
+    var clips: [Clip]; var audio: [String: Audio]; var voice_disclosure: String
+    var byteCount: Int { audio.values.reduce(0) { $0 + $1.bytes } + (images ?? []).reduce(0) { $0 + $1.bytes } }
+    // Fail closed: no partial packages or legacy device-speech downloads are playable.
+    var structurallyComplete: Bool {
+        version == 2 && !clips.isEmpty && clips.count <= 26 && Set(clips.map(\.id)).count == clips.count
+            && Set(audio.keys) == Set(clips.map(\.id)) && clips.allSatisfy { !$0.text.isEmpty }
+            && audio.values.allSatisfy { $0.bytes > 0 && $0.bytes <= 2_000_000 && $0.voice == voice && $0.model == tts_model }
+    }
+    func verified(stopCount: Int) -> Bool {
+        guard structurallyComplete, (1...4).contains(stopCount) else { return false }
+        var expected = ["intro": "introduction", "complete": "completion"]
+        for i in 0..<stopCount {
+            expected["stop_\(i)"] = "stop"; expected["deep_\(i)"] = "deeper"; expected["transition_\(i)"] = "transition"
+            expected["qa_\(i)_0"] = "answer"; expected["qa_\(i)_1"] = "answer"
+        }
+        guard Set(expected.keys) == Set(clips.map(\.id)), clips.allSatisfy({ clip in
+            expected[clip.id] == clip.kind && (clip.stop_index.map { (0..<stopCount).contains($0) && clip.fact_ids.contains($0) } ?? ["intro", "complete"].contains(clip.id))
+                && clip.fact_ids.allSatisfy { (0..<stopCount).contains($0) } && (clip.kind != "answer" || !(clip.question ?? "").isEmpty)
+        }) else { return false }
+        return audio.values.allSatisfy { Self.validData($0.data, bytes: $0.bytes, hash: $0.sha256) }
+            && (images ?? []).allSatisfy {
+                (0..<stopCount).contains($0.stop_index) && $0.bytes <= 500_000
+                    && Self.validData($0.data, bytes: $0.bytes, hash: $0.sha256)
+                    && !$0.credit.isEmpty && ["CC BY-SA 4.0", "CC BY 4.0", "CC0", "Public domain"].contains($0.license)
+                    && $0.source.hasPrefix("https://commons.wikimedia.org/")
+            }
+    }
+    private static func validData(_ encoded: String, bytes: Int, hash: String) -> Bool {
+        guard let data = Data(base64Encoded: encoded), data.count == bytes else { return false }
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() == hash
+    }
+    func answer(for question: String) -> Clip? {
+        let normalized = Self.normalized(question)
+        guard !normalized.isEmpty else { return nil }
+        // Conservative matching avoids choosing a merely similar but unrelated factual answer.
+        return clips.first { $0.kind == "answer" && Self.normalized($0.question ?? "") == normalized }
+    }
+    private static func normalized(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: " ")
+    }
+}
+
+struct GuideOfflineAudioRequest: Encodable, Sendable { var text: String; var voice: String; var personality: String }
+
+/// Progress follows arrival/departure, not whether narration has played.
+struct GuideTourProgress: Sendable {
+    struct Checkpoint: Codable, Sendable {
+        var planID: String; var started: Date; var index: Int; var arrived: Bool; var arrivedAt: Date?; var walkingStage: Int
+    }
+    var checkpoint: Checkpoint { .init(planID: plan.id, started: started, index: index, arrived: arrived, arrivedAt: arrivedAt, walkingStage: walkingStage) }
+    init(plan: GuideTourPlan, checkpoint: Checkpoint) {
+        self.plan = plan; started = checkpoint.started; index = min(max(0, checkpoint.index), plan.stops.count)
+        arrived = checkpoint.arrived; arrivedAt = checkpoint.arrivedAt; walkingStage = min(max(0, checkpoint.walkingStage), 2)
+    }
+    var plan: GuideTourPlan
+    var started: Date
+    private(set) var index = 0
+    private(set) var arrived = false
+    private var arrivedAt: Date?
+    private(set) var walkingStage = 0 // 0: visit anchor, 1: walk out, 2: return to anchor
+    var expired: Bool = false
+
+    init(plan: GuideTourPlan, started: Date) { self.plan = plan; self.started = started }
+
+    private var walk: GuideTourPlan.Walk? {
+        guard index < plan.stops.count else { return nil }
+        return plan.walking_segments?.first { $0.anchor_id == plan.stops[index].place.id }
+    }
+    var next: GuideCandidate? {
+        guard index < plan.stops.count else { return nil }
+        return walkingStage == 1 ? walk?.place : plan.stops[index].place
+    }
+    var googleMapsURL: URL? {
+        guard plan.offline != true else { return nil }
+        guard walkingStage > 0, let walk, index < plan.stops.count else { return plan.googleMapsURL }
+        let anchor = plan.stops[index].place
+        let from = walkingStage == 1 ? anchor : walk.place
+        let to = walkingStage == 1 ? walk.place : anchor
+        var url = URLComponents(string: "https://www.google.com/maps/dir/")!
+        url.queryItems = [.init(name: "api", value: "1"), .init(name: "travelmode", value: "walking"),
+                          .init(name: "origin", value: "\(from.latitude),\(from.longitude)"),
+                          .init(name: "destination", value: "\(to.latitude),\(to.longitude)")]
+        return url.url
+    }
+    var currentMode: GuideTourMode {
+        if plan.offline == true, index < plan.stops.count, let mode = plan.stops[index].travel_mode { return mode == "walking" ? .walking : .driving }
+        return plan.mode == "walking" || walkingStage > 0 ? .walking : .driving
+    }
+    var currentRoute: GuideRoute {
+        guard walkingStage > 0, let walk else { return plan.route }
+        var route = GuideRoute(name: next?.name ?? "", destination: .init(latitude: plan.stops[index].place.latitude, longitude: plan.stops[index].place.longitude),
+                               minutes: Int(ceil(Double(walk.seconds) / 60)), meters: Int(walk.distance_meters), path: GuideRoute.decode(walk.polyline))
+        route.mode = .walking
+        return route
+    }
+    mutating func update(_ fix: GuideFix, at now: Date) {
+        expired = now.timeIntervalSince(started) >= Double(plan.duration_minutes * 60)
+        guard let next else { return }
+        let distance = GuideGeo.distance(fix.latitude, fix.longitude, next.latitude, next.longitude)
+        let passing = plan.stops[index].stop_seconds == 0 && walkingStage == 0
+        let triggerDistance = passing ? (currentMode == .walking ? 100.0 : 180.0) : (currentMode == .walking ? 40.0 : 65.0)
+        if distance < triggerDistance, passing || (fix.speed >= 0 && fix.speed < 3) {
+            arrived = true
+            if arrivedAt == nil { arrivedAt = now }
+        }
+        let dwell = walkingStage == 1 ? (walk?.stop_seconds ?? 120) : walkingStage == 2 ? 0 : plan.stops[index].stop_seconds
+        let visitedLongEnough = !passing && (arrivedAt.map { now.timeIntervalSince($0) >= Double(dwell) } ?? false)
+        if arrived && (distance > (passing ? triggerDistance : 100) || visitedLongEnough) {
+            if walkingStage == 0 && walk != nil && plan.offline != true { walkingStage = 1 }
+            else if walkingStage == 1 { walkingStage = 2 }
+            else { index += 1; walkingStage = 0 }
+            arrived = false; arrivedAt = nil
+        }
     }
 }

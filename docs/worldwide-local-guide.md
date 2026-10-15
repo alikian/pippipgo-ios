@@ -1,3 +1,5 @@
+> Subsequent work: [Create My Tour](create-my-tour.md) adds time-budgeted plans and licensed offline stories. Its new backend endpoints are not deployed yet. The earlier discovery backend was deployed to Dev as `69e6bd7`; historical boundaries below describe the earlier implementation.
+
 # Worldwide local guide — October 15, 2026
 
 The [user request](worldwide-local-guide-requirements.md) expands tour intelligence while retaining the organizer and existing interface. This is an incremental implementation, not worldwide live acceptance.

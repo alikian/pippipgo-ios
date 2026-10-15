@@ -386,6 +386,8 @@ final class LiveVoiceStore {
     private(set) var lookingUp = false
     private(set) var places: [PipPlaceResult] = []
     /// Walking route Pip found for the traveler ("take me to the penguins").
+    private(set) var tourPlan: GuideTourPlan?
+    private(set) var tourStartID: String?
     private(set) var route: GuideRoute?
     private var humTask: Task<Void, Never>?
     private var lastInputAt: Date?
@@ -442,7 +444,7 @@ final class LiveVoiceStore {
     func start(guide: Data? = nil) {
         guard !active else { return }
         if mode == .pip { PipStartupSound.shared.play() }
-        active = true; error = nil; transcript.clear(); places = []; route = nil
+        active = true; error = nil; transcript.clear(); places = []; route = nil; tourPlan = nil; tourStartID = nil
         waitingForWelcome = mode == .pip
         conversationContext = nil; capturingLocation = false
         microphoneReceiving = false; microphoneLevel = 0; lastInputAt = nil
@@ -543,6 +545,14 @@ final class LiveVoiceStore {
                            let results = try? JSONDecoder().decode([PipPlaceResult].self, from: encoded) {
                             places = Array(results.prefix(3))
                         }
+                    case "pip.tour_plan":
+                        if mode == .pip, let raw = event["plan"],
+                           let data = try? JSONSerialization.data(withJSONObject: raw),
+                           let plan = try? JSONDecoder().decode(GuideTourPlan.self, from: data), plan.isUsable {
+                            tourPlan = plan
+                        }
+                    case "pip.tour_start":
+                        if mode == .pip, let id = event["plan_id"] as? String, id == tourPlan?.id { tourStartID = id }
                     case "pip.route":
                         if mode == .pip { route = GuideRoute(event: event) }
                     case "navigation.open":
@@ -715,7 +725,7 @@ final class LiveVoiceStore {
         socket = nil; session = nil
         ending?.cancel(with: .normalClosure, reason: nil)
         endingSession?.invalidateAndCancel()
-        if clearCaptions { transcript.clear(); places = []; route = nil; error = nil; conversationContext = nil }
+        if clearCaptions { transcript.clear(); places = []; route = nil; tourPlan = nil; tourStartID = nil; error = nil; conversationContext = nil }
     }
 }
 

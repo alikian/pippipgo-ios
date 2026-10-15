@@ -4,6 +4,7 @@ struct RootView: View {
     let store: AuthenticationStore
     @State private var aiConsent = AISharingConsent.shared
     @State private var siriSignInRequired = false
+    @State private var showDownloadedTour = false
     @Environment(\.scenePhase) private var scenePhase
     var environment: AppEnvironment = AppConfiguration.live.environment
 
@@ -68,6 +69,13 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .safeAreaInset(edge: .bottom) {
+            if offersDownloadedTour, store.chat.liveGuide.downloadedTour != nil {
+                Button("Downloaded tour", systemImage: "arrow.down.circle") { showDownloadedTour = true }
+                    .frame(maxWidth: .infinity, minHeight: 48).background(.regularMaterial)
+            }
+        }
+        .sheet(isPresented: $showDownloadedTour) { DownloadedTourView(guide: store.chat.liveGuide) }
         .animation(.easeInOut(duration: 0.2), value: store.state)
         .onChange(of: store.state, initial: true) { _, _ in checkVoiceLaunch(); syncLocationDisplay() }
         .onChange(of: aiConsent.allowed) { _, _ in syncLocationDisplay() }
@@ -79,6 +87,9 @@ struct RootView: View {
         } message: {
             Text("Sign in to PipPipGo, then ask Siri to start Talk to Pip again.")
         }
+    }
+    private var offersDownloadedTour: Bool {
+        switch store.state { case .restoring, .loadingAccount, .signedOut, .signInError, .accountError: true; default: false }
     }
     private var showsMap: Bool {
         switch store.state {

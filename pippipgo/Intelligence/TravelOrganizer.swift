@@ -244,6 +244,7 @@ struct TravelOrganizerView: View {
                      openProfile: { showingProfile = true },
                      openHistory: { showingHistory = true },
                      profileName: store.data.profile?.name, profilePhoto: profilePictureURL,
+                     profileInterests: store.data.profile?.interests ?? "",
                      hotel: currentHotel)
     }
 

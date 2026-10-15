@@ -697,3 +697,184 @@ struct ActiveRouteDiscoveryTests {
         #expect(e.decide(at: now) == nil)
     }
 }
+
+struct PlannedTourTests {
+    private func plan(mode: String = "walking", offline: Bool = false) throws -> GuideTourPlan {
+        let raw: [String: Any] = [
+            "id": "test-tour", "created_at": "2026-10-15T19:00:00Z", "offline": offline,
+            "mode": mode, "duration_minutes": 30, "round_trip": false,
+            "origin": ["latitude": 48.85, "longitude": 2.35],
+            "destination": ["latitude": 48.86, "longitude": 2.35],
+            "estimated_seconds": 1200, "travel_seconds": 600, "stop_seconds": 300, "buffer_seconds": 300,
+            "distance_meters": 1000, "polyline": offline ? "" : "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+            "stops": [["place": ["id": "gallery", "name": "Gallery", "latitude": 48.86, "longitude": 2.35,
+                                  "categories": ["art"], "tier": "notable", "prominence": 0.8, "radius_meters": 0, "profile_match": 1],
+                        "stop_seconds": 300, "reason": "interest_match"]]
+        ]
+        return try JSONDecoder().decode(GuideTourPlan.self, from: JSONSerialization.data(withJSONObject: raw))
+    }
+
+    @Test func validatesBudgetsAndKeepsOfflineDistinct() throws {
+        let online = try plan()
+        #expect(online.isUsable)
+        #expect(online.route.mode == .walking)
+        let offline = try plan(offline: true)
+        #expect(offline.isUsable)
+        #expect(offline.route.path.isEmpty)
+        var invalid = online
+        invalid.estimated_seconds = 1801
+        #expect(!invalid.isUsable)
+        invalid = online; invalid.polyline = ""
+        #expect(!invalid.isUsable)
+        let drive = try plan(mode: "driving")
+        #expect(drive.route.mode == .driving)
+    }
+
+    @Test func arrivalAndDepartureDriveProgressForWalkingDrivingAndOffline() throws {
+        for mode in ["walking", "driving"] {
+            for offline in [false, true] {
+                let p = try plan(mode: mode, offline: offline)
+                let start = Date(timeIntervalSince1970: 1000)
+                var progress = GuideTourProgress(plan: p, started: start)
+                #expect(progress.next?.id == "gallery")
+                var fix = GuideFix(latitude: 48.86, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: start)
+                progress.update(fix, at: start)
+                #expect(progress.arrived)
+                #expect(progress.next?.id == "gallery") // A narration alone cannot advance the tour.
+                fix.latitude = 48.862; fix.timestamp = start.addingTimeInterval(30)
+                progress.update(fix, at: fix.timestamp)
+                #expect(progress.next == nil)
+            }
+        }
+    }
+
+    @Test func mixedProgressWalksOutAndReturnsBeforeNextDrive() throws {
+        var p = try plan(mode: "mixed")
+        let target = GuideCandidate(id: "garden", name: "Garden", latitude: 48.861, longitude: 2.35, categories: ["nature"], prominence: 0.8, tier: .notable)
+        p.walking_segments = [.init(stop_seconds: 60, anchor_id: "gallery", place: target, polyline: p.polyline, seconds: 180, distance_meters: 400)]
+        let start = Date(timeIntervalSince1970: 1000)
+        var progress = GuideTourProgress(plan: p, started: start)
+        var fix = GuideFix(latitude: 48.86, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: start)
+        progress.update(fix, at: start)
+        progress.update(fix, at: start.addingTimeInterval(300))
+        #expect(progress.currentMode == .walking)
+        #expect(progress.next?.id == "garden")
+        fix.latitude = target.latitude
+        progress.update(fix, at: start.addingTimeInterval(360))
+        progress.update(fix, at: start.addingTimeInterval(420))
+        #expect(progress.next?.id == "gallery")
+        fix.latitude = 48.86
+        progress.update(fix, at: start.addingTimeInterval(480))
+        #expect(progress.next == nil)
+    }
+
+    @Test func expiresAtTheTravelersTimeBudget() throws {
+        let p = try plan()
+        let start = Date(timeIntervalSince1970: 1000)
+        var progress = GuideTourProgress(plan: p, started: start)
+        let fix = GuideFix(latitude: 48.85, longitude: 2.35, accuracy: 8, speed: 1, course: 0, timestamp: start.addingTimeInterval(1800))
+        progress.update(fix, at: fix.timestamp)
+        #expect(progress.expired)
+    }
+}
+
+struct OfflineVoicePackageTests {
+    private func package() -> GuideOfflinePackage {
+        // SHA256 of "abc": deterministic integrity fixture, not playable audio.
+        let audio = GuideOfflinePackage.Audio(data: "YWJj", sha256: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", bytes: 3, voice: "coral", model: "gpt-4o-mini-tts")
+        var clips: [GuideOfflinePackage.Clip] = []
+        for (id, kind) in [("intro", "introduction"), ("complete", "completion"), ("stop_0", "stop"), ("deep_0", "deeper"), ("transition_0", "transition"), ("qa_0_0", "answer"), ("qa_0_1", "answer")] {
+            clips.append(.init(id: id, kind: kind, stop_index: id == "intro" || id == "complete" ? nil : 0, title: "Title", text: "Grounded story", question: kind == "answer" ? "When did it open?" : nil, fact_ids: [0]))
+        }
+        return .init(version: 2, script_model: "gpt-6-luna", tts_model: "gpt-4o-mini-tts", voice: "coral", personality: "warm", clips: clips,
+                     audio: Dictionary(uniqueKeysWithValues: clips.map { ($0.id, audio) }), voice_disclosure: "AI-generated")
+    }
+    @Test func requiresEveryAudioAssetAndMatchingHashesVoiceAndModel() {
+        let complete = package()
+        #expect(complete.verified(stopCount: 1))
+        var missing = complete; missing.audio.removeValue(forKey: "deep_0")
+        #expect(!missing.verified(stopCount: 1))
+        var corrupt = complete; corrupt.audio["stop_0"]?.data = "YWJk"
+        #expect(!corrupt.verified(stopCount: 1))
+        var wrongVoice = complete; wrongVoice.audio["intro"]?.voice = "alloy"
+        #expect(!wrongVoice.verified(stopCount: 1))
+        var wrongModel = complete; wrongModel.audio["intro"]?.model = "device"
+        #expect(!wrongModel.verified(stopCount: 1))
+        var old = complete; old.version = 1
+        #expect(!old.verified(stopCount: 1))
+    }
+    @Test func missingScriptsAndWrongFactReferencesFailClosed() {
+        var p = package(); p.clips.removeAll { $0.kind == "completion" }; p.audio.removeValue(forKey: "complete")
+        #expect(!p.verified(stopCount: 1))
+        p = package(); p.clips[2].fact_ids = [8]
+        #expect(!p.verified(stopCount: 1))
+    }
+    @Test func questionsUseOnlyDownloadedAnswersWithoutInventingMatches() {
+        let p = package()
+        #expect(p.answer(for: "WHEN did it open?!")?.kind == "answer")
+        #expect(p.answer(for: "Is it open now?") == nil)
+        #expect(p.answer(for: "") == nil)
+    }
+    @Test func durableRoundTripKeepsScriptsAndAudioIntact() throws {
+        let p = package()
+        let data = try JSONEncoder().encode(p)
+        let reopened = try JSONDecoder().decode(GuideOfflinePackage.self, from: data)
+        #expect(reopened == p)
+        #expect(reopened.verified(stopCount: 1))
+        #expect(reopened.byteCount == 21)
+    }
+}
+
+#if canImport(UIKit)
+import AVFoundation
+import CoreLocation
+
+private actor OfflineTestTokens: AccessTokenProviding {
+    var calls = 0
+    func validAccessToken(forceRefresh: Bool) async throws -> String { calls += 1; throw URLError(.notConnectedToInternet) }
+}
+
+struct DownloadedTourPlaybackTests {
+    @MainActor @Test func downloadedAudioQuestionsAndControlsNeverRequestAuthenticationOrNetwork() async throws {
+        let audio = GuideOfflinePackage.Audio(data: "UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", sha256: "26131825c935435301fb05d3549d815bc93b1e717d6228d890ee9578dd00025e", bytes: 844, voice: "coral", model: "gpt-4o-mini-tts")
+        var clips: [GuideOfflinePackage.Clip] = []
+        for (id, kind) in [("intro", "introduction"), ("complete", "completion"), ("stop_0", "stop"), ("deep_0", "deeper"), ("transition_0", "transition"), ("qa_0_0", "answer"), ("qa_0_1", "answer")] {
+            clips.append(.init(id: id, kind: kind, stop_index: id == "intro" || id == "complete" ? nil : 0, title: "A downloaded story", text: "Downloaded facts", question: kind == "answer" ? "What is this?" : nil, fact_ids: [0]))
+        }
+        let package = GuideOfflinePackage(version: 2, script_model: "gpt-6-luna", tts_model: "gpt-4o-mini-tts", voice: "coral", personality: "warm", clips: clips, audio: Dictionary(uniqueKeysWithValues: clips.map { ($0.id, audio) }), voice_disclosure: "AI-generated")
+        let raw: [String: Any] = ["id": "offline-playback-test", "created_at": "2026-10-15T19:00:00Z", "offline": true, "language": "en", "mode": "walking", "duration_minutes": 120, "round_trip": false,
+            "origin": ["latitude": 43.64, "longitude": -79.38], "destination": ["latitude": 43.64, "longitude": -79.38],
+            "estimated_seconds": 7200, "travel_seconds": 0, "stop_seconds": 300, "buffer_seconds": 0, "distance_meters": 0, "polyline": "",
+            "stops": [["place": ["id": "wiki:1", "name": "Public landmark", "latitude": 43.64, "longitude": -79.38, "radius_meters": 0, "profile_match": 0.5, "categories": ["landmark"], "prominence": 1, "tier": "must_see"], "stop_seconds": 300, "reason": "offline_story"]]]
+        var plan = try JSONDecoder().decode(GuideTourPlan.self, from: JSONSerialization.data(withJSONObject: raw))
+        plan.offline_package = package
+        let tokens = OfflineTestTokens()
+        let client = APIClient(baseURL: URL(string: "https://offline-test.invalid")!)
+        let voice = LiveVoiceStore(client: client, authentication: tokens)
+        let translator = LiveVoiceStore(client: client, authentication: tokens)
+        let guide = LiveGuideStore(client: client, authentication: tokens, voice: voice, translator: translator)
+        guide.beginTour(plan)
+        #expect(guide.activeTour?.plan.id == plan.id)
+        guide.playOfflineStory("stop_0")
+        #expect(guide.lastVoiceWasPip == true)
+        #expect(guide.lastMention?.text == "Downloaded facts")
+        guide.pauseOffline(); #expect(guide.offlinePaused)
+        guide.resumeOffline(); #expect(!guide.offlinePaused)
+        guide.repeatOffline(); guide.pauseOffline()
+        let reopened = LiveGuideStore(client: client, authentication: tokens, voice: voice, translator: translator)
+        reopened.beginTour(plan)
+        #expect(reopened.offlineClipID == guide.offlineClipID)
+        #expect(reopened.activeTour?.index == guide.activeTour?.index)
+        reopened.reset()
+        guide.skipAnnouncement()
+        guide.offlineQuestion = "What is this?"; guide.askOfflineQuestion()
+        #expect(guide.offlineClipID == "qa_0_0")
+        guide.offlineQuestion = "What is the weather now?"; guide.askOfflineQuestion()
+        #expect(guide.tourNotice == "That answer is not downloaded. Connect to the internet to ask Pip.")
+        #expect(await guide.picks(at: CLLocation(latitude: 43.64, longitude: -79.38), weather: nil).isEmpty)
+        #expect(await guide.currentWeather(at: CLLocation(latitude: 43.64, longitude: -79.38)) == nil)
+        #expect(await tokens.calls == 0)
+        guide.reset()
+    }
+}
+#endif
