@@ -414,6 +414,7 @@ final class LiveGuideStore {
     }
 
     private func advance(now: Date) {
+        engine.setRoute(voice.route)
         if engine.needsFetch(at: now) { fetch(now: now) }
         shareShortlistIfNeeded(now: now)
         let waitedForPlaces = startedAt.map { now.timeIntervalSince($0) > 6 } ?? false
@@ -518,6 +519,7 @@ final class LiveGuideStore {
     }
 
     private static func logSearch(_ plan: GuideNearbyRequest, _ response: GuideNearbyResponse, kept: Int) {
+        log.info("discovery latency=\(response.diagnostics?.latency_ms ?? -1) ms search groups=\(response.diagnostics?.google_search_groups ?? -1)")
         let groups = (response.diagnostics?.groups ?? [:]).sorted { $0.key < $1.key }
             .map { "\($0.key)=\($0.value.returned.map(String.init) ?? "error \($0.value.error ?? "?")")" }
             .joined(separator: " ")

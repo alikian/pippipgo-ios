@@ -117,8 +117,8 @@ struct LiveGuideEngineTests {
             e.ingest(fix(north: Double(second) * 1.4, at: t0.addingTimeInterval(Double(second)), speed: 1.4))
         }
         #expect(e.decide(at: t0.addingTimeInterval(10)) == nil)
-        // Stopping for 20 s within 45 m of it: Pip speaks.
-        let now = stand(&e, north: 14, from: t0.addingTimeInterval(11), seconds: 21)
+        // Stopping for 20 s within the current 10 m range: Pip speaks.
+        let now = stand(&e, north: 24, from: t0.addingTimeInterval(11), seconds: 21)
         #expect(e.isStopped(at: now))
         let decision = e.decide(at: now)
         #expect(decision?.place.id == "church")
@@ -134,7 +134,7 @@ struct LiveGuideEngineTests {
     }
 
     @Test func talkBudgetLimitsUnpromptedMentionsAndNothingRepeats() throws {
-        var e = engine([place("a", tier: .notable, north: 10), place("b", tier: .notable, north: 15, east: 30)])
+        var e = engine([place("a", tier: .notable, north: 10), place("b", tier: .notable, north: 18)])
         var now = stand(&e, from: t0, seconds: 21)
         let firstResult = e.decide(at: now)
         let first = try #require(firstResult)
@@ -144,7 +144,7 @@ struct LiveGuideEngineTests {
         now = stand(&e, from: now.addingTimeInterval(1), seconds: 30)
         #expect(e.decide(at: now) == nil)
         // Once the budget reopens, b is allowed; a never repeats.
-        now = stand(&e, from: now.addingTimeInterval(e.budget), seconds: 21)
+        now = stand(&e, north: 15, from: now.addingTimeInterval(e.budget), seconds: 21)
         #expect(e.decide(at: now)?.place.id == "b")
     }
 
@@ -297,7 +297,7 @@ struct LiveGuideEngineTests {
         #expect(entry.place.id == "San Diego Zoo")
         e.markMentioned(entry, at: now)
         // Stay at the exhibit past the in-venue budget (2 minutes on Normal).
-        now = stand(&e, from: now.addingTimeInterval(e.venueBudget), seconds: 21)
+        now = stand(&e, north: 15, from: now.addingTimeInterval(e.venueBudget), seconds: 21)
         let exhibitResult = e.decide(at: now)
         let exhibit = try #require(exhibitResult)
         #expect(exhibit.place.id == "Elephant Odyssey")
@@ -320,6 +320,7 @@ struct LiveGuideEngineTests {
         #expect(GuideRoute(event: ["destination": ["name": "x", "latitude": 200.0, "longitude": 0.0]]) == nil)
     }
 
+    #if !SWIFT_PACKAGE
     @Test func guideEndpointsArePostOnly() throws {
         #expect(throws: APIClientError.self) { try APIRequest<GuideNearbyResponse>.get(.guideNearby) }
         let body = GuideNearbyRequest(latitude: 32.7, longitude: -117.1, radius_meters: 500, language: "en")
@@ -327,6 +328,8 @@ struct LiveGuideEngineTests {
         #expect(request.endpoint.path == "/v1/guide/nearby" && request.method == "POST")
         #expect(APIEndpoint.guideMention.path == "/v1/guide/mention" && APIEndpoint.guideMention.canPost)
     }
+
+    #endif
 
     @Test func mentionRequestCarriesNoRatings() throws {
         var candidate = place("p", tier: .mustSee)
@@ -555,5 +558,142 @@ struct LiveGuideDriveReplayTests {
         #expect(evening.decision.place.name == "Sunset beach")
         let night = try #require(Self.drive(route, sunsetIn: -60, places: [beach, mall]).mentions.first)
         #expect(night.decision.place.name == "Big mall")
+    }
+}
+
+struct ExperienceCorridorTests {
+    let now = Date(timeIntervalSince1970: 1000)
+
+    @Test func routeFollowsBendInEveryHemisphere() throws {
+        // Synthetic bends at worldwide origins: geometry tests, not live discovery acceptance.
+        for (lat, lon) in [(35.68, 139.76), (48.85, 2.35), (41.01, 28.97), (43.65, -79.38),
+                           (32.95, -117.24), (35.69, 51.39), (25.20, 55.27), (-44.0, 170.5)] {
+            let a = GuideRoute.Point(latitude: lat, longitude: lon)
+            let n = GuideGeo.offset(lat, lon, meters: 1000, bearing: 0)
+            let e = GuideGeo.offset(n.0, n.1, meters: 3000, bearing: 90)
+            let path = [a, .init(latitude: n.0, longitude: n.1), .init(latitude: e.0, longitude: e.1)]
+            let projection = try #require(GuideCorridor.project(latitude: lat, longitude: lon, path: path))
+            let ahead = GuideCorridor.ahead(2500, from: projection, path: path)
+            let result = try #require(GuideCorridor.project(latitude: ahead.latitude, longitude: ahead.longitude, path: path))
+            #expect(abs(result.along - 2500) < 5)
+            #expect(result.across < 5)
+            #expect(result.segment == 1)
+        }
+    }
+
+    @Test func walkingRouteCannotDriveTheDiscovery() throws {
+        var e = GuideEngine()
+        e.selectTourMode(.driving)
+        e.ingest(fix(at: now, speed: 15, course: 0))
+        let end = point(east: 5000)
+        let route = GuideRoute(name: "Walk", destination: .init(latitude: end.0, longitude: end.1), minutes: 30, meters: 5000,
+                               path: [.init(latitude: origin.latitude, longitude: origin.longitude), .init(latitude: end.0, longitude: end.1)])
+        e.setRoute(route)
+        let plan = try #require(e.fetchPlan())
+        #expect(plan.latitude > origin.latitude)
+        #expect(abs(plan.longitude - origin.longitude) < 0.001)
+    }
+
+    @Test func turningRefreshesWithoutWaitingFiveKilometers() throws {
+        var e = GuideEngine()
+        e.selectTourMode(.driving)
+        e.ingest(fix(at: now, speed: 27, course: 0))
+        let plan = try #require(e.fetchPlan())
+        e.update(candidates: [], for: plan, at: now)
+        e.markFetchAttempt(at: now)
+        e.ingest(fix(north: 250, at: now.addingTimeInterval(60), speed: 27, course: 90))
+        #expect(e.needsFetch(at: now.addingTimeInterval(60)))
+    }
+
+    @Test func scoringExplainsVarietyAndClosedPlaces() {
+        let weights = GuideExperienceWeights()
+        var p = place("gallery", tier: .notable, match: 1)
+        let baseline = weights.factors(p, timely: false, across: 0, limit: 1000, repeatedCategory: false).reduce(0) { $0 + $1.1 }
+        p.open_now = false
+        let factors = weights.factors(p, timely: false, across: 0, limit: 1000, repeatedCategory: true)
+        #expect(factors.reduce(0) { $0 + $1.1 } < baseline)
+        #expect(factors.contains { $0.0 == "variety" && $0.1 < 0 })
+        #expect(factors.contains { $0.0 == "closed" && $0.1 < 0 })
+    }
+
+    @Test func malformedPolylineIsBounded() {
+        #expect(GuideRoute.decode(String(repeating: "~", count: 500)).isEmpty)
+        #expect(GuideRoute.decode("\n\n").isEmpty)
+    }
+}
+
+struct WorldwideExperienceReplayTests {
+    @Test func predictiveMentionsAcrossWorldwideOrigins() throws {
+        // Generated geographic fixtures test the same engine everywhere. They do not assert
+        // that Google returned these places or that the synthetic line is a drivable road.
+        for (lat, lon) in [(35.68, 139.76), (48.85, 2.35), (41.01, 28.97), (43.65, -79.38), (46.80, -71.21)] {
+            for speed in [12.0, 27.0, 40.0] {
+                for navigation in [false, true] {
+                    var e = GuideEngine()
+                    e.selectTourMode(.driving)
+                    let target = GuideGeo.offset(lat, lon, meters: speed * 180, bearing: 0)
+                    let end = GuideGeo.offset(lat, lon, meters: speed * 600, bearing: 0)
+                    if navigation {
+                        var route = GuideRoute(name: "Synthetic replay", destination: .init(latitude: end.0, longitude: end.1),
+                                               minutes: 10, meters: Int(speed * 600),
+                                               path: [.init(latitude: lat, longitude: lon), .init(latitude: end.0, longitude: end.1)])
+                        route.mode = .driving
+                        e.setRoute(route)
+                    }
+                    let candidate = GuideCandidate(id: "gallery", name: "Gallery", latitude: target.0, longitude: target.1,
+                                                   categories: ["art"], prominence: 0.8, tier: .notable, profile_match: 1, appeal: 0.7)
+                    var mentions: [GuideDecision] = []
+                    for second in stride(from: 0, through: 300, by: 5) {
+                        let now = Date(timeIntervalSince1970: 1000 + Double(second))
+                        let location = GuideGeo.offset(lat, lon, meters: speed * Double(second), bearing: 0)
+                        e.ingest(.init(latitude: location.0, longitude: location.1, accuracy: 8, speed: speed, course: 0, timestamp: now))
+                        if e.needsFetch(at: now), let request = e.fetchPlan() {
+                            e.markFetchAttempt(at: now)
+                            e.update(candidates: [candidate], for: request, at: now)
+                        }
+                        if let decision = e.decide(at: now) {
+                            mentions.append(decision)
+                            e.markMentioned(decision, at: now)
+                        }
+                    }
+                    let decision = try #require(mentions.first)
+                    #expect(mentions.count == 1)
+                    #expect(decision.situation == .upcoming)
+                    #expect(decision.minutesAhead == 3)
+                    #expect(decision.inView == false)
+                }
+            }
+        }
+    }
+}
+
+struct ActiveRouteDiscoveryTests {
+    @Test func curvedRouteChangesSearchAndNarration() throws {
+        var e = GuideEngine()
+        e.selectTourMode(.driving)
+        let now = Date(timeIntervalSince1970: 1000)
+        e.ingest(fix(at: now, speed: 12, course: 0))
+        let bend = point(north: 1000)
+        let end = GuideGeo.offset(bend.0, bend.1, meters: 5000, bearing: 90)
+        var route = GuideRoute(name: "Synthetic bend", destination: .init(latitude: end.0, longitude: end.1), minutes: 10, meters: 6000,
+                               path: [.init(latitude: origin.latitude, longitude: origin.longitude),
+                                      .init(latitude: bend.0, longitude: bend.1), .init(latitude: end.0, longitude: end.1)])
+        route.mode = .driving
+        e.setRoute(route)
+        let plan = try #require(e.fetchPlan())
+        #expect(plan.longitude > origin.longitude + 0.005)
+        let target = GuideGeo.offset(bend.0, bend.1, meters: 2500, bearing: 90)
+        let candidate = GuideCandidate(id: "around-bend", name: "Around bend", latitude: target.0, longitude: target.1,
+                                       categories: ["art"], prominence: 0.8, tier: .notable, profile_match: 1, appeal: 0.7)
+        e.update(candidates: [candidate], for: plan, at: now)
+        let result = e.decide(at: now)
+        let decision = try #require(result)
+        #expect(decision.place.id == "around-bend")
+        #expect(decision.situation == .upcoming)
+        #expect((decision.offRoute ?? 9999) < 5)
+        #expect(e.lastTrace.first?.reason.contains("appeal=") == true)
+        // Removing navigation returns to conservative straight-ahead prediction.
+        e.setRoute(nil)
+        #expect(e.decide(at: now) == nil)
     }
 }

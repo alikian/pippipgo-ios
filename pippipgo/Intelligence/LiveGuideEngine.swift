@@ -117,6 +117,8 @@ struct GuideNearbyDiagnostics: Codable, Sendable {
     }
     struct Dropped: Codable, Sendable { var name: String; var reason: String }
     var scope: String?
+    var latency_ms: Int?
+    var google_search_groups: Int?
     var radius_meters: Int?
     var groups: [String: Group]?
     var candidates: Int?
@@ -296,6 +298,8 @@ struct GuideDrivingConfig: Sendable {
     /// Look again once this far into the searched stretch (each search costs four lookups).
     var cityRefetch = 1_500.0
     var highwayRefetch = 5_000.0
+    var turnRefetchDegrees = 55.0
+    var turnRefetchDistance = 150.0
     /// Introduce a place this many seconds before reaching it ("in a few minutes…").
     var upcoming: ClosedRange<TimeInterval> = 100...330
     /// Within this many seconds it is "coming up on your right", if it was never introduced.
@@ -325,6 +329,71 @@ struct GuideTrace: Sendable, Equatable {
     var reason: String
 }
 
+/// Explainable experience scoring. No provider calls or city-specific rules.
+struct GuideExperienceWeights: Sendable {
+    var appeal = 0.35
+    var personal = 0.30
+    var major = 0.30
+    var notable = 0.15
+    var timely = 0.25
+    var lateralPenalty = 0.15
+    var repetitionPenalty = 0.12
+    var closedPenalty = 0.25
+
+    func factors(_ place: GuideCandidate, timely: Bool, across: Double, limit: Double, repeatedCategory: Bool) -> [(String, Double)] {
+        [("appeal", place.visitorAppeal * appeal),
+         ("personal", place.profile_match * personal),
+         ("significance", place.tier == .mustSee ? major : place.tier == .notable ? notable : 0),
+         ("timing", timely ? self.timely : 0),
+         ("lateral", -min(1, across / max(limit, 1)) * lateralPenalty),
+         ("variety", repeatedCategory ? -repetitionPenalty : 0),
+         ("closed", place.open_now == false ? -closedPenalty : 0)]
+    }
+}
+
+/// Projection onto a supplied route, not road map matching or proof of access.
+/// Uses local segment geometry with wrapped longitude differences (including the date line).
+enum GuideCorridor {
+    struct Projection { var along: Double; var across: Double; var segment: Int; var fraction: Double }
+    static func project(latitude: Double, longitude: Double, path: [GuideRoute.Point]) -> Projection? {
+        guard path.count >= 2, latitude.isFinite, longitude.isFinite else { return nil }
+        var best: Projection?
+        var travelled = 0.0
+        for i in 0..<(path.count - 1) {
+            let a = path[i], b = path[i + 1]
+            let length = GuideGeo.distance(a.latitude, a.longitude, b.latitude, b.longitude)
+            guard length.isFinite, length > 0 else { continue }
+            let bearing = GuideGeo.bearing(a.latitude, a.longitude, b.latitude, b.longitude)
+            let distance = GuideGeo.distance(a.latitude, a.longitude, latitude, longitude)
+            let angle = GuideGeo.relative(GuideGeo.bearing(a.latitude, a.longitude, latitude, longitude), to: bearing) * .pi / 180
+            let fraction = min(1, max(0, distance * cos(angle) / length))
+            let across = hypot(distance * sin(angle), distance * cos(angle) - fraction * length)
+            if best == nil || across < best!.across {
+                best = Projection(along: travelled + fraction * length, across: across, segment: i, fraction: fraction)
+            }
+            travelled += length
+        }
+        return best
+    }
+
+    static func ahead(_ meters: Double, from origin: Projection, path: [GuideRoute.Point]) -> GuideRoute.Point {
+        var remaining = meters
+        for i in origin.segment..<(path.count - 1) {
+            let a = path[i], b = path[i + 1]
+            let length = GuideGeo.distance(a.latitude, a.longitude, b.latitude, b.longitude)
+            let start = i == origin.segment ? origin.fraction : 0
+            let available = length * (1 - start)
+            if remaining <= available {
+                let point = GuideGeo.offset(a.latitude, a.longitude, meters: length * start + remaining,
+                                            bearing: GuideGeo.bearing(a.latitude, a.longitude, b.latitude, b.longitude))
+                return GuideRoute.Point(latitude: point.0, longitude: point.1)
+            }
+            remaining -= available
+        }
+        return path.last!
+    }
+}
+
 struct GuideEngine {
     // Thresholds from the design doc ("Location and triggering", "Choosing what to mention").
     static let maxAccuracy = 50.0
@@ -344,6 +413,23 @@ struct GuideEngine {
     static let areaConfirmation: TimeInterval = 20
 
     var driving = GuideDrivingConfig()
+    var experienceWeights = GuideExperienceWeights()
+    /// Routes must explicitly match the travel mode; existing voice directions are walking.
+    private(set) var activeRoute: GuideRoute?
+    private var lastCategories: Set<String> = []
+
+    mutating func setRoute(_ route: GuideRoute?) {
+        guard activeRoute != route else { return }
+        activeRoute = route
+        fetchedCenter = nil
+    }
+
+    private func routeProjection(_ fix: GuideFix) -> GuideCorridor.Projection? {
+        guard let route = activeRoute, route.mode == (motion.isDriving ? .driving : .walking),
+              let projection = GuideCorridor.project(latitude: fix.latitude, longitude: fix.longitude, path: route.path),
+              projection.across <= max(75, fix.accuracy * 2) else { return nil }
+        return projection
+    }
     /// Today's sunset where the traveller is, from the backend.
     var sunset: Date?
     /// Candidates checked by the last `decide`, with the reason each was or wasn't chosen.
@@ -459,10 +545,20 @@ struct GuideEngine {
         case .highway: (ahead, radius) = (driving.highwayAhead, driving.highwayRadius)
         case .cityDriving: (ahead, radius) = (driving.cityAhead, driving.cityRadius)
         case .walking, .unknown:
+            if let projection = routeProjection(fix), let route = activeRoute {
+                let center = GuideCorridor.ahead(350, from: projection, path: route.path)
+                return GuideNearbyRequest(latitude: center.latitude, longitude: center.longitude,
+                                          horizontal_accuracy_meters: fix.accuracy, radius_meters: 500, language: "en")
+            }
             return GuideNearbyRequest(latitude: fix.latitude, longitude: fix.longitude, horizontal_accuracy_meters: fix.accuracy,
                                       radius_meters: 500, language: "en")
         }
         // Without a direction yet, centre on the car so nothing nearby is missed.
+        if let projection = routeProjection(fix), let route = activeRoute {
+            let center = GuideCorridor.ahead(ahead, from: projection, path: route.path)
+            return GuideNearbyRequest(latitude: center.latitude, longitude: center.longitude,
+                                      horizontal_accuracy_meters: fix.accuracy, radius_meters: radius, language: "en", scope: "ahead")
+        }
         let center = fix.course >= 0 ? GuideGeo.offset(fix.latitude, fix.longitude, meters: ahead, bearing: fix.course)
                                      : (fix.latitude, fix.longitude)
         return GuideNearbyRequest(latitude: center.0, longitude: center.1, horizontal_accuracy_meters: fix.accuracy,
@@ -474,6 +570,9 @@ struct GuideEngine {
         if let attempt = lastFetchAttempt, now.timeIntervalSince(attempt) < Self.fetchInterval { return false }
         guard let area = fetchedCenter, let fetchedAt else { return true }
         if now.timeIntervalSince(fetchedAt) > 30 * 60 { return true }
+        if motion.isDriving, fix.course >= 0, let fetchCourse,
+           distanceFromFetch >= driving.turnRefetchDistance,
+           abs(GuideGeo.relative(fix.course, to: fetchCourse)) >= driving.turnRefetchDegrees { return true }
         switch motion {
         // Driving searches reach several minutes ahead: look again after covering part of that
         // stretch, or when speeding up onto a highway needs a wider search.
@@ -488,6 +587,7 @@ struct GuideEngine {
     }
 
     /// Where the traveller was when the last search was planned.
+    private(set) var fetchCourse: Double?
     private(set) var fetchOrigin: (latitude: Double, longitude: Double)?
     private var distanceFromFetch: Double {
         guard let origin = fetchOrigin, let fix = latest else { return .infinity }
@@ -510,6 +610,7 @@ struct GuideEngine {
         self.candidates = Array((candidates + kept).prefix(120))
         fetchedCenter = (request.latitude, request.longitude, Double(request.radius_meters))
         fetchOrigin = latest.map { ($0.latitude, $0.longitude) }
+        fetchCourse = latest.flatMap { $0.course >= 0 ? $0.course : nil }
         fetchedAt = now
         if let sunset { self.sunset = sunset }
     }
@@ -626,6 +727,7 @@ struct GuideEngine {
     /// call `markMentioned` only once the mention is actually delivered.
     mutating func decide(at now: Date, heading: Double? = nil) -> GuideDecision? {
         guard let fix = latest, now.timeIntervalSince(fix.timestamp) < 15 else { return nil }
+        lastTrace = []
         observeAreas(at: now)
         let travelDirection = self.direction(heading: heading)
         switch motion {
@@ -704,7 +806,12 @@ struct GuideEngine {
         for candidate in ahead {
             func skip(_ reason: String) { trace.append((GuideTrace(name: candidate.name, reason: reason), candidate.visitorAppeal)) }
             guard eligible(candidate) else { skip("not eligible (\(candidate.tier.rawValue), appeal \(String(format: "%.2f", candidate.visitorAppeal)))"); continue }
-            let g = Self.geometry(of: candidate, from: fix, course: course)
+            var g = Self.geometry(of: candidate, from: fix, course: course)
+            if let origin = routeProjection(fix), let route = activeRoute,
+               let target = GuideCorridor.project(latitude: candidate.latitude, longitude: candidate.longitude, path: route.path) {
+                g.along = target.along - origin.along
+                g.across = target.across
+            }
             guard g.along > -candidate.radius_meters else { skip("behind"); continue }
             let eta = max(0, g.along - candidate.radius_meters) / pace
             let detour = driving.detour(candidate.tier, highway: highway)
@@ -721,21 +828,20 @@ struct GuideEngine {
             }
             let timely = sunsetSoon && candidate.isScenic
             guard budgetOpen(at: now, mustSee: candidate.tier == .mustSee || timely, dense: dense) else { skip("waiting: talked recently"); continue }
-            var value = candidate.visitorAppeal * 0.35 + candidate.profile_match * 0.3
-            value += candidate.tier == .mustSee ? 0.3 : candidate.tier == .notable ? 0.15 : 0
-            value += timely ? 0.25 : 0
-            value -= min(1, g.across / max(detour, 1)) * 0.15
+            let factors = experienceWeights.factors(candidate, timely: timely, across: g.across, limit: detour,
+                                                     repeatedCategory: !lastCategories.isDisjoint(with: candidate.categories))
+            let value = factors.reduce(0) { $0 + $1.1 }
             if best == nil || value > best!.value {
                 best = (candidate, situation, eta, g.across, g.angle, g.distance, value)
             }
-            skip(String(format: "candidate, score %.2f", value))
+            skip(String(format: "candidate, score %.2f: ", value) + factors.map { "\($0.0)=\(String(format: "%.2f", $0.1))" }.joined(separator: ", "))
         }
         guard let chosen = best else {
             lastTrace = trace.sorted { $0.1 > $1.1 }.prefix(12).map(\.0)
             return nil
         }
         let highlights = drivingGroup(around: chosen.place, fix: fix, course: course)
-        lastTrace = [GuideTrace(name: chosen.place.name, reason: "chosen: \(chosen.situation.rawValue), \(Int(chosen.eta / 60)) min ahead, \(Int(chosen.across)) m off the way")]
+        lastTrace = [GuideTrace(name: chosen.place.name, reason: "chosen: \(chosen.situation.rawValue), \(Int(chosen.eta / 60)) min ahead, \(Int(chosen.across)) m lateral; " + (trace.first { $0.0.name == chosen.place.name }?.0.reason ?? ""))]
             + trace.filter { $0.0.name != chosen.place.name }.sorted { $0.1 > $1.1 }.prefix(11).map(\.0)
         if chosen.situation == .upcoming, let town = townIntroduction(for: chosen.place, fix: fix, at: now) { return town }
         // The side of the line of travel the place lies on, so a place a few kilometres up the
@@ -747,7 +853,7 @@ struct GuideEngine {
                              distance: chosen.distance, motion: motion, breaksBudget: chosen.place.tier == .mustSee,
                              minutesAhead: chosen.situation == .upcoming ? max(1, Int((chosen.eta / 60).rounded())) : nil,
                              offRoute: chosen.across,
-                             inView: chosen.across < 250 && chosen.distance < 600)
+                             inView: false) // Proximity cannot establish line of sight.
     }
 
     /// Other worthwhile places beside the chosen one (One Paseo and Del Mar Highlands), so they
@@ -757,10 +863,18 @@ struct GuideEngine {
             .filter { other in
                 other.id != place.id && eligible(other) && other.tier != .minor
                     && GuideGeo.distance(place.latitude, place.longitude, other.latitude, other.longitude) <= driving.groupRadius
-                    && Self.geometry(of: other, from: fix, course: course).along > 0
+                    && isAhead(other, fix: fix, course: course)
             }
             .sorted { $0.visitorAppeal > $1.visitorAppeal }
             .prefix(2).map { $0 }
+    }
+
+    private func isAhead(_ place: GuideCandidate, fix: GuideFix, course: Double) -> Bool {
+        if let origin = routeProjection(fix), let route = activeRoute,
+           let target = GuideCorridor.project(latitude: place.latitude, longitude: place.longitude, path: route.path) {
+            return target.along > origin.along
+        }
+        return Self.geometry(of: place, from: fix, course: course).along > 0
     }
 
     // MARK: Towns and neighbourhoods
@@ -798,7 +912,12 @@ struct GuideEngine {
         var nearest: (name: String, along: Double)?
         for candidate in candidates {
             guard let town = candidate.locality, Self.key(town) != Self.key(current) else { continue }
-            let g = Self.geometry(of: candidate, from: fix, course: course)
+            var g = Self.geometry(of: candidate, from: fix, course: course)
+            if let origin = routeProjection(fix), let route = activeRoute,
+               let target = GuideCorridor.project(latitude: candidate.latitude, longitude: candidate.longitude, path: route.path) {
+                g.along = target.along - origin.along
+                g.across = target.across
+            }
             guard g.along > 0, g.across <= 3_000, (60...300).contains(g.along / pace) else { continue }
             if nearest == nil || g.along < nearest!.along { nearest = (town, g.along) }
         }
@@ -876,6 +995,7 @@ struct GuideEngine {
         mentioned.insert(decision.place.id)
         for highlight in decision.highlights { mentioned.insert(highlight.id) }
         lastMentionAt = now
+        lastCategories = Set(decision.place.categories)
     }
 
     /// What Pip says the moment the guide starts: the park/zoo/district you are in, otherwise the
@@ -937,6 +1057,7 @@ struct GuideEngine {
 /// A walking route from the traveler's position, drawn on the Live Guide map.
 struct GuideRoute: Equatable, Sendable {
     struct Point: Equatable, Sendable { var latitude: Double; var longitude: Double }
+    var mode: GuideTourMode = .walking
     var name: String
     var destination: Point
     var minutes: Int?
@@ -968,6 +1089,7 @@ struct GuideRoute: Equatable, Sendable {
             var result = 0, shift = 0
             while index < bytes.count {
                 let byte = Int(bytes[index]) - 63
+                guard (0...63).contains(byte), shift <= 30 else { return nil }
                 index += 1
                 result |= (byte & 0x1F) << shift
                 shift += 5
@@ -978,6 +1100,7 @@ struct GuideRoute: Equatable, Sendable {
         while index < bytes.count, points.count < 5000 {
             guard let dLat = next(), let dLon = next() else { break }
             latitude += dLat; longitude += dLon
+            guard (-9_000_000...9_000_000).contains(latitude), (-18_000_000...18_000_000).contains(longitude) else { return [] }
             points.append(Point(latitude: Double(latitude) / 1e5, longitude: Double(longitude) / 1e5))
         }
         return points
