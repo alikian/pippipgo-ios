@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     let store: AuthenticationStore
     @State private var aiConsent = AISharingConsent.shared
+    @State private var guestSessionID: UUID?
     @State private var siriSignInRequired = false
     @State private var showDownloadedTour = false
     @Environment(\.scenePhase) private var scenePhase
@@ -23,8 +24,7 @@ struct RootView: View {
                 switch store.state {
                 case .restoring:
                     StartupLoadingView(message: "Restoring your session…")
-                // Signed out, PipPipGo opens on the map (App Review guideline 5.1.1(v)); signing in
-                // is offered from the map and from Ask Pip.
+                // Signed-out entry offers account sign-in or an explicit guest session.
                 case .signedOut:
                     #if DEBUG
                     // Simulator layout review only: `-PipPreviewHome` shows the signed-in map
@@ -32,15 +32,15 @@ struct RootView: View {
                     if ProcessInfo.processInfo.arguments.contains("-PipPreviewHome") {
                         TravelOrganizerView(store: store.organizer, chat: store.chat, signOut: {}, deleteAccount: {})
                     } else {
-                        GuestExploreView(signIn: { Task { await store.signIn() } })
+                        signedOutEntry
                     }
                     #else
-                    GuestExploreView(signIn: { Task { await store.signIn() } })
+                    signedOutEntry
                     #endif
                 case .signingIn:
-                    GuestExploreView(signIn: {}, signingIn: true)
-                case .signInError(let message):
-                    GuestExploreView(signIn: { Task { await store.signIn() } }, errorMessage: message)
+                    LoginEntryView(signIn: {}, guest: {}, signingIn: true)
+                case .signInError:
+                    signedOutEntry
                 case .loadingAccount:
                     AccountLoadingView()
                 case .signedIn:
@@ -78,6 +78,10 @@ struct RootView: View {
         .sheet(isPresented: $showDownloadedTour) { MyToursView(guide: store.chat.liveGuide) }
         .animation(.easeInOut(duration: 0.2), value: store.state)
         .onChange(of: store.state, initial: true) { _, _ in checkVoiceLaunch(); syncLocationDisplay() }
+        .onChange(of: store.state) { _, state in
+            if case .signedOut = state { return }
+            guestSessionID = nil
+        }
         .onChange(of: aiConsent.allowed) { _, _ in syncLocationDisplay() }
         .onChange(of: scenePhase, initial: true) { _, _ in syncLocationDisplay() }
         .onDisappear { store.chat.locationDisplay.stop() }
@@ -88,12 +92,34 @@ struct RootView: View {
             Text("Sign in to PipPipGo, then ask Siri to start Talk to Pip again.")
         }
     }
+    @ViewBuilder private var signedOutEntry: some View {
+        if let guestSessionID {
+            GuestExploreView(signIn: { self.guestSessionID = nil })
+                .id(guestSessionID)
+        } else {
+            LoginEntryView(signIn: beginSignIn, guest: beginGuestSession, errorMessage: signInErrorMessage)
+        }
+    }
+
+    private var signInErrorMessage: String? {
+        if case .signInError(let message) = store.state { return message }
+        return nil
+    }
+
+    private func beginGuestSession() { guestSessionID = UUID() }
+
+    private func beginSignIn() {
+        guestSessionID = nil
+        Task { await store.signIn() }
+    }
+
     private var offersDownloadedTour: Bool {
         switch store.state { case .restoring, .loadingAccount, .signedOut, .signInError, .accountError: true; default: false }
     }
     private var showsMap: Bool {
         switch store.state {
-        case .signedOut, .signingIn, .signInError: true
+        case .signedOut, .signInError: guestSessionID != nil
+        case .signingIn: false
         case .signedIn: aiConsent.allowed
         default: false
         }
@@ -168,5 +194,44 @@ struct StartupLoadingView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+    }
+}
+
+
+private struct LoginEntryView: View {
+    let signIn: () -> Void
+    let guest: () -> Void
+    var signingIn = false
+    var errorMessage: String? = nil
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                PipWelcomeArtwork().frame(maxWidth: 280).accessibilityHidden(true)
+                Text(verbatim: "PipPipGo").font(.largeTitle.bold())
+                if let errorMessage {
+                    Text(LocalizedStringKey(errorMessage)).foregroundStyle(.secondary)
+                }
+                Button(action: signIn) {
+                    HStack {
+                        if signingIn { ProgressView() }
+                        Text("Sign in or create account").font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                }
+                .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                .disabled(signingIn)
+                .accessibilityIdentifier("login.signIn")
+                Button("Continue as guest", action: guest)
+                    .frame(minHeight: 44)
+                    .disabled(signingIn)
+                    .accessibilityIdentifier("login.guest")
+            }
+            .multilineTextAlignment(.center)
+            .padding(24)
+            .frame(maxWidth: 480)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Color(uiColor: .systemBackground))
     }
 }

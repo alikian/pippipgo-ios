@@ -34,3 +34,15 @@ Validation: Local simulator builds; signed-in home, Find nearby (pharmacies near
 - Signed out, PipPipGo now opens directly on the map (no welcome page); a **Sign in** button sits top left and Ask Pip also offers sign-in.
 - Find nearby offers **0.5 mi · 3 mi · 15 mi** (1 · 5 · 25 km in metric regions). Results stay within the chosen distance; when nothing is that close the search widens to the next distance and selects it. The map frames the traveler and all results.
 - Verified in the simulator at Carmel Valley, San Diego: Hotels within 0.5 mi finds DoubleTree by Hilton Del Mar.
+
+## Guest Search and disclosure — October 15, 2026
+
+Guests default to Search with the standard Pip/Guide/Explore/Translation/Search tab bar. Selecting another tab keeps Search selected and presents a sign-in prompt; the translation shortcut also requires sign-in. Apple Maps Search and directions remain available without an account. The earlier guest Start Guide/Ask Pip panel buttons are replaced by this tab navigation.
+
+Guest disclosure version 2 requires explicit Accept and continue before constructing the map or starting location updates. Acceptance is stored on-device and is distinct from account-specific OpenAI consent; it grants no AI permission. Existing guest acceptance is renewed once for this version. NearbyPlacesModel authorization callbacks now respect whether its location feed was started, preventing already-authorized devices from starting updates before the disclosure is accepted. The disclosure scrolls for large text, cannot be dismissed, and links to the privacy policy. No backend deployment is required. Device acceptance remains pending.
+
+## Login-first entry and per-guest disclosure — October 15, 2026
+
+This supersedes automatic signed-out map entry and device-persisted guest disclosure. Signed-out users see the PipPipGo login page with Sign in or create account and a Continue as guest link. Each explicit guest entry creates a new in-memory session and requires Accept and continue before Search or location updates start. Cancel returns to the login page; re-entering requires acceptance again, including after relaunch. Guest tab sign-in prompts return to the login page. The guest link remains available after a sign-in error. Guest acceptance never grants OpenAI consent.
+
+Regular accounts retain the existing account-scoped, versioned disclosure after first sign-in; acceptance is remembered for that account. Existing authenticated-session restoration and refresh remain unchanged. No backend deployment or build-number change is required. Device acceptance remains pending.

@@ -6,9 +6,8 @@ import SwiftUI
 import Translation
 
 // Signed-out exploring (App Review guideline 5.1.1(v)): the map, nearby essentials, directions
-// and Apple's own translation work without an account. Everything here runs on the phone with
-// Apple services; nothing is sent to PipPipGo or an AI provider. The tour guide and Ask Pip need
-// an account; guests see what they do and can hear a built-in sample first.
+// work without an account after disclosure acceptance. Other tabs require sign-in.
+// Guest Search uses Apple services; nothing is sent to PipPipGo or an AI provider.
 
 enum GuestCategory: String, CaseIterable, Identifiable {
     case restrooms, transit, food, groceries, pharmacy, hotels, cash, gas, evCharging, parking
@@ -116,6 +115,7 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
     @ObservationIgnored var ratingsProvider: (@MainActor (GuestCategory, CLLocation, CLLocationDistance) async -> [GooglePlaceRating]?)?
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var searchID = UUID()
+    @ObservationIgnored private var locationUpdatesActive = false
 
     override init() {
         authorization = manager.authorizationStatus
@@ -127,15 +127,16 @@ final class NearbyPlacesModel: NSObject, @preconcurrency CLLocationManagerDelega
     var locationDenied: Bool { authorization == .denied || authorization == .restricted }
 
     func start() {
+        locationUpdatesActive = true
         if manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
         manager.startUpdatingLocation()
     }
 
-    func stop() { manager.stopUpdatingLocation() }
+    func stop() { locationUpdatesActive = false; manager.stopUpdatingLocation() }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorization = manager.authorizationStatus
-        if [.authorizedAlways, .authorizedWhenInUse].contains(authorization) { manager.startUpdatingLocation() }
+        if locationUpdatesActive, [.authorizedAlways, .authorizedWhenInUse].contains(authorization) { manager.startUpdatingLocation() }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -250,17 +251,26 @@ struct GuestExploreView: View {
             .flatMap { ProcessInfo.processInfo.arguments.dropFirst($0 + 1).first }
             .flatMap(GuestFeature.init(rawValue:))
         : nil
-    /// The welcome cards are shown once, before the map.
-    @AppStorage("pip.guestWelcomeSeen") private var welcomeSeen = false
-    @State private var translating = false
-    /// Shown once per device before a guest uses the map; bump to show a changed notice again.
-    @AppStorage("pip.guestNoticeVersion") private var noticeSeen = 0
-    static let noticeVersion = 1
+    @State private var selectedTab: AppTab = .search
+    @State private var signInRequired = false
+    @AppStorage("pip.language") private var language = "en"
+    /// Session-only: every explicit guest entry must accept again.
+    @State private var disclosureAccepted = false
     @State private var collapsed = ProcessInfo.processInfo.arguments.contains("-PipPanelCollapsed") && GuestExploreView.debug
     @Namespace private var mapScope
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        Group {
+            if disclosureAccepted {
+                searchMap
+            } else {
+                GuestNoticeView(accept: { disclosureAccepted = true }, cancel: signIn)
+            }
+        }
+    }
+
+    private var searchMap: some View {
         Map(position: $position, selection: $pinSelection, scope: mapScope) {
             UserAnnotation()
             ForEach(model.places) { place in
@@ -338,12 +348,21 @@ struct GuestExploreView: View {
         .sheet(item: $feature) { feature in
             GuestFeatureSheet(feature: feature, signIn: { self.feature = nil; signIn() })
         }
-        .sheet(isPresented: $translating) { GuestTranslateSheet() }
-        .fullScreenCover(isPresented: Binding(get: { !welcomeSeen }, set: { _ in })) {
-            GuestWelcomeView(signIn: { welcomeSeen = true; signIn() }, explore: { welcomeSeen = true })
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            AppTabBar(selection: $selectedTab, language: language)
+                .background(Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom))
+                .disabled(signingIn)
         }
-        .sheet(isPresented: Binding(get: { welcomeSeen && noticeSeen < Self.noticeVersion }, set: { _ in })) {
-            GuestNoticeView { noticeSeen = Self.noticeVersion }
+        .onChange(of: selectedTab) { _, tab in
+            guard tab != .search else { return }
+            selectedTab = .search
+            signInRequired = true
+        }
+        .alert("Sign in", isPresented: $signInRequired) {
+            Button("Sign in", action: signIn)
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("Sign in or create account")
         }
     }
 
@@ -351,7 +370,7 @@ struct GuestExploreView: View {
     private var floatingControls: some View {
         VStack(spacing: 12) {
             if #available(iOS 17.4, *) {
-                Button { translating = true } label: {
+                Button { signInRequired = true } label: {
                     Image(systemName: "translate").font(.title3).frame(width: 48, height: 48).mapControlCircle()
                 }
                 .accessibilityLabel(Text("Translate"))
@@ -390,13 +409,7 @@ struct GuestExploreView: View {
             if let errorMessage {
                 Text(LocalizedStringKey(errorMessage)).font(.callout).foregroundStyle(.red)
             }
-            // The same two main actions as the signed-in app; each explains itself, then signs in.
-            HStack(spacing: 10) {
-                guestAction("Start guide", symbol: "headphones", tint: Color(red: 0.0, green: 0.48, blue: 0.25), feature: .guide)
-                    .accessibilityIdentifier("guest.startGuide")
-                guestAction("Ask Pip", symbol: "mic.fill", tint: .blue, feature: .askPip)
-                    .accessibilityIdentifier("guest.askPip")
-            }
+            Text("Search").font(.title2.bold())
 
             if !collapsed {
             NearbyFinder(model: model, selected: $selected) { place in
@@ -558,8 +571,10 @@ final class GuestSampleVoice: NSObject, @preconcurrency AVSpeechSynthesizerDeleg
 /// What guests agree to before exploring: privacy (Apple only, nothing sent to us) and safety.
 struct GuestNoticeView: View {
     let accept: () -> Void
+    var cancel: (() -> Void)? = nil
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 18) {
             Text("Before you explore").font(.title2.bold())
             Label("Uses Apple Maps on your iPhone. Nothing here is sent to PipPipGo.", systemImage: "lock.shield")
@@ -568,13 +583,18 @@ struct GuestNoticeView: View {
                 .accessibilityIdentifier("guestNotice.privacy")
             Spacer(minLength: 0)
             Button(action: accept) {
-                Text("Continue").font(.headline).frame(maxWidth: .infinity, minHeight: 50)
+                Text("Accept and continue").font(.headline).frame(maxWidth: .infinity, minHeight: 50)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
             .accessibilityIdentifier("guestNotice.continue")
+            if let cancel {
+                Button("Cancel", action: cancel).frame(minHeight: 44)
+                    .accessibilityIdentifier("guestNotice.cancel")
+            }
         }
         .padding(24)
+        }
         .presentationDetents([.medium, .large])
         .interactiveDismissDisabled()
     }

@@ -1,94 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Leave blank to let Pip choose. The tour starts in your chosen area. Travel there is not included." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave blank to let Pip choose. The tour starts in your chosen area. Travel there is not included."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deja los campos vacíos para que Pip elija. El recorrido empieza en la zona elegida. El viaje hasta allí no está incluido."
-          }
-        },
-        "fa" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "خالی بگذارید تا Pip انتخاب کند. تور در منطقهٔ انتخابی شما شروع می‌شود. مسیر رسیدن به آنجا شامل تور نیست."
-          }
-        },
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اتركها فارغة ليختار Pip. تبدأ الجولة في المنطقة التي تختارها. لا يشمل ذلك السفر إليها."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Laissez vide pour laisser Pip choisir. Le circuit commence dans la zone choisie. Le trajet pour y aller n’est pas inclus."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lascia vuoto per far scegliere Pip. Il tour inizia nella zona scelta. Il viaggio per arrivarci non è incluso."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "空欄にするとPipが選びます。ツアーは選んだエリア内から始まります。そこまでの移動は含みません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "비워 두면 Pip이 선택합니다. 투어는 선택한 지역에서 시작합니다. 그곳까지의 이동은 포함되지 않습니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Оставьте поля пустыми, чтобы Pip выбрал сам. Тур начинается в выбранном районе. Дорога до него не включена."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pip’in seçmesi için boş bırakın. Tur seçtiğiniz bölgede başlar. Oraya ulaşım dahil değildir."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Để trống để Pip chọn. Chuyến tham quan bắt đầu trong khu vực bạn chọn. Không bao gồm hành trình đến đó."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "留空让Pip选择。游览从您选择的区域内开始，不包含前往该区域的行程。"
-          }
-        },
-        "fil" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iwanang blangko para si Pip ang pumili. Magsisimula ang tour sa piniling lugar. Hindi kasama ang biyahe papunta roon."
-          }
-        },
-        "fil-PH" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iwanang blangko para si Pip ang pumili. Magsisimula ang tour sa piniling lugar. Hindi kasama ang biyahe papunta roon."
-          }
-        }
-      }
-    },
     "%@ · %@" : {
       "localizations" : {
         "ar" : {
@@ -3218,6 +3130,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关于你"
+          }
+        }
+      }
+    },
+    "Accept and continue" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قبول ومتابعة"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accept and continue"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptar y continuar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پذیرش و ادامه"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanggapin at magpatuloy"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanggapin at magpatuloy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accepter et continuer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accetta e continua"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同意して続ける"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동의하고 계속"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Принять и продолжить"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kabul et ve devam et"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chấp nhận và tiếp tục"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接受并继续"
           }
         }
       }
@@ -16291,6 +16291,7 @@
       }
     },
     "Continue" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16374,6 +16375,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "继续"
+          }
+        }
+      }
+    },
+    "Continue as guest" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المتابعة كضيف"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue as guest"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar como invitado"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ادامه به‌عنوان مهمان"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magpatuloy bilang bisita"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magpatuloy bilang bisita"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuer en tant qu’invité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua come ospite"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ゲストとして続ける"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "게스트로 계속"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить как гость"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Misafir olarak devam et"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiếp tục với tư cách khách"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以访客身份继续"
           }
         }
       }
@@ -36227,6 +36317,7 @@
       }
     },
     "Leave blank to let Pip choose. Stops use the area’s map bounds. Travel there may go outside them." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -36310,6 +36401,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "留空让Pip选择。停靠点位于地图上的区域范围内。前往该区域的路线可能经过范围之外。"
+          }
+        }
+      }
+    },
+    "Leave blank to let Pip choose. The tour starts in your chosen area. Travel there is not included." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اتركها فارغة ليختار Pip. تبدأ الجولة في المنطقة التي تختارها. لا يشمل ذلك السفر إليها."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave blank to let Pip choose. The tour starts in your chosen area. Travel there is not included."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deja los campos vacíos para que Pip elija. El recorrido empieza en la zona elegida. El viaje hasta allí no está incluido."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خالی بگذارید تا Pip انتخاب کند. تور در منطقهٔ انتخابی شما شروع می‌شود. مسیر رسیدن به آنجا شامل تور نیست."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iwanang blangko para si Pip ang pumili. Magsisimula ang tour sa piniling lugar. Hindi kasama ang biyahe papunta roon."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iwanang blangko para si Pip ang pumili. Magsisimula ang tour sa piniling lugar. Hindi kasama ang biyahe papunta roon."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laissez vide pour laisser Pip choisir. Le circuit commence dans la zone choisie. Le trajet pour y aller n’est pas inclus."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lascia vuoto per far scegliere Pip. Il tour inizia nella zona scelta. Il viaggio per arrivarci non è incluso."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空欄にするとPipが選びます。ツアーは選んだエリア内から始まります。そこまでの移動は含みません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비워 두면 Pip이 선택합니다. 투어는 선택한 지역에서 시작합니다. 그곳까지의 이동은 포함되지 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставьте поля пустыми, чтобы Pip выбрал сам. Тур начинается в выбранном районе. Дорога до него не включена."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pip’in seçmesi için boş bırakın. Tur seçtiğiniz bölgede başlar. Oraya ulaşım dahil değildir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Để trống để Pip chọn. Chuyến tham quan bắt đầu trong khu vực bạn chọn. Không bao gồm hành trình đến đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "留空让Pip选择。游览从您选择的区域内开始，不包含前往该区域的行程。"
           }
         }
       }
@@ -60500,7 +60679,6 @@
       }
     },
     "Search" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
