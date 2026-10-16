@@ -1134,6 +1134,8 @@ struct GuideTourRequest: Codable, Sendable, Equatable {
     var heading: Double?
     var round_trip: Bool
     var language: String
+    var area: String? = nil
+    var activities: String? = nil
     var moods: [String] = []
     var companions: String? = nil
     var energy: String = "balanced"
@@ -1171,6 +1173,8 @@ struct GuideTourPlan: Codable, Sendable, Equatable {
     var request: GuideTourRequest? = nil
     var walking_segments: [Walk]? = nil
     var id: String
+    /// Set on the device only, when a tour is saved; the server never sends or sees this.
+    var name: String? = nil
     var created_at: String
     var offline: Bool? = nil
     var language: String? = nil
@@ -1191,6 +1195,15 @@ struct GuideTourPlan: Codable, Sendable, Equatable {
     var distance_meters: Double
     var polyline: String
     var stops: [Stop]
+
+    /// The traveler's chosen name, or a plain fallback built from the tour itself.
+    var displayName: String {
+        let trimmed = (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        if let place = destination.name, !place.isEmpty { return place }
+        if let place = stops.first?.place.name, !place.isEmpty { return place }
+        return String(localized: "My Tour", bundle: AppLanguage.currentBundle, locale: AppLanguage.currentLocale)
+    }
 
     var googleMapsURL: URL? {
         var url = URLComponents(string: "https://www.google.com/maps/dir/")!

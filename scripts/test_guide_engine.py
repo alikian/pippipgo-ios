@@ -17,6 +17,14 @@ with tempfile.TemporaryDirectory(prefix="pippipgo-guide-") as directory:
     tests.mkdir(parents=True)
     shutil.copy(ROOT / "pippipgo/Intelligence/LiveGuideEngine.swift", source)
     shutil.copy(ROOT / "pippipgoTests/LiveGuideEngineTests.swift", tests)
+    # The engine localizes its default tour name through the real app language
+    # preference. Include that definition without the @main app and its stores.
+    app_source = (ROOT / "pippipgo/App/pippipgoApp.swift").read_text()
+    language_start = app_source.index("enum AppLanguage:")
+    language_end = app_source.index("\nstruct AppLanguageMenu:", language_start)
+    (source / "AppLanguage.swift").write_text(
+        "import SwiftUI\n\n" + app_source[language_start:language_end] + "\n"
+    )
     (package / "Package.swift").write_text('''// swift-tools-version: 6.0
 import PackageDescription
 let package = Package(name: "GuideLogic", platforms: [.macOS(.v14)], targets: [

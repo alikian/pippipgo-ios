@@ -140,11 +140,12 @@ final class OrganizerStore {
 }
 
 enum AppTab: String, Hashable, CaseIterable {
-    case pip, guide, translate, search
+    case pip, guide, explore, translate, search
     var title: String {
         switch self {
         case .pip: "Pip"
         case .guide: "Guide"
+        case .explore: "Explore"
         case .translate: "Translation"
         case .search: "Search"
         }
@@ -153,6 +154,7 @@ enum AppTab: String, Hashable, CaseIterable {
         switch self {
         case .pip: "bubble.left.and.bubble.right.fill"
         case .guide: "map.fill"
+        case .explore: "safari.fill"
         case .translate: "translate"
         case .search: "magnifyingglass"
         }
@@ -160,7 +162,7 @@ enum AppTab: String, Hashable, CaseIterable {
 }
 
 /// Signed-in shell: one map that stays on screen, the selected tab's name at the top, and a
-/// standard tab bar with Pip, Guide, Translation and Search. The traveler's picture opens
+/// standard tab bar with Pip, Guide, Explore, Translation and Search. The traveler's picture opens
 /// Profile, where trips and companions are edited.
 struct TravelOrganizerView: View {
     @Bindable var store: OrganizerStore
@@ -176,22 +178,23 @@ struct TravelOrganizerView: View {
     @AppStorage("pip.language") private var language = "en"
     @Environment(\.scenePhase) private var scenePhase
 
-    /// Debug-only simulator review: `-PipHomeTab pip|guide|translate|search`.
+    /// Debug-only simulator review: `-PipHomeTab pip|guide|explore|translate|search`.
     private static var launchTab: AppTab {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if let index = arguments.firstIndex(of: "-PipHomeTab"), index + 1 < arguments.count,
            let tab = AppTab(rawValue: arguments[index + 1]) { return tab }
         #endif
-        return .guide
+        return .pip
     }
 
     var body: some View {
-        // The see-through tab bar floats over the map; panels end above the bar.
+        // Keep navigation readable over the map, including when Search has no open panel.
         home
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                // The bar draws its own floating glass; the map shows around and below it.
+                // Extend the background through the home indicator area on every tab.
                 AppTabBar(selection: $tab, language: language)
+                    .background(Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom))
             }
         .tint(.blue)
         .task { if !store.loaded { await store.load() } }

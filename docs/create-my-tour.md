@@ -43,3 +43,43 @@ Local results: **734 backend tests passed, 1 skipped**; Ruff lint and format che
 - Localization: all 83 new UI keys have all 14 app language resources, including Tagalog's `fil-PH` resource. Existing user entries were checked unchanged. Remaining public-copy translations were generated with the configured GPT-6 Luna via the backend adapter; no traveler data was sent. This localization inference is separate from app/device acceptance and tour-narration inference.
 
 Provider references: [Google search along route](https://developers.google.com/maps/documentation/places/web-service/search-along-route), [Routes waypoints](https://developers.google.com/maps/documentation/routes/intermed_waypoints), [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started), [hourly forecasts](https://developers.google.com/maps/documentation/weather/hourly-forecast), [Places policies](https://developers.google.com/maps/documentation/places/web-service/policies), [Wikipedia reuse](https://en.wikipedia.org/wiki/Wikipedia:Reusing_Wikipedia_content).
+
+## Optional area and activities — October 15, 2026
+
+The builder now shows optional area/park and activity inputs before personal options. Blank inputs keep automatic planning. Requests carry `area` (up to 160 characters) and `activities` (up to 300); voice tools support the same fields. Area requests resolve a single place and filter every selected stop, including mixed-mode walking stops, to its provider viewport. These rectangular map bounds are approximate, not administrative boundaries. Travel from the current location and road routes can leave the bounds. Ambiguous/unresolved areas or unavailable matching experiences produce non-success instead of a broader tour. Activity text drives Places Text Search; generic along-route suggestions are disabled for activity requests. Search relevance does not verify venue offerings or availability. No organizer records are modified.
+
+Backend deployment is pending in Dev and Prod; deploy before releasing the updated iOS app. Live area/activity provider checks and physical-device acceptance remain pending. No iOS release build number has been changed.
+
+## Tour adjustment — October 15, 2026
+
+The proposal has an Adjust Tour button in the navigation bar, visible without scrolling through stops. An active tour also offers Adjust Tour, opening the form with its original request. Users can change time, transport, area, activities and preferences and create a new proposal. The active tour continues until the revised proposal is explicitly started. No backend change or deployment is required for these controls.
+
+## Tour failure feedback — October 15, 2026
+
+Creation failures now display a localized alert and a notice above the form, retaining inputs. The app distinguishes unreachable service, expired sign-in, unreadable response, invalid details, daily limits, unresolved/ambiguous destinations, unavailable routes and insufficient time. HTTP 200 alone does not establish successful planning: the local log previously recorded a 2.6-second HTTP 200 tour request without its application result, so its exact failure reason cannot be recovered. The backend now logs `tour_plan_result` with request ID, result status, stop count and available provider diagnostics; HTTP failures log `tour_plan_error` with status and error code. Neither log includes request bodies, place names, coordinates or activity text.
+
+Updated backend restarted locally. Dev and Prod deployment of these diagnostics remains pending; the new app error feedback works with the existing response contract. Simulator app build and Apple string-catalog compilation passed; physical-device failure feedback acceptance remains pending.
+
+## Planning animation — October 15, 2026
+
+While creating a tour, the builder displays a full loading view with gently floating Pip artwork, an indeterminate spinner, localized planning text and Cancel. Reduce Motion keeps Pip still and hides the spinner. The form is disabled during planning, and the loading view disappears when planning succeeds, fails or is canceled. No backend deployment is needed.
+
+## Apple Maps preview — October 15, 2026
+
+The tour review screen now embeds Apple Maps with the start, destination, numbered stops and mixed-mode walking stops. MapKit independently calculates each route leg with walking or driving directions; only Apple route geometry is rendered in this preview. Requests cancel when the preview closes or changes. If Apple routing is unavailable, stop pins and the review remain available with an explicit message. The backend planning budget and route validation remain unchanged, and active-tour navigation controls retain their existing behavior. No backend deployment is required. Live Apple routing/device acceptance remains pending.
+
+### Specific mixed-mode failure explanation
+
+Local logs recorded two `no_suitable_mixed_tour` outcomes followed by a successful two-stop tour. This status means the planner could not validate a walking loop returning to the car within the requested time and walking limits; it does not identify whether route availability or a particular limit was the blocker. The app now explains this and suggests adding time, raising the walking limit or selecting a single travel mode. Failed results now retain available provider counters/errors for diagnostics. Backend restarted locally; Dev/Prod deployment of the additional diagnostics remains pending. The app message uses the existing response status and needs no backend-first rollout.
+
+## Adjust Tour location refresh — October 15, 2026
+
+The builder previously relied on the location value supplied when its sheet opened; after the 120-second freshness window, Create My Tour could remain disabled during editing. The builder now owns a foreground location feed while visible, validates fresh accurate coordinates, and uses the latest fix for typed or voice planning. It stops updates on dismissal/background and resumes on foreground. A five-second freshness check keeps the button state current even without GPS callbacks. Denied/restricted access displays the corresponding existing localized message. The backend freshness requirement remains unchanged. No backend deployment is required. Physical-device GPS and permission acceptance remains separate.
+
+## Area tours start in the area — October 15, 2026
+
+This supersedes the earlier approach-drive behavior: when `area` is supplied, the planner uses the resolved area's location as tour origin, discovers stops within its viewport and budgets only the tour there. A return trip returns to that area origin, not the phone. Weather, sunset and route-search ranking use the area as well. The original phone location remains in the request for validation but is not a route leg. Apple Maps previews use the returned area origin, so the approach drive is excluded automatically. Generic nearby tours and explicit destination directions preserve their existing behavior. Map bounds remain approximate; roads between stops can cross them. No change to ownership, organizer data, credentials or AI model.
+
+Local backend restarted with this fix. Dev and Prod backend deployment is pending and must precede rollout of this behavior to those environments. Existing proposals must be regenerated. Live provider and physical-device acceptance remain pending; mocked tests cover remote-origin walking/driving tours, with and without a return trip.
+
+Live public-coordinate provider check (no traveler records): a 120-minute driving request for Santa Monica from public downtown Los Angeles coordinates returned `ok`, a Santa Monica origin, and Ocean View Park, Downtown Santa Monica, Palisades Park and Santa Monica Pier (108 estimated minutes). Provider errors: none. An initial check exposed Venice inside the rectangular viewport; matching provider locality is now required when the resolved area provides a locality, excluding that neighboring-city stop. Unknown locality is excluded conservatively. Neighborhood/park boundaries remain approximate within the matching city. Simulator app build passed. This provider check does not establish device acceptance.

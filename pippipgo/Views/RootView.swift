@@ -70,12 +70,12 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .safeAreaInset(edge: .bottom) {
-            if offersDownloadedTour, store.chat.liveGuide.downloadedTour != nil {
-                Button("Downloaded tour", systemImage: "arrow.down.circle") { showDownloadedTour = true }
+            if offersDownloadedTour, !store.chat.liveGuide.downloadedTours.isEmpty {
+                Button("My Tours", systemImage: "arrow.down.circle") { showDownloadedTour = true }
                     .frame(maxWidth: .infinity, minHeight: 48).background(.regularMaterial)
             }
         }
-        .sheet(isPresented: $showDownloadedTour) { DownloadedTourView(guide: store.chat.liveGuide) }
+        .sheet(isPresented: $showDownloadedTour) { MyToursView(guide: store.chat.liveGuide) }
         .animation(.easeInOut(duration: 0.2), value: store.state)
         .onChange(of: store.state, initial: true) { _, _ in checkVoiceLaunch(); syncLocationDisplay() }
         .onChange(of: aiConsent.allowed) { _, _ in syncLocationDisplay() }
