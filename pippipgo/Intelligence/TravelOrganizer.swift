@@ -1373,7 +1373,10 @@ struct TravelChatView: View {
                         } else if !store.loaded && !store.busy {
                             Button("Try again") { Task { await store.load() } }
                         }
-                    }.padding()
+                    }
+                    .padding()
+                    .frame(maxWidth: 800)
+                    .frame(maxWidth: .infinity)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .background(companionStyle ? PipAppearance.cream : Color(.systemGroupedBackground))
@@ -1383,6 +1386,8 @@ struct TravelChatView: View {
             }
             if showsComposer {
                 PipComposer(store: store) { store.voice.start() }
+                    .frame(maxWidth: 800)
+                    .frame(maxWidth: .infinity)
             }
         }
 

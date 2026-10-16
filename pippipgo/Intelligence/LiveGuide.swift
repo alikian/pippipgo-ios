@@ -1263,6 +1263,7 @@ struct LiveGuideTab: View {
     @State private var mapBottom: CGFloat = 0
     @State private var panelTop: CGFloat?
     @State private var topBarBottom: CGFloat = 0
+    @State private var topBarHeight: CGFloat = 220
     @State private var selectedPlace: NearbyPlace?
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
@@ -1277,15 +1278,45 @@ struct LiveGuideTab: View {
     @AppStorage("pip.mapSatellite") private var satellite = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Keep controls beside the map when the window has room, including in Split View.
+    /// Accessibility text uses the wider bottom panel instead of a narrow column.
+    private var adaptiveMap: some View {
+        GeometryReader { geometry in
+            let hasPanel = tab != .search || nearby.category != nil || selectedPlace != nil
+            let sidebar = horizontalSizeClass == .regular && geometry.size.width >= 760
+                && geometry.size.height >= topBarHeight + 200
+                && !dynamicTypeSize.isAccessibilitySize && hasPanel
+            let panelWidth: CGFloat = 360
+            map(leadingInset: sidebar ? panelWidth + 32 : 0)
+                .overlay(alignment: sidebar ? .bottomLeading : .bottom) {
+                    if sidebar {
+                        ScrollView {
+                            panel
+                        }
+                        .frame(width: panelWidth)
+                        .frame(maxHeight: collapsed ? 60 : max(160, geometry.size.height - topBarHeight - 32), alignment: .bottom)
+                        .background(.bar, in: RoundedRectangle(cornerRadius: 20))
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .padding(.leading, 16)
+                        .padding(.bottom, 16)
+                    } else {
+                        panel.frame(maxWidth: 560)
+                            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { panelTop = $0 }
+                            .onDisappear { panelTop = nil }
+                    }
+                }
+        }
+    }
 
     var body: some View {
-        map
-            .overlay(alignment: .bottom) {
-                panel.frame(maxWidth: 560)
-                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { panelTop = $0 }
-                    .onDisappear { panelTop = nil }
+        adaptiveMap
+            .overlay(alignment: .top) {
+                topBar
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topBarHeight = $0 }
             }
-            .overlay(alignment: .top) { topBar }
             .onAppear {
                 locateMapInitially()
                 updateMapPerspective()
@@ -1445,7 +1476,7 @@ struct LiveGuideTab: View {
         position = .camera(camera)
     }
 
-    private var map: some View {
+    private func map(leadingInset: CGFloat) -> some View {
         Map(position: $position, selection: $pinSelection) {
             UserAnnotation { _ in
                 Button {
@@ -1505,6 +1536,7 @@ struct LiveGuideTab: View {
         .mapStyle(satellite
             ? .hybrid(elevation: tab == .explore ? .realistic : .flat, pointsOfInterest: .excludingAll)
             : .standard(elevation: tab == .explore ? .realistic : .flat, pointsOfInterest: .excludingAll))
+        .safeAreaPadding(.leading, leadingInset)
         .safeAreaPadding(.top, max(0, topBarBottom - mapTop))
         .safeAreaPadding(.bottom, max(0, mapBottom - (panelTop ?? mapBottom)))
         // Full screen like Google Maps: the map runs under the status bar, panel and tab bar.
