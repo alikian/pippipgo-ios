@@ -208,3 +208,11 @@ before running tests: `CI_PRIMARY_REPOSITORY_PATH` is absent during
 using the already compiled artifacts instead of trying to regenerate source
 configuration. A regression test reproduces the worker's missing checkout/build
 variables; all 14 CI hook tests pass. No test assertion was disabled.
+
+Corrected hosted build **98**, commit `feebabf`, uses the same Dev workflow:
+https://appstoreconnect.apple.com/teams/e889b4eb-d539-4efa-9a6c-a1ad9fe29ef7/xcode-cloud/products/54c196ed-32dc-430b-8e5f-e299eb841cfc/builds/d2c817a1-c4d1-4474-b42d-5c6ff0621776/summary
+Live verification: Build and signed Archive actions succeeded. Both build-for-testing
+and the simulator worker's pre-test hook succeeded. The simulator test action
+remained in progress at handoff, waiting for the unit-test host launch; no hosted
+passing-test claim is made. Internal TestFlight distribution is gated on required
+actions. Changes are published in PR #4 and have not been merged into main/develop.
