@@ -624,95 +624,6 @@
         }
       }
     },
-    "Voice uses your iPhone or its connected headphones.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voice uses your iPhone or its connected headphones."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El audio usa tu iPhone o los auriculares conectados."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le son utilise votre iPhone ou les écouteurs connectés."
-          }
-        },
-        "fa": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "صدا از آیفون یا هدفون متصل به آن پخش می‌شود."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "يستخدم الصوت iPhone أو سماعات الرأس المتصلة به."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "音声はiPhoneまたは接続したヘッドフォンを使用します。"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L’audio usa il tuo iPhone o le cuffie collegate."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "语音使用iPhone或其连接的耳机。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "음성은 iPhone 또는 연결된 헤드폰을 사용합니다."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Âm thanh dùng iPhone hoặc tai nghe đã kết nối."
-          }
-        },
-        "fil": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gagamitin ang iPhone o ang nakakonektang headphone para sa audio."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ses için iPhone’unuz veya bağlı kulaklık kullanılır."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Звук использует iPhone или подключённые наушники."
-          }
-        },
-        "fil-PH": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gagamitin ang iPhone o ang nakakonektang headphone para sa audio."
-          }
-        }
-      }
-    },
     "Connecting…": {
       "extractionState": "manual",
       "localizations": {
@@ -1510,6 +1421,95 @@
           "stringUnit": {
             "state": "translated",
             "value": "PipPipGo"
+          }
+        }
+      }
+    },
+    "Speak into your Watch. Listen on your iPhone or its headphones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speak into your Watch. Listen on your iPhone or its headphones."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habla por tu reloj. Escucha en tu iPhone o sus auriculares."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parlez dans votre montre. Écoutez sur votre iPhone ou ses écouteurs."
+          }
+        },
+        "fa": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "با میکروفون ساعت صحبت کنید. از آیفون یا هدفون آن گوش دهید."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watchに話しかけてください。音声はiPhoneまたは接続したヘッドフォンで聞けます。"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parla nel tuo Watch. Ascolta su iPhone o con le sue cuffie."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对着手表说话，通过 iPhone 或其耳机收听。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watch에 대고 말하세요. iPhone이나 연결된 헤드폰으로 들으세요."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nói vào đồng hồ. Nghe trên iPhone hoặc tai nghe của iPhone."
+          }
+        },
+        "fil": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magsalita sa iyong Watch. Makinig sa iPhone o sa mga headphone nito."
+          }
+        },
+        "fil-PH": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magsalita sa iyong Watch. Makinig sa iPhone o sa mga headphone nito."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watch mikrofonuna konuşun. iPhone veya ona bağlı kulaklıklardan dinleyin."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحدث عبر ساعتك. استمع على iPhone أو سماعاته."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Говорите в часы. Слушайте на iPhone или через подключённые к нему наушники."
           }
         }
       }

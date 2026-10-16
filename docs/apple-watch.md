@@ -7,17 +7,18 @@ remote for the signed-in iPhone app, with three controls:
 - **Skip** stops the current guide announcement, including pending announcement
   audio. It does not skip a tour stop or interrupt a live Pip conversation.
 - **Talk to Pip** starts the existing iPhone conversation; **End conversation**
-  ends it. Audio uses the iPhone microphone/speaker or its connected headphones.
+  ends it. Speak into the Watch microphone; replies play on the iPhone speaker
+  or its connected headphones.
 
 Starting Explore or Talk to Pip requires PipPipGo to be open and active on the
-paired iPhone, signed in, with AI sharing consent accepted. Existing microphone
-and location permission flows still apply. The watch displays an instruction to
+paired iPhone, signed in, with AI sharing consent accepted. Microphone permission is requested on the Watch; the phone does not capture
+microphone audio for a Watch-started conversation. Location permission remains on the phone. The watch displays an instruction to
 open the phone when a start is rejected in the background. Once an Explore
 session is running, Skip and Stop can reach the background iPhone through
 WatchConnectivity, subject to Apple's reachability and background execution.
 The existing app stops a live voice session when it goes into the background;
-this companion does not change that behavior. It does not provide watch-native
-microphone capture or standalone cellular operation.
+this companion does not change that behavior. The Watch app must remain visible
+while recording. Standalone cellular operation is not supported.
 
 A planned tour cannot be replaced or stopped by Explore controls. Finish it on
 the iPhone first. Commands are live messages with replies, not queued transfers;
@@ -27,7 +28,13 @@ request ID. The watch times out after eight seconds without automatically
 resending. A timeout means the outcome is unknown; reconnect to obtain state
 before trying again. State refreshes every five seconds while the watch app is
 visible. The phone only pushes changed control state or a requested refresh.
-No credentials, location, names or transcripts are sent to the watch.
+Transient PCM16 mono 24 kHz microphone chunks are relayed over live
+WatchConnectivity messages with bounded buffering and one packet in flight.
+Packets are scoped to the start request and account/consent session, expire
+after two seconds and reject out-of-order/replayed sequence numbers. No audio
+files or queued transfers are used. No credentials, location, names or transcripts
+are sent to the watch. Disconnect, leaving the Watch app, account changes and
+ending the session release capture; the phone audio watchdog ends stalled input.
 
 ## Xcode setup and release
 
@@ -79,8 +86,11 @@ installed. Required acceptance on a paired iPhone/Watch:
    taps do not restart it, and Stop restores idle state on both devices.
 2. During an announcement, Skip immediately stops audio without advancing the
    tour stop. With no announcement the control is disabled.
-3. Talk to Pip starts once on iPhone, permissions remain on iPhone, captions and
-   audio work, End stops billing/audio, and translation/busy states reject starts.
+3. Talk to Pip requests Watch microphone permission and starts once. Speak with
+   the phone out of microphone range and verify captions capture Watch speech;
+   replies play on the phone/headphones. Deny permission, leave the Watch app,
+   disconnect, and End: capture and the phone session stop. Restart and verify
+   fresh audio only; translation/busy states reject starts.
 4. Lock/background iPhone: starts instruct the user to open it, existing Explore
    announcements continue, and Skip/Stop work while the session is reachable.
 5. Disconnect/reconnect, timeout, switch account, revoke consent, sign out and

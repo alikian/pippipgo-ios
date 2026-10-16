@@ -38,14 +38,14 @@ struct WatchControlsView: View {
                     .disabled(!controls.canControl || !controls.state.canSkip)
                     .accessibilityIdentifier("watch.skip")
                     Button {
-                        controls.send(controls.state.talking ? .endTalk : .talk)
+                        controls.talk()
                     } label: {
                         Label(LocalizedStringKey(controls.state.talking ? "End conversation" : "Talk to Pip"), systemImage: controls.state.talking ? "stop.fill" : "mic.fill")
                             .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .disabled(!controls.canControl)
                     .accessibilityIdentifier("watch.talk")
-                    Text("Voice uses your iPhone or its connected headphones.")
+                    Text("Speak into your Watch. Listen on your iPhone or its headphones.")
                         .font(.footnote).foregroundStyle(.secondary)
                     if let result = controls.result { Text(message(for: result)).font(.footnote) }
                     if controls.pendingID != nil { ProgressView().accessibilityLabel("Connecting…") }
@@ -60,7 +60,8 @@ struct WatchControlsView: View {
         }
         .task(id: scenePhase) {
             controls.activate()
-            guard scenePhase == .active else { return }
+            guard scenePhase == .active else { controls.suspend(); return }
+            controls.resume()
             while !Task.isCancelled {
                 controls.send(.refresh)
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }

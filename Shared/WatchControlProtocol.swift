@@ -1,6 +1,6 @@
 import Foundation
 
-/// Only control state crosses to the paired watch; no credentials, location or transcripts.
+/// Control state and transient microphone PCM cross the paired connection; no credentials.
 enum WatchCommand: String, Codable, CaseIterable, Sendable {
     case refresh, skip, explore, stopExplore, talk, endTalk
 }
@@ -56,5 +56,21 @@ struct WatchCommandGate {
         if [WatchCommand.explore, .stopExplore].contains(request.command) && state.hasTour { return .finishTour }
         if request.command == .skip && !state.canSkip { return .nothingToSkip }
         return nil
+    }
+}
+
+/// Live, bounded PCM16 mono at 24 kHz. Never queued for later delivery.
+struct WatchMicrophonePacket: Codable, Sendable {
+    var conversationID: UUID
+    var sessionID: UUID
+    var sequence: UInt64
+    var sentAt: Date
+    var pcm: Data
+
+    func isValid(conversation: UUID?, session: UUID, after sequence: UInt64?, now: Date = Date()) -> Bool {
+        conversationID == conversation && sessionID == session
+            && abs(sentAt.timeIntervalSince(now)) < 2
+            && !pcm.isEmpty && pcm.count <= 16_000 && pcm.count % 2 == 0
+            && (sequence == nil || self.sequence > sequence!)
     }
 }

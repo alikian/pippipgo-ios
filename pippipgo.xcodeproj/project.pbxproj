@@ -667,6 +667,7 @@ D83F6C4FE15DA742B5E5D3AA,
  INFOPLIST_KEY_WKApplication = YES; INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.pippipgo.ios;
  INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
  PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+ INFOPLIST_KEY_NSMicrophoneUsageDescription = "Use the Watch microphone to talk to Pip. Audio is shared with OpenAI during your conversation.";
  SDKROOT = watchos; SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4;
  WATCHOS_DEPLOYMENT_TARGET = 10.0; SWIFT_VERSION = 5.0; SKIP_INSTALL = YES;
  LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
@@ -676,6 +677,7 @@ D83F6C4FE15DA742B5E5D3AA,
  INFOPLIST_KEY_WKApplication = YES; INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.pippipgo.ios;
  INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
  PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+ INFOPLIST_KEY_NSMicrophoneUsageDescription = "Use the Watch microphone to talk to Pip. Audio is shared with OpenAI during your conversation.";
  SDKROOT = watchos; SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4;
  WATCHOS_DEPLOYMENT_TARGET = 10.0; SWIFT_VERSION = 5.0; SKIP_INSTALL = YES;
  LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
@@ -685,6 +687,7 @@ D83F6C4FE15DA742B5E5D3AA,
  INFOPLIST_KEY_WKApplication = YES; INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.pippipgo.ios;
  INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
  PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+ INFOPLIST_KEY_NSMicrophoneUsageDescription = "Use the Watch microphone to talk to Pip. Audio is shared with OpenAI during your conversation.";
  SDKROOT = watchos; SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4;
  WATCHOS_DEPLOYMENT_TARGET = 10.0; SWIFT_VERSION = 5.0; SKIP_INSTALL = YES;
  LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");

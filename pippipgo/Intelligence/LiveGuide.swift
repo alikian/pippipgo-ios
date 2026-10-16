@@ -878,7 +878,7 @@ final class LiveGuideStore {
 
     /// The only place a live (per-second billed) conversation starts in the Live Guide. The
     /// session closes itself after silence; announcements then continue by text-to-speech.
-    func toggleConversation() {
+    func toggleConversation(microphone: AsyncThrowingStream<Data, Error>? = nil) {
         if voice.active { voice.stop(); return }
         if activeTour?.plan.offline == true, !networkAvailable {
             pauseOffline()
@@ -886,13 +886,13 @@ final class LiveGuideStore {
             return
         }
         if activeTour?.plan.offline == true { pauseOffline() }
-        startConversation()
+        startConversation(microphone: microphone)
     }
 
     var route: GuideRoute? { activeTour == nil ? voice.route : nil }
     func clearRoute() { voice.clearRoute() }
 
-    private func startConversation() {
+    private func startConversation(microphone: AsyncThrowingStream<Data, Error>? = nil) {
         greetPending = false
         deliverTask?.cancel()
         asking = false
@@ -909,7 +909,7 @@ final class LiveGuideStore {
         persistMentioned()
         let start = GuideStartContext(venue: venue.map { String($0.name.prefix(160)) }, nearby: Array(nearby.prefix(3)), tour_mode: tourMode.rawValue)
         lastShortlist = ([], .distantPast)  // share position right after connecting
-        voice.start(guide: try? JSONEncoder().encode(start))
+        voice.start(guide: try? JSONEncoder().encode(start), microphone: microphone)
     }
 
     private func fetch(now: Date) {

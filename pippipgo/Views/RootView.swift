@@ -176,7 +176,8 @@ struct RootView: View {
         case .talk:
             guard UIApplication.shared.applicationState == .active else { return .openPhone }
             guard !store.chat.translator.active, !store.chat.busy, store.chat.pending == nil else { return .busy }
-            if !store.chat.voice.active { guide.toggleConversation() }
+            guard !store.chat.voice.active, let microphone = WatchPhoneBridge.shared.microphoneStream else { return .busy }
+            guide.toggleConversation(microphone: microphone)
             guard store.chat.voice.active else { return .openPhone }
             WatchPhoneBridge.shared.navigate(to: .pip)
         }

@@ -8,6 +8,17 @@ final class WatchPhoneBridge: NSObject, WCSessionDelegate {
     static let shared = WatchPhoneBridge()
     private(set) var selectedTab: AppTab?
     private(set) var navigationID = UUID()
+    private var microphoneID: UUID?
+    private var microphoneSequence: UInt64?
+    private var microphoneContinuation: AsyncThrowingStream<Data, Error>.Continuation?
+    private(set) var microphoneStream: AsyncThrowingStream<Data, Error>?
+
+    private func endMicrophone() {
+        microphoneContinuation?.finish()
+        microphoneContinuation = nil; microphoneStream = nil
+        microphoneID = nil; microphoneSequence = nil
+    }
+
     private var session: WCSession?
     private var accountID: String?
     private var state = WatchControlState.unavailable
@@ -41,6 +52,7 @@ final class WatchPhoneBridge: NSObject, WCSessionDelegate {
             replies.removeAll()
             replyOrder.removeAll()
         }
+        if changedSession || !current.talking { endMicrophone() }
         current.sessionID = state.sessionID
         current.updatedAt = state.updatedAt
         guard force || changedSession || current != state else { return }
@@ -53,11 +65,26 @@ final class WatchPhoneBridge: NSObject, WCSessionDelegate {
     }
 
     private func receive(_ data: Data) -> Data? {
+        if let packet = try? JSONDecoder().decode(WatchMicrophonePacket.self, from: data) {
+            publish()
+            guard state.ready, state.foreground, state.talking,
+                  packet.isValid(conversation: microphoneID, session: state.sessionID, after: microphoneSequence),
+                  let continuation = microphoneContinuation else { return Data([0]) }
+            microphoneSequence = packet.sequence
+            continuation.yield(packet.pcm)
+            return Data([1])
+        }
         guard let request = try? JSONDecoder().decode(WatchControlRequest.self, from: data) else { return nil }
         publish(force: true) // Re-read account, consent and foreground state for every tap.
         if let reply = replies[request.id] { return try? JSONEncoder().encode(reply) }
-        let result = WatchCommandGate.validate(request, state: state)
-            ?? (request.command == .refresh ? .success : perform?(request.command) ?? .openPhone)
+        let rejection = WatchCommandGate.validate(request, state: state)
+        if rejection == nil, request.command == .talk, !state.talking {
+            endMicrophone()
+            microphoneID = request.id
+            microphoneStream = AsyncThrowingStream(bufferingPolicy: .bufferingNewest(12)) { microphoneContinuation = $0 }
+        }
+        let result = rejection ?? (request.command == .refresh ? .success : perform?(request.command) ?? .openPhone)
+        if request.command == .talk, result != .success { endMicrophone() }
         publish()
         let reply = WatchControlReply(requestID: request.id, result: result, state: state)
         replies[request.id] = reply

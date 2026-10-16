@@ -49,11 +49,11 @@ final class VoiceAudioSession: @unchecked Sendable {
         }
     }
 
-    func activate(owner: UUID) async throws {
+    func activate(owner: UUID, playbackOnly: Bool = false) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.async {
                 do {
-                    try self.activateSession()
+                    if playbackOnly { try self.activateCueSession() } else { try self.activateSession() }
                     self.owner = owner
                     continuation.resume()
                 } catch {
@@ -183,16 +183,15 @@ final class VoiceAudio: @unchecked Sendable {
     private var generation = UUID()
     private let playbackFormat = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!
 
-    @MainActor func start() async throws -> AsyncThrowingStream<Data, Error> {
+    @MainActor func start(microphone: AsyncThrowingStream<Data, Error>? = nil) async throws -> AsyncThrowingStream<Data, Error> {
         guard !stopped else { throw CancellationError() }
         PipStartupSound.shared.stop()
-        try await VoiceAudioSession.shared.activate(owner: sessionOwner)
+        try await VoiceAudioSession.shared.activate(owner: sessionOwner, playbackOnly: microphone != nil)
         guard !stopped, !Task.isCancelled else {
             VoiceAudioSession.shared.deactivate(owner: sessionOwner)
             throw CancellationError()
         }
-        let input = engine.inputNode
-        try input.setVoiceProcessingEnabled(true)
+        if microphone == nil { try engine.inputNode.setVoiceProcessingEnabled(true) }
         let output = engine.outputNode
         let hardwareOutput = output.inputFormat(forBus: 0)
         engine.attach(player)
@@ -202,6 +201,12 @@ final class VoiceAudio: @unchecked Sendable {
         // Connecting the player can reconfigure the mixer's automatic output link.
         // Finalize that link afterward or VoiceProcessingIO may never deliver input.
         engine.connect(engine.mainMixerNode, to: output, format: hardwareOutput)
+        if let microphone {
+            try engine.start()
+            player.play()
+            return microphone
+        }
+        let input = engine.inputNode
         let sourceFormat = input.outputFormat(forBus: 0)
         guard sourceFormat.sampleRate > 0,
               let pcm = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 24_000, channels: 1, interleaved: true),
@@ -285,8 +290,8 @@ final class VoiceAudio: @unchecked Sendable {
         generation = UUID(); queuedFrames = 0
         if tapped {
             engine.inputNode.removeTap(onBus: 0); tapped = false
-            player.stop(); engine.stop()
         }
+        player.stop(); engine.stop()
         VoiceAudioSession.shared.deactivate(owner: sessionOwner)
     }
 }
@@ -441,7 +446,7 @@ final class LiveVoiceStore {
     func clearRoute() { route = nil }
 
     /// `guide`: where the traveler is (venue, nearest places), when started from the Live Guide.
-    func start(guide: Data? = nil) {
+    func start(guide: Data? = nil, microphone: AsyncThrowingStream<Data, Error>? = nil) {
         guard !active else { return }
         if mode == .pip { PipStartupSound.shared.play() }
         active = true; error = nil; transcript.clear(); places = []; route = nil; tourPlan = nil; tourStartID = nil
@@ -455,7 +460,7 @@ final class LiveVoiceStore {
             do {
                 try await AISharingConsent.shared.request()
                 guard self.epoch == ticket, !Task.isCancelled else { return }
-                let allowed = await AVAudioApplication.requestRecordPermission()
+                let allowed = microphone != nil ? true : await AVAudioApplication.requestRecordPermission()
                 guard self.epoch == ticket, !Task.isCancelled else { return }
                 guard allowed else {
                     throw APIClientError.invalidRequest(mode.translation == nil
@@ -511,7 +516,7 @@ final class LiveVoiceStore {
                         }
                         guard !connected else { continue }
                         let audio = VoiceAudio(); self.audio = audio
-                        let stream = try await audio.start()
+                        let stream = try await audio.start(microphone: microphone)
                         guard self.epoch == ticket, !Task.isCancelled else { audio.stop(); return }
                         connected = true; watchdog?.cancel()
                         lastInputAt = Date()
@@ -535,6 +540,7 @@ final class LiveVoiceStore {
                                     let payload = try JSONSerialization.data(withJSONObject: ["type": "session.input_audio.append", "audio": chunk.base64EncodedString()])
                                     try await socket.send(.string(String(decoding: payload, as: UTF8.self)))
                                 }
+                                if !Task.isCancelled { self?.stop() }
                             } catch { self?.fail("The voice connection was interrupted. Please try again.", ticket: ticket) }
                         }
                     case "pip.lookup":

@@ -66,4 +66,25 @@ final class WatchCommandGateTests: XCTestCase {
         XCTAssertEqual(decoded.command, .explore)
         XCTAssertNil(WatchCommandGate.validate(decoded, state: state, now: now))
     }
+    func testMicrophonePacketsRejectOtherSessionsReplayAndStaleAudio() throws {
+        let conversation = UUID(), session = UUID()
+        let packet = WatchMicrophonePacket(conversationID: conversation, sessionID: session,
+                                           sequence: 3, sentAt: now, pcm: Data([0, 0]))
+        let decoded = try JSONDecoder().decode(WatchMicrophonePacket.self, from: JSONEncoder().encode(packet))
+        XCTAssertTrue(decoded.isValid(conversation: conversation, session: session, after: 2, now: now))
+        XCTAssertFalse(decoded.isValid(conversation: UUID(), session: session, after: nil, now: now))
+        XCTAssertFalse(decoded.isValid(conversation: conversation, session: UUID(), after: nil, now: now))
+        XCTAssertFalse(decoded.isValid(conversation: nil, session: session, after: nil, now: now))
+        XCTAssertFalse(decoded.isValid(conversation: conversation, session: session, after: 3, now: now))
+        XCTAssertFalse(decoded.isValid(conversation: conversation, session: session, after: 4, now: now))
+        for offset in [-3.0, 3.0] {
+            XCTAssertFalse(decoded.isValid(conversation: conversation, session: session, after: nil, now: now.addingTimeInterval(offset)))
+        }
+        for bytes in [Data(), Data([0]), Data(repeating: 0, count: 16_002)] {
+            var invalid = packet
+            invalid.pcm = bytes
+            XCTAssertFalse(invalid.isValid(conversation: conversation, session: session, after: nil, now: now))
+        }
+    }
+
 }
