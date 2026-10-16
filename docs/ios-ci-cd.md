@@ -196,3 +196,8 @@ An Apple test-runner Mach -308 crash required a fresh UI run. These are local
 simulator results, not hosted-run or physical-device acceptance.
 The corrected 2 XCUITests passed with zero failures; result bundle:
 `/tmp/pippipgo-xcuitest-results-3` (temporary local artifact).
+
+Hosted validation build **97** was started manually using the Dev workflow from
+`codex/xcuitest-cloud`, commit `1cfb174`. Build URL:
+https://appstoreconnect.apple.com/teams/e889b4eb-d539-4efa-9a6c-a1ad9fe29ef7/xcode-cloud/products/54c196ed-32dc-430b-8e5f-e299eb841cfc/builds/115fd622-b655-4fd5-9581-b8ea207d46a3/summary
+Initial status was Queued; do not interpret this as a passing hosted test result.
