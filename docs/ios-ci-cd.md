@@ -201,3 +201,10 @@ Hosted validation build **97** was started manually using the Dev workflow from
 `codex/xcuitest-cloud`, commit `1cfb174`. Build URL:
 https://appstoreconnect.apple.com/teams/e889b4eb-d539-4efa-9a6c-a1ad9fe29ef7/xcode-cloud/products/54c196ed-32dc-430b-8e5f-e299eb841cfc/builds/115fd622-b655-4fd5-9581-b8ea207d46a3/summary
 Initial status was Queued; do not interpret this as a passing hosted test result.
+
+Build 97 compiled the app and both test targets, but the simulator worker failed
+before running tests: `CI_PRIMARY_REPOSITORY_PATH` is absent during
+`test-without-building`. The pre-build hook now exits successfully for that phase,
+using the already compiled artifacts instead of trying to regenerate source
+configuration. A regression test reproduces the worker's missing checkout/build
+variables; all 14 CI hook tests pass. No test assertion was disabled.

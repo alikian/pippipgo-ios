@@ -1,7 +1,12 @@
 #!/bin/sh
 set -eu
-: "${CI_PRIMARY_REPOSITORY_PATH:?Run this hook in Xcode Cloud}"
 : "${CI_XCODEBUILD_ACTION:?Missing Xcode Cloud action}"
+# Test workers restore compiled artifacts without checking out the repository.
+# Build settings were already prepared during build-for-testing.
+if [ "$CI_XCODEBUILD_ACTION" = test-without-building ]; then
+    exit 0
+fi
+: "${CI_PRIMARY_REPOSITORY_PATH:?Run this hook in Xcode Cloud}"
 # Recreate overrides for each action so testability cannot leak into an archive.
 "$CI_PRIMARY_REPOSITORY_PATH/ci_scripts/ci_post_clone.sh"
 if [ "$CI_XCODEBUILD_ACTION" = archive ] && [ "$CI_XCODE_SCHEME" = Local ]; then
