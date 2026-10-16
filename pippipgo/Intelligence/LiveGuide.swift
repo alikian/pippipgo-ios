@@ -1856,7 +1856,7 @@ struct LiveGuideTab: View {
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
-                .tint(Color(red: 0.0, green: 0.5, blue: 0.25))
+                .tint(.accentColor)
                 .accessibilityIdentifier("liveGuide.startGuide")
             }
         }
