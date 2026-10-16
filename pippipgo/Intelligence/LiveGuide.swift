@@ -1286,12 +1286,17 @@ struct LiveGuideTab: View {
             .overlay(alignment: .top) { topBar }
             .onAppear {
                 locateMapInitially()
+                updateMapPerspective()
                 nearby.ratingsProvider = { [guide] category, location, radius in
                     await guide.placeRatings(category: category, location: location, radius: radius)
                 }
                 syncNearby()
             }
-            .onChange(of: tab) { _, _ in collapsed = false; syncNearby() }
+            .onChange(of: tab) { _, _ in
+                collapsed = false
+                syncNearby()
+                updateMapPerspective()
+            }
             .onChange(of: chat.translator.active) { _, active in
                 if active, guide.activeTour?.plan.offline == true { guide.pauseOffline() }
             }
@@ -1400,8 +1405,12 @@ struct LiveGuideTab: View {
             if !zoomedToStart {
                 // Before any fix the map shows a whole continent; never keep that zoom.
                 zoomedToStart = true
-                withAnimation { position = .region(MKCoordinateRegion(center: location.coordinate,
-                                                                      latitudinalMeters: 1_200, longitudinalMeters: 1_200)) }
+                if tab == .explore {
+                    position = .camera(MapCamera(centerCoordinate: location.coordinate, distance: 1_200, pitch: 60))
+                } else {
+                    withAnimation { position = .region(MKCoordinateRegion(center: location.coordinate,
+                                                                          latitudinalMeters: 1_200, longitudinalMeters: 1_200)) }
+                }
                 return
             }
             let usable = currentMapCamera.flatMap { $0.distance < 50_000 ? $0 : nil }
@@ -1409,7 +1418,11 @@ struct LiveGuideTab: View {
                 centerCoordinate: location.coordinate,
                 distance: max(800, location.horizontalAccuracy * 4), heading: 0, pitch: 0)
             camera.centerCoordinate = location.coordinate
-            if guide.enabled {
+            if tab == .explore {
+                guard !position.positionedByUser else { return }
+                camera.pitch = 60
+                position = .camera(camera)
+            } else if guide.enabled {
                 withAnimation(.linear(duration: 0.5)) { position = .camera(camera) }
             } else {
                 // Keep native tracking enabled, including zero-speed coordinate updates.
@@ -1417,6 +1430,12 @@ struct LiveGuideTab: View {
             }
         }
         feed.start()
+    }
+
+    private func updateMapPerspective() {
+        guard var camera = currentMapCamera ?? lastLocation.map({ MapCamera(centerCoordinate: $0.coordinate, distance: 1_200) }) else { return }
+        camera.pitch = tab == .explore ? 60 : 0
+        position = .camera(camera)
     }
 
     private var map: some View {
@@ -1475,7 +1494,9 @@ struct LiveGuideTab: View {
         .onMapCameraChange(frequency: .onEnd) { context in
             currentMapCamera = context.camera
         }
-        .mapStyle(satellite ? .hybrid(pointsOfInterest: .excludingAll) : .standard(pointsOfInterest: .excludingAll))
+        .mapStyle(satellite
+            ? .hybrid(elevation: tab == .explore ? .realistic : .flat, pointsOfInterest: .excludingAll)
+            : .standard(elevation: tab == .explore ? .realistic : .flat, pointsOfInterest: .excludingAll))
         .safeAreaPadding(.top, max(0, topBarBottom - mapTop))
         .safeAreaPadding(.bottom, max(0, mapBottom - (panelTop ?? mapBottom)))
         // Full screen like Google Maps: the map runs under the status bar, panel and tab bar.

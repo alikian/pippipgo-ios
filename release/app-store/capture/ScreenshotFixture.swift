@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import CoreLocation
 
 // Capture-only entry point, appended to a temporary copy of the app source.
 // Never included in the shipping target. Uses the actual production views.
@@ -26,8 +27,6 @@ private final class ScreenshotProtocol: URLProtocol, @unchecked Sendable {
 @MainActor private struct ScreenshotGallery: View {
     @State private var organizer: OrganizerStore
     @State private var chat: TravelChatStore
-    @State private var selected: AppTab
-    @State private var mode: PipMode
     @State private var editor: OrganizerEditorKind?
     @State private var reviewingTrip: OrganizerTrip?
     @State private var startRequest: UUID?
@@ -67,31 +66,52 @@ private final class ScreenshotProtocol: URLProtocol, @unchecked Sendable {
         _organizer = State(initialValue: organizer)
         _chat = State(initialValue: chat)
         _budget = State(initialValue: budget)
-        _selected = State(initialValue: ["chat": AppTab.pip, "voice": .pip, "translate": .translate, "profile": .profile][screen] ?? .trips)
-        _mode = State(initialValue: screen == "voice" ? .voice : .chat)
+        chat.messages = [
+            TravelChatMessage(id: "sample-user", role: "user", text: "A relaxed afternoon in Santa Monica, with ocean views and a little art.", at: ISO8601DateFormatter().string(from: Date())),
+            TravelChatMessage(id: "sample-pip", role: "assistant", text: "Start with the ocean views at Palisades Park, then explore Downtown Santa Monica. Leave time to enjoy the pier at your own pace. Would you like a coffee stop along the way?", at: ISO8601DateFormatter().string(from: Date()))
+        ]
+        let places = [
+            GuideCandidate(id: "park", name: "Palisades Park", latitude: 34.0159, longitude: -118.5025, categories: ["scenic", "nature"], prominence: 0.9, tier: .notable),
+            GuideCandidate(id: "downtown", name: "Downtown Santa Monica", latitude: 34.015, longitude: -118.495, categories: ["shopping", "culture"], prominence: 0.9, tier: .notable),
+            GuideCandidate(id: "pier", name: "Santa Monica Pier", latitude: 34.0094, longitude: -118.4973, categories: ["scenic", "history"], prominence: 0.95, tier: .mustSee)
+        ]
+        let origin = GuideTourPlan.Point(latitude: 34.0159, longitude: -118.5025, name: "Palisades Park")
+        let request = GuideTourRequest(origin: .init(latitude: origin.latitude, longitude: origin.longitude, horizontal_accuracy_meters: 5, captured_at: ISO8601DateFormatter().string(from: Date())), mode: "walking", duration_minutes: 120, direction: "surprise", round_trip: false, language: "en", area: "Santa Monica", activities: "Ocean views and local highlights", moods: ["scenic"])
+        let plan = GuideTourPlan(request: request, id: "sample-tour", created_at: ISO8601DateFormatter().string(from: Date()), mode: "walking", duration_minutes: 120, round_trip: false, origin: origin, destination: .init(latitude: 34.0094, longitude: -118.4973, name: "Santa Monica Pier"), estimated_seconds: 6600, travel_seconds: 1800, stop_seconds: 4200, buffer_seconds: 600, distance_meters: 2200, polyline: "", stops: places.map { .init(place: $0, stop_seconds: 1400, reason: "interest_match", visit_kind: "visit") })
+        chat.liveGuide.tourDraft = request
+        if screen == "tour" { chat.liveGuide.suggestedTour = plan }
         tripID = trip.id
     }
 
     var body: some View {
-        TabView(selection: $selected) {
-            Group {
-                if screen == "details" {
-                    NavigationStack {
-                        TripDetailView(store: organizer, tripID: tripID, editor: $editor)
+        Group {
+            switch screen {
+            case "create", "tour":
+                LiveGuideTab(guide: chat.liveGuide, chat: chat, tab: .guide, profileName: "Alex")
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        AppTabBar(selection: .constant(.guide), language: "en")
+                            .background(Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom))
                     }
-                } else if screen == "budget" {
-                    NavigationStack { OrganizerBudgetView(budget: $budget) }
-                } else {
-                    TripsTab(store: organizer, editor: $editor, askPip: { selected = .pip })
+                    .sheet(isPresented: .constant(true)) {
+                        TourBuilderView(guide: chat.liveGuide, location: CLLocation(latitude: 34.0159, longitude: -118.5025))
+                    }
+            case "trips":
+                TripsTab(store: organizer, editor: $editor, askPip: {})
+            case "details":
+                NavigationStack { TripDetailView(store: organizer, tripID: tripID, editor: $editor) }
+            case "chat":
+                NavigationStack {
+                    TravelChatView(store: chat, organizer: organizer, reviewingTrip: $reviewingTrip, fullHistory: true)
+                        .navigationTitle("Ask Pip").navigationBarTitleDisplayMode(.inline)
                 }
+            default:
+                let tab: AppTab = screen == "translate" ? .translate : .explore
+                LiveGuideTab(guide: chat.liveGuide, chat: chat, tab: tab, profileName: "Alex", profileInterests: "Art and coastal walks")
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        AppTabBar(selection: .constant(tab), language: "en")
+                            .background(Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom))
+                    }
             }
-            .tabItem { Label("Trips", systemImage: "suitcase") }.tag(AppTab.trips)
-            PipTab(chat: chat, organizer: organizer, mode: $mode, reviewingTrip: $reviewingTrip, voiceStartRequest: $startRequest)
-                .tabItem { Label("Pip", systemImage: "bubble.left.and.bubble.right") }.tag(AppTab.pip)
-            TranslateTab(store: chat.translator)
-                .tabItem { Label("Translate", systemImage: "translate") }.tag(AppTab.translate)
-            ProfileTab(store: organizer, location: chat.locationDisplay, editor: $editor, signOut: {})
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }.tag(AppTab.profile)
         }
         .environment(\.locale, Locale(identifier: "en_US"))
         .environment(\.layoutDirection, .leftToRight)

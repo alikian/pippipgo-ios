@@ -19,3 +19,9 @@ https://developer.apple.com/app-store/asset-best-practices/
 
 SIZE CORRECTION
 The primary gallery and ZIP now use native 1284 × 2778 portrait captures, one of the requested accepted dimensions. The earlier iphone-6.9 set remains archived in its original folder and is excluded from the updated ZIP. Images were recaptured at the requested resolution, not stretched or cropped.
+
+OCTOBER 15, 2026 — CURRENT SUBMISSION PACKAGE
+Use submission-2026-10-15/index.html and pippipgo-app-store-submission-2026-10-15.zip. The earlier October 2 screenshots remain historical and should not replace this updated set.
+18 screenshots: six each for iPhone medium (1206 x 2622), iPhone large (1320 x 2868), and iPad 13-inch (2064 x 2752). Screens: Explore 3D, Create My Tour, Apple Maps tour review, Ask Pip, Translation, Trips. Includes the existing 1024 x 1024 RGB app icon. Every upload PNG is RGB without alpha, with hashes in assets.json; ZIP integrity checked. Contact sheets outside the package were visually reviewed. Native tour sheet presentation is preserved on iPad. Sample profile, chat, translation and trip data are fictional; public Santa Monica Apple Maps imagery/routes may load. No user account, real traveler content or OpenAI/backend request was used.
+The isolated capture-only simulator build passed with current source views. Production build number was unchanged; this is not a distribution archive or release-readiness assertion. Existing Explore 3D source changes remain separate. No new backend deployment is needed for screenshot generation; area/activity tour support still requires coordinated Dev/Prod rollout as documented. No assets were uploaded to App Store Connect.
+Reproduction: capture/prepare.py creates an isolated checkout and capture/package.py verifies sizes, removes fully opaque alpha, builds the gallery, manifest and ZIPs. Upload PNGs only from the relevant device group. See the package README for requirements and evidence boundaries.

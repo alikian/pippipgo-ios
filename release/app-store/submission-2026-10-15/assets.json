@@ -1,0 +1,128 @@
+[
+  {
+    "file": "iphone-medium/01-explore.png",
+    "width": 1206,
+    "height": 2622,
+    "mode": "RGB",
+    "sha256": "1386f3bb358ad8007441a0392f879f0a0f63a66edd693530aafc7a62994bcfd3"
+  },
+  {
+    "file": "iphone-medium/02-create.png",
+    "width": 1206,
+    "height": 2622,
+    "mode": "RGB",
+    "sha256": "a2843230f4623f13ce87fb5b8ceae05f3b202e57384add0821aa2c7813374281"
+  },
+  {
+    "file": "iphone-medium/03-tour.png",
+    "width": 1206,
+    "height": 2622,
+    "mode": "RGB",
+    "sha256": "62a205d7b136eef6ae2fbc0214302277074c385e4810c465e2e19b57bc803ff3"
+  },
+  {
+    "file": "iphone-medium/04-chat.png",
+    "width": 1206,
+    "height": 2622,
+    "mode": "RGB",
+    "sha256": "4e2940c907c0ae14421182c4df6b090809d300f2c336184c8ddc513726579e66"
+  },
+  {
+    "file": "iphone-medium/05-translate.png",
+    "width": 1206,
+    "height": 2622,
+    "mode": "RGB",
+    "sha256": "7eca3a3f4f208cd8bfd98fc478c64c844bc8670b8c9c31c4c4c20ec26a59602a"
+  },
+  {
+    "file": "iphone-medium/06-trips.png",
+    "width": 1206,
+    "height": 2622,
+    "mode": "RGB",
+    "sha256": "82f3398895f1c02596158dbe7c853568bde5d97a63b76bfe576efcfbc2c9c572"
+  },
+  {
+    "file": "iphone-large/01-explore.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "sha256": "6d7264f8dbbc18a38a0961308d7f9b351850dd891eaa000d6b5d8aa8bdbb39dd"
+  },
+  {
+    "file": "iphone-large/02-create.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "sha256": "c785427f4fd0642fe502995bd29e324770c49511fa6fb46bed35b74aa2d8374d"
+  },
+  {
+    "file": "iphone-large/03-tour.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "sha256": "ed521bf1aa10e90f005f5563a33e72167374fa55d4449b1f30e91cfc569112a5"
+  },
+  {
+    "file": "iphone-large/04-chat.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "sha256": "f9cdc010a91ce8debde24262f51670f8ae1b94f6ec3ac8c3fa239aecb76b70ee"
+  },
+  {
+    "file": "iphone-large/05-translate.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "sha256": "6aeb408f80c918dd9a9a4c3eccada8a4d7800a540e29c9dfef47e2744bc65b67"
+  },
+  {
+    "file": "iphone-large/06-trips.png",
+    "width": 1320,
+    "height": 2868,
+    "mode": "RGB",
+    "sha256": "525e388f0813ab4b64e1f593496490c1560c25b07bc164d2f6c5608c689c14b4"
+  },
+  {
+    "file": "ipad-13/01-explore.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "sha256": "7b63d55e141a7df55b947f1a99581dc8371dbe4f39299eb49de60e5e3ca41a6d"
+  },
+  {
+    "file": "ipad-13/02-create.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "sha256": "0c53dce3dc566c0dfd5055d2ecb847cc164cce8e3ef50ff177e596b3dc2af572"
+  },
+  {
+    "file": "ipad-13/03-tour.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "sha256": "18ef941439924a331a6c7a65baa3e3bc0fd8ae490882b7fd9c307c5ecf552aff"
+  },
+  {
+    "file": "ipad-13/04-chat.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "sha256": "7967f5d3dbba3459bc0d2ac02acca0594b094a6e9009db3d83e68131b4366390"
+  },
+  {
+    "file": "ipad-13/05-translate.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "sha256": "06ac63693aef8569bbbe9b4de21d019abedd35c06e17b0be1e76c4f2308a407c"
+  },
+  {
+    "file": "ipad-13/06-trips.png",
+    "width": 2064,
+    "height": 2752,
+    "mode": "RGB",
+    "sha256": "5cabb590ca1e609158a7a38053227dbccdc44349425ac84f4170956d895bf412"
+  }
+]
