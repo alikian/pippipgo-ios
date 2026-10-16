@@ -216,3 +216,29 @@ and the simulator worker's pre-test hook succeeded. The simulator test action
 remained in progress at handoff, waiting for the unit-test host launch; no hosted
 passing-test claim is made. Internal TestFlight distribution is gated on required
 actions. Changes are published in PR #4 and have not been merged into main/develop.
+
+## Build 98 test failure — October 16, 2026
+
+The completed hosted report shows 167 passing tests, one failure and one skipped
+test. `APIClientTests.organizerRetryFreezesBodyAndResetsSession()` failed at
+`APIClientTests.swift:358`: the first save unexpectedly succeeded and `pending`
+was nil. The post-build hook correctly propagated xcodebuild's exit code 65;
+Build and signed Archive succeeded, while required testing blocked TestFlight.
+
+The test URL protocol used one global response queue for all sessions. A chat
+retry starts an asynchronous guide refresh, which can outlive its test and consume
+responses configured for the next test. The mock now routes requests to a unique
+session fixture and protects response queues and captured requests with a lock.
+Production retry behavior and the organizer assertions are unchanged.
+
+A regression deliberately sends an old-session request after configuring the next
+session's timeout/success queue. It failed against the original mock with a stolen
+timeout and passed with session isolation. The complete Dev test plan then passed
+on the dedicated iPhone 16 / iOS 18.6 simulator: 168 unit tests and two UI tests,
+zero failures. Local result bundle: `/tmp/pippipgo-build98-fixed.xcresult`.
+The initial narrow baseline filter selected zero tests and is not validation.
+
+Latest Cloud build observed in Xcode was 99; local simulator validation used
+`CURRENT_PROJECT_VERSION=100` without changing the checked-in release number.
+Hosted validation of this fix is pending. No backend deployment is required in
+Dev or Prod; physical-device acceptance is separate.

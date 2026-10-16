@@ -348,6 +348,26 @@ struct APIClientTests {
         #expect(binding.wrappedValue.destination == "Vancouver")
     }
 
+    @Test func lateRequestCannotConsumeAnotherSessionsReplies() async throws {
+        let oldSession = queuedSession([.init(status: 200, body: Data("old session".utf8))])
+        defer { oldSession.invalidateAndCancel() }
+        let newSession = queuedSession([.init(error: .timedOut), .init(status: 200, body: Data("new session".utf8))])
+        defer { newSession.invalidateAndCancel() }
+        let request = URLRequest(url: URL(string: "https://example.invalid/v1/travel-organizer")!)
+        let (oldBody, _) = try await oldSession.data(for: request)
+        #expect(oldBody == Data("old session".utf8))
+        #expect(StubURLProtocol.requests.isEmpty)
+        do {
+            _ = try await newSession.data(for: request)
+            Issue.record("The new session must retain its queued timeout.")
+        } catch let error as URLError {
+            #expect(error.code == .timedOut)
+        }
+        let (newBody, _) = try await newSession.data(for: request)
+        #expect(newBody == Data("new session".utf8))
+        #expect(StubURLProtocol.requests.count == 2)
+    }
+
     @MainActor @Test func organizerRetryFreezesBodyAndResetsSession() async throws {
         var data = OrganizerData(); data.profile = OrganizerPerson(name: "Ali", age: 35, hometown: "San Diego")
         let record = APIRecord(id: "me", kind: "organizer", version: 1, revision: 1, updatedAt: Date(), deleted: false, data: data)
@@ -899,33 +919,84 @@ struct APIClientTests {
     }
 
     private func makeSession(status: Int, body: Data) -> URLSession {
-        StubURLProtocol.response = HTTPURLResponse(url: URL(string: "https://example.invalid/v1/me")!, statusCode: status, httpVersion: nil, headerFields: nil)!
-        StubURLProtocol.body = body
-        StubURLProtocol.replies = []
-        StubURLProtocol.requests = []
-        StubURLProtocol.bodies = []
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubURLProtocol.self]
+        configuration.httpAdditionalHeaders = [
+            StubURLProtocol.sessionHeader: StubURLProtocol.configure(status: status, body: body)
+        ]
         return URLSession(configuration: configuration)
     }
 }
 
 private final class StubURLProtocol: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var response: HTTPURLResponse!
-    nonisolated(unsafe) static var body = Data()
+    static let sessionHeader = "X-PipPipGo-Test-Session"
+    private static let lock = NSLock()
+    // A completed test can leave a guide refresh running. Route it to its original
+    // fixture so it cannot consume another test's timeout or success response.
+    nonisolated(unsafe) private static var fixtures: [String: Fixture] = [:]
+    nonisolated(unsafe) private static var current = Fixture()
 
-    nonisolated(unsafe) static var request: URLRequest?
-    nonisolated(unsafe) static var requestBody = Data()
+    private final class Fixture {
+        var response: HTTPURLResponse!
+        var body = Data()
+        var request: URLRequest?
+        var requestBody = Data()
+        var replies: [StubReply] = []
+        var requests: [URLRequest] = []
+        var bodies: [Data] = []
+    }
 
-    nonisolated(unsafe) static var replies: [StubReply] = []
-    nonisolated(unsafe) static var requests: [URLRequest] = []
-    nonisolated(unsafe) static var bodies: [Data] = []
+    static func configure(status: Int, body: Data) -> String {
+        lock.withLock {
+            let id = UUID().uuidString
+            let fixture = Fixture()
+            fixture.response = HTTPURLResponse(url: URL(string: "https://example.invalid/v1/me")!, statusCode: status, httpVersion: nil, headerFields: nil)!
+            fixture.body = body
+            fixtures[id] = fixture
+            current = fixture
+            return id
+        }
+    }
+
+    static var response: HTTPURLResponse! {
+        get { lock.withLock { current.response } }
+        set { lock.withLock { current.response = newValue } }
+    }
+
+    static var body: Data {
+        get { lock.withLock { current.body } }
+        set { lock.withLock { current.body = newValue } }
+    }
+
+    static var request: URLRequest? {
+        get { lock.withLock { current.request } }
+        set { lock.withLock { current.request = newValue } }
+    }
+
+    static var requestBody: Data {
+        get { lock.withLock { current.requestBody } }
+        set { lock.withLock { current.requestBody = newValue } }
+    }
+
+    static var replies: [StubReply] {
+        get { lock.withLock { current.replies } }
+        set { lock.withLock { current.replies = newValue } }
+    }
+
+    static var requests: [URLRequest] {
+        get { lock.withLock { current.requests } }
+        set { lock.withLock { current.requests = newValue } }
+    }
+
+    static var bodies: [Data] {
+        get { lock.withLock { current.bodies } }
+        set { lock.withLock { current.bodies = newValue } }
+    }
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
-        Self.request = request
-        Self.requestBody = request.httpBody ?? Data()
+        var requestBody = request.httpBody ?? Data()
         if let stream = request.httpBodyStream {
             stream.open()
             defer { stream.close() }
@@ -933,22 +1004,38 @@ private final class StubURLProtocol: URLProtocol, @unchecked Sendable {
             while stream.hasBytesAvailable {
                 let count = stream.read(&buffer, maxLength: buffer.count)
                 if count <= 0 { break }
-                Self.requestBody.append(contentsOf: buffer.prefix(count))
+                requestBody.append(contentsOf: buffer.prefix(count))
             }
         }
-        Self.requests.append(request)
-        Self.bodies.append(Self.requestBody)
-        if !Self.replies.isEmpty {
-            let reply = Self.replies.removeFirst()
-            if let error = reply.error {
-                client?.urlProtocol(self, didFailWithError: URLError(error))
-                return
+        let reply: StubReply? = Self.lock.withLock {
+            guard let id = request.value(forHTTPHeaderField: Self.sessionHeader),
+                  let fixture = Self.fixtures[id] else { return nil }
+            fixture.request = request
+            fixture.requestBody = requestBody
+            fixture.requests.append(request)
+            fixture.bodies.append(requestBody)
+            if !fixture.replies.isEmpty {
+                let reply = fixture.replies.removeFirst()
+                if reply.error == nil {
+                    fixture.response = HTTPURLResponse(url: request.url!, statusCode: reply.status, httpVersion: nil, headerFields: reply.headers)!
+                    fixture.body = reply.body
+                }
+                return reply
             }
-            Self.response = HTTPURLResponse(url: request.url!, statusCode: reply.status, httpVersion: nil, headerFields: reply.headers)!
-            Self.body = reply.body
+            return StubReply(status: fixture.response.statusCode, body: fixture.body,
+                             headers: fixture.response.allHeaderFields as? [String: String] ?? [:])
         }
-        client?.urlProtocol(self, didReceive: Self.response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Self.body)
+        guard let reply else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        if let error = reply.error {
+            client?.urlProtocol(self, didFailWithError: URLError(error))
+            return
+        }
+        let response = HTTPURLResponse(url: request.url!, statusCode: reply.status, httpVersion: nil, headerFields: reply.headers)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: reply.body)
         client?.urlProtocolDidFinishLoading(self)
     }
     override func stopLoading() {}
