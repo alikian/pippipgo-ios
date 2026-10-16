@@ -1854,7 +1854,7 @@ struct LiveGuideTab: View {
                     Label("Explore Freely", systemImage: "play.fill")
                         .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
                 .tint(.accentColor)
                 .accessibilityIdentifier("liveGuide.startGuide")
