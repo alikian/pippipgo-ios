@@ -149,3 +149,50 @@ The sign-in chooser now supports Google or native Cognito username/password in P
 ### Development TestFlight
 
 Select scheme `Dev` for a Dev archive. No `PIPPIPGO_PROD_COGNITO_CLIENT_ID` variable is required. The archive hook checks Dev API/authentication and `PipPipGo Dev` display name. Use internal testing distribution for Dev builds; select `Prod` for public release candidates.
+
+## XCUITest simulator setup — October 15, 2026
+
+`pippipgoUITests` is an XCUITest target exercising the actual signed-out app:
+welcome actions, entering the guest disclosure, cancelling it, and reopening it.
+Screenshots are attached to each UI test result. These tests do not sign in,
+change organizer data, or call AI. Use a dedicated signed-out simulator.
+Authenticated organizer UI coverage and real-device acceptance remain separate.
+
+All shared schemes use the default `PipPipGo.xctestplan`, which includes the unit
+and UI targets and disables parallel execution of each target. No test-only
+app authentication bypass is added.
+
+Live App Store Connect inspection confirmed the current `pippipgo` product is
+already enrolled, with separate Dev and Prod workflows; the older pending
+activation notes above are historical. Latest build observed before local
+validation was 96. Local simulator validation used a command-line build override
+of 97; the checked-in release number was not changed. Cloud builds continue to
+use `CI_BUILD_NUMBER` from Apple's counter.
+
+The Dev workflow now has a **required Test - iOS** action, scheme **Dev**, test
+option **Use Scheme Setting**, destination **iPhone 16**, runtime **Latest from
+Selected Xcode** (currently iOS 27.0). Its existing develop trigger and archive /
+internal TestFlight configuration remain in place. Prod workflow is unchanged.
+The new test target runs in hosted builds only after these repository changes
+are available on the selected branch. Saving a workflow does not prove a cloud
+run passed.
+
+Local invocation (replace the destination with a dedicated simulator UUID and
+verify the latest cloud number before assigning a build override):
+
+```sh
+xcodebuild test -project pippipgo.xcodeproj -scheme Dev \
+  -testPlan PipPipGo -destination 'platform=iOS Simulator,id=SIMULATOR_UUID' \
+  -parallel-testing-enabled NO
+```
+
+No backend deployment is required for this test setup.
+
+Validation: project plist and scheme/test-plan parsing passed; 13 CI hook tests
+passed. On a dedicated iPhone 16 / iOS 18.6 simulator, 167 unit tests passed on
+rerun. The first unit run had a transient failure in the existing
+`organizerRetryFreezesBodyAndResetsSession` test; it was not removed or weakened.
+An Apple test-runner Mach -308 crash required a fresh UI run. These are local
+simulator results, not hosted-run or physical-device acceptance.
+The corrected 2 XCUITests passed with zero failures; result bundle:
+`/tmp/pippipgo-xcuitest-results-3` (temporary local artifact).

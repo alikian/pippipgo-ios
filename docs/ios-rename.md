@@ -80,3 +80,8 @@ change-set executions after the initial automatic-review blocks.
 3. Complete new-app device sign-in, refresh/logout and organizer acceptance, then
    configure archive/TestFlight distribution. Backend accounts remain unchanged;
    the new installation requires a fresh sign-in.
+
+October 15 follow-up: live App Store Connect inspection confirms the renamed
+`pippipgo` product is enrolled, with Dev and Prod workflows and latest observed
+build 96. See `ios-ci-cd.md` for the added required Dev simulator Test action.
+The earlier pending-enrollment checklist above is historical.
