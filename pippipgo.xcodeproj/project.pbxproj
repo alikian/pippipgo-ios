@@ -48,6 +48,15 @@
 		AB10A0000000000000000001 /* pippipgoTests/NearbyRatingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10A0000000000000000002 /* pippipgoTests/NearbyRatingsTests.swift */; };
 		FE92C7C39C5007460E9702EA /* pippipgo/Intelligence/TravelerIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7432E3FE07086621256F7BE /* pippipgo/Intelligence/TravelerIntelligence.swift */; };
 		AC1100000000000000000001 = {isa = PBXBuildFile; fileRef = AC1100000000000000000002; };
+		93A451D040F28CB73AEC21B9 /* phone-protocol */ = { isa = PBXBuildFile; fileRef = FA30198AD8A62810565D6448; };
+		18C03B064CDDC531DCACB5D1 /* phone-bridge */ = { isa = PBXBuildFile; fileRef = 545631EA5458CB192E4D1E90; };
+		17FA46A52FCF350BD4F11EE1 /* watch-protocol */ = { isa = PBXBuildFile; fileRef = FA30198AD8A62810565D6448; };
+		28479B7AC9FEFD69B0A7AEF7 /* watch-main */ = { isa = PBXBuildFile; fileRef = AE0286A67874C1E397321413; };
+		980BF532CD27D20AC2EB48ED /* watch-client */ = { isa = PBXBuildFile; fileRef = 4A7EA227EBA15D178728C93D; };
+		D83F6C4FE15DA742B5E5D3AA /* watch-unit-tests */ = { isa = PBXBuildFile; fileRef = C9207C35F9C2712EDCB3785D; };
+		D1CBEAF5DB5A54851A1C40C8 /* watch-localizations */ = { isa = PBXBuildFile; fileRef = 4AFE98357666D8D4C0A83DD1; };
+		4BC9418CF2C7D7E502101FFC /* watch-icons */ = { isa = PBXBuildFile; fileRef = 59BDE30F364FB3157B192365; };
+		32F17A173FE547B7562250D5 /* embed-watch-product */ = { isa = PBXBuildFile; fileRef = D85A9545ECAB348CDB87C2B8; settings = { ATTRIBUTES = (RemoveHeadersOnCopy,); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,7 +68,12 @@
 			remoteInfo = pippipgo;
 		};
 		AC110000000000000000000A = {isa = PBXContainerItemProxy; containerPortal = 98F54143AB4E86B28C3AFEE0; proxyType = 1; remoteGlobalIDString = 7D1043473D55BFA90E8530D3; remoteInfo = pippipgo; };
+		226E4B064136E28A269FD707 /* watch-proxy */ = { isa = PBXContainerItemProxy; containerPortal = 98F54143AB4E86B28C3AFEE0; proxyType = 1; remoteGlobalIDString = 5C77A0A543CD2C03C08EEE23; remoteInfo = pippipgoWatch; };
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		82DC786B728F02AB40E51702 /* Embed Watch Content */ = { isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = "$(CONTENTS_FOLDER_PATH)/Watch"; dstSubfolderSpec = 16; files = (32F17A173FE547B7562250D5,); name = "Embed Watch Content"; runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		04B5A7AB86A3EEBC6072BDB7 /* pippipgo/Authentication/CognitoClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Authentication/CognitoClient.swift; sourceTree = SOURCE_ROOT; };
@@ -112,6 +126,14 @@
 		F7432E3FE07086621256F7BE /* pippipgo/Intelligence/TravelerIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/TravelerIntelligence.swift; sourceTree = SOURCE_ROOT; };
 		AC1100000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoUITests/NavigationUITests.swift; sourceTree = "<group>"; };
 		AC1100000000000000000003 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = pippipgoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA30198AD8A62810565D6448 /* protocol */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/WatchControlProtocol.swift"; sourceTree = SOURCE_ROOT; };
+		545631EA5458CB192E4D1E90 /* bridge */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "pippipgo/App/WatchPhoneBridge.swift"; sourceTree = SOURCE_ROOT; };
+		AE0286A67874C1E397321413 /* watch-app */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "pippipgoWatch/PipPipGoWatchApp.swift"; sourceTree = SOURCE_ROOT; };
+		4A7EA227EBA15D178728C93D /* watch-store */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "pippipgoWatch/WatchControlStore.swift"; sourceTree = SOURCE_ROOT; };
+		C9207C35F9C2712EDCB3785D /* watch-tests */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "pippipgoTests/WatchCommandGateTests.swift"; sourceTree = SOURCE_ROOT; };
+		4AFE98357666D8D4C0A83DD1 /* watch-strings */ = { isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "pippipgoWatch/Localizable.xcstrings"; sourceTree = SOURCE_ROOT; };
+		59BDE30F364FB3157B192365 /* watch-assets */ = { isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "pippipgoWatch/Assets.xcassets"; sourceTree = SOURCE_ROOT; };
+		D85A9545ECAB348CDB87C2B8 /* watch-product */ = { isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pippipgoWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +152,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AC1100000000000000000007 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		86B9D5D0D4B50D21F2B37327 /* watch-frameworks */ = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -172,6 +195,7 @@
 		B28B7AF69320201D1CF206EB = {
 			isa = PBXGroup;
 			children = (
+07F9E50E566F5E142B70E1D0,
 				AC1100000000000000000002,
 				8F8437EB841B47BF906EEFF2 /* Configurations/Common.xcconfig */,
 				7905C8D5063C4132BC401802 /* Configurations/Prod.xcconfig */,
@@ -214,6 +238,7 @@
 		FBDC4F23F93125BBEEAE800C /* Products */ = {
 			isa = PBXGroup;
 			children = (
+D85A9545ECAB348CDB87C2B8,
 				AC1100000000000000000003,
 				4E783A9E10D2A8ABA38CD11C /* pippipgo.app */,
 				6C7CCDEB3609F1FAA874E941 /* pippipgoTests.xctest */,
@@ -221,6 +246,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		07F9E50E566F5E142B70E1D0 /* Watch companion */ = { isa = PBXGroup; children = (FA30198AD8A62810565D6448, 545631EA5458CB192E4D1E90, AE0286A67874C1E397321413, 4A7EA227EBA15D178728C93D, C9207C35F9C2712EDCB3785D, 4AFE98357666D8D4C0A83DD1, 59BDE30F364FB3157B192365); name = "Watch companion"; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -228,6 +254,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F37922C48DA5978D02C9E50E /* Build configuration list for PBXNativeTarget "pippipgo" */;
 			buildPhases = (
+82DC786B728F02AB40E51702,
 				6112A69FBFA12BA0D7CE0CF9 /* Sources */,
 				74A9612B33B4AE38238DF861 /* Frameworks */,
 				77C69F2E7FCD95FBCB1E1C57 /* Resources */,
@@ -235,6 +262,7 @@
 			buildRules = (
 			);
 			dependencies = (
+0457ABB8CBFE17CD3B244661,
 			);
 			name = pippipgo;
 			productName = pippipgo;
@@ -270,6 +298,7 @@
  productReference = AC1100000000000000000003;
  productType = "com.apple.product-type.bundle.ui-testing";
 };
+		5C77A0A543CD2C03C08EEE23 /* watch-target */ = { isa = PBXNativeTarget; buildConfigurationList = A7DB3D756633D66FC6D2C43B; buildPhases = (FF90A56B70195E4782E12249, 86B9D5D0D4B50D21F2B37327, 342BD6B4B8B1617850AABAE9); buildRules = (); dependencies = (); name = pippipgoWatch; productName = pippipgoWatch; productReference = D85A9545ECAB348CDB87C2B8; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -315,6 +344,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+5C77A0A543CD2C03C08EEE23,
 				AC1100000000000000000004 /* pippipgoUITests */,
 				7D1043473D55BFA90E8530D3 /* pippipgo */,
 				A94A8FE5CCB19BA61C4C0873 /* pippipgoTests */,
@@ -344,6 +374,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AC1100000000000000000008 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		342BD6B4B8B1617850AABAE9 /* watch-resources */ = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (D1CBEAF5DB5A54851A1C40C8, 4BC9418CF2C7D7E502101FFC); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -351,6 +382,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+93A451D040F28CB73AEC21B9,
+18C03B064CDDC531DCACB5D1,
 				85D01F5FA58F3D44F3EEC2EB /* pippipgo/Intelligence/PipHomeView.swift in Sources */,
 				AABB00112233445566778800 /* pippipgo/Intelligence/TravelOrganizer.swift in Sources */,
 				CCDDEE001122334455667700 /* pippipgo/App/TalkToPipIntent.swift in Sources */,
@@ -384,6 +417,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+D83F6C4FE15DA742B5E5D3AA,
 				AED50F1272344B44A096F419 /* pippipgoTests/AppConfigurationTests.swift in Sources */,
 				EEFF00112233445566778800 /* pippipgoTests/ConversationContextTests.swift in Sources */,
 				1A7E5C0D2B3F4A5B6C7D8E05 /* pippipgoTests/LiveGuideEngineTests.swift in Sources */,
@@ -396,6 +430,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AC1100000000000000000006 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AC1100000000000000000001); runOnlyForDeploymentPostprocessing = 0; };
+		FF90A56B70195E4782E12249 /* watch-sources */ = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (28479B7AC9FEFD69B0A7AEF7, 980BF532CD27D20AC2EB48ED, 17FA46A52FCF350BD4F11EE1); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -405,6 +440,7 @@
 			targetProxy = D799BAE6088A90139B415FCC /* PBXContainerItemProxy */;
 		};
 		AC1100000000000000000009 = {isa = PBXTargetDependency; target = 7D1043473D55BFA90E8530D3; targetProxy = AC110000000000000000000A; };
+		0457ABB8CBFE17CD3B244661 /* watch-dependency */ = { isa = PBXTargetDependency; target = 5C77A0A543CD2C03C08EEE23; targetProxy = 226E4B064136E28A269FD707; };
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -626,6 +662,33 @@
  TARGETED_DEVICE_FAMILY = "1,2";
  TEST_TARGET_NAME = pippipgo;
  }; name = Prod; };
+		AC3F6C69F26C769D6238CCD4 /* watch-Local */ = { isa = XCBuildConfiguration; baseConfigurationReference = 8F8437EB841B47BF906EEFF2; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = U47SMLD234;
+ GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = PipPipGo;
+ INFOPLIST_KEY_WKApplication = YES; INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.pippipgo.ios;
+ INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+ PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+ SDKROOT = watchos; SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4;
+ WATCHOS_DEPLOYMENT_TARGET = 10.0; SWIFT_VERSION = 5.0; SKIP_INSTALL = YES;
+ LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+ SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Local; };
+		F4A3D26C5448BA30D59686BF /* watch-Dev */ = { isa = XCBuildConfiguration; baseConfigurationReference = 8F8437EB841B47BF906EEFF2; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = U47SMLD234;
+ GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = PipPipGo;
+ INFOPLIST_KEY_WKApplication = YES; INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.pippipgo.ios;
+ INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+ PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+ SDKROOT = watchos; SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4;
+ WATCHOS_DEPLOYMENT_TARGET = 10.0; SWIFT_VERSION = 5.0; SKIP_INSTALL = YES;
+ LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+ SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Dev; };
+		921D24D6D05E601ADA9164E0 /* watch-Prod */ = { isa = XCBuildConfiguration; baseConfigurationReference = 8F8437EB841B47BF906EEFF2; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = U47SMLD234;
+ GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = PipPipGo;
+ INFOPLIST_KEY_WKApplication = YES; INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.pippipgo.ios;
+ INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+ PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.watchkitapp; PRODUCT_NAME = "$(TARGET_NAME)";
+ SDKROOT = watchos; SUPPORTED_PLATFORMS = "watchos watchsimulator"; TARGETED_DEVICE_FAMILY = 4;
+ WATCHOS_DEPLOYMENT_TARGET = 10.0; SWIFT_VERSION = 5.0; SKIP_INSTALL = YES;
+ LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+ SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = ""; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Prod; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -660,6 +723,7 @@
 			defaultConfigurationName = Prod;
 		};
 		AC1100000000000000000005 = {isa = XCConfigurationList; buildConfigurations = (AC110000000000000000000B, AC110000000000000000000C, AC110000000000000000000D); defaultConfigurationIsVisible = 0; defaultConfigurationName = Dev; };
+		A7DB3D756633D66FC6D2C43B /* watch-configs */ = { isa = XCConfigurationList; buildConfigurations = (AC3F6C69F26C769D6238CCD4, F4A3D26C5448BA30D59686BF, 921D24D6D05E601ADA9164E0); defaultConfigurationIsVisible = 0; defaultConfigurationName = Dev; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 98F54143AB4E86B28C3AFEE0 /* Project object */;

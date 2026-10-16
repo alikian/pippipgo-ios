@@ -214,6 +214,9 @@ struct TravelOrganizerView: View {
                     .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingHistory = false } } }
             }
         }
+        .onChange(of: WatchPhoneBridge.shared.navigationID) { _, _ in
+            if let selected = WatchPhoneBridge.shared.selectedTab { tab = selected }
+        }
         .onChange(of: TalkToPipLaunch.shared.requestID, initial: true) { _, _ in handleVoiceLaunch() }
         .onChange(of: scenePhase) { _, _ in handleVoiceLaunch() }
         .onChange(of: scenePhase, initial: true) { _, phase in

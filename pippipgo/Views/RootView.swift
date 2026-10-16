@@ -84,6 +84,16 @@ struct RootView: View {
         }
         .onChange(of: aiConsent.allowed) { _, _ in syncLocationDisplay() }
         .onChange(of: scenePhase, initial: true) { _, _ in syncLocationDisplay() }
+        .task {
+            WatchPhoneBridge.shared.start(readState: { (watchAccountID, watchState) }, perform: performWatchCommand)
+            while !Task.isCancelled {
+                WatchPhoneBridge.shared.publish()
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            }
+        }
+        .onChange(of: store.state) { _, _ in WatchPhoneBridge.shared.publish() }
+        .onChange(of: aiConsent.allowed) { _, _ in WatchPhoneBridge.shared.publish() }
+        .onChange(of: scenePhase) { _, _ in WatchPhoneBridge.shared.publish() }
         .onDisappear { store.chat.locationDisplay.stop() }
         .onChange(of: TalkToPipLaunch.shared.requestID) { _, _ in checkVoiceLaunch() }
         .alert("Sign in to talk to Pip", isPresented: $siriSignInRequired) {
@@ -128,6 +138,51 @@ struct RootView: View {
         if case .signedIn = store.state, aiConsent.allowed, scenePhase == .active { store.chat.locationDisplay.start() }
         else { store.chat.locationDisplay.stop() }
     }
+    private var watchAccountID: String? {
+        guard case .signedIn(let account) = store.state else { return nil }
+        return account.id
+    }
+
+    private var watchState: WatchControlState {
+        let guide = store.chat.liveGuide
+        return WatchControlState(sessionID: UUID(), updatedAt: Date(),
+                                 ready: watchAccountID != nil && aiConsent.allowed,
+                                 foreground: UIApplication.shared.applicationState == .active,
+                                 exploring: guide.enabled && guide.activeTour == nil, talking: store.chat.voice.active,
+                                 canSkip: guide.announcementSpeaking,
+                                 hasTour: guide.activeTour != nil, language: AppLanguage.current.rawValue)
+    }
+
+    private func performWatchCommand(_ command: WatchCommand) -> WatchControlResult {
+        // Recheck here as well as at the transport boundary. No watch authentication or AI bypass.
+        guard watchAccountID != nil, aiConsent.allowed else { return .signIn }
+        let guide = store.chat.liveGuide
+        switch command {
+        case .refresh: return .success
+        case .skip:
+            guard guide.announcementSpeaking else { return .nothingToSkip }
+            guide.skipAnnouncement()
+        case .stopExplore:
+            guard guide.activeTour == nil else { return .finishTour }
+            guide.enabled = false
+        case .endTalk:
+            store.chat.voice.stop()
+        case .explore:
+            guard UIApplication.shared.applicationState == .active else { return .openPhone }
+            guard guide.activeTour == nil else { return .finishTour }
+            guard !store.chat.translator.active else { return .busy }
+            guide.enabled = true
+            WatchPhoneBridge.shared.navigate(to: .explore)
+        case .talk:
+            guard UIApplication.shared.applicationState == .active else { return .openPhone }
+            guard !store.chat.translator.active, !store.chat.busy, store.chat.pending == nil else { return .busy }
+            if !store.chat.voice.active { guide.toggleConversation() }
+            guard store.chat.voice.active else { return .openPhone }
+            WatchPhoneBridge.shared.navigate(to: .pip)
+        }
+        return .success
+    }
+
     private func checkVoiceLaunch() {
         guard TalkToPipLaunch.shared.requestID != nil else { return }
         switch store.state {
