@@ -149,3 +149,96 @@ The sign-in chooser now supports Google or native Cognito username/password in P
 ### Development TestFlight
 
 Select scheme `Dev` for a Dev archive. No `PIPPIPGO_PROD_COGNITO_CLIENT_ID` variable is required. The archive hook checks Dev API/authentication and `PipPipGo Dev` display name. Use internal testing distribution for Dev builds; select `Prod` for public release candidates.
+
+## XCUITest simulator setup — October 15, 2026
+
+`pippipgoUITests` is an XCUITest target exercising the actual signed-out app:
+welcome actions, entering the guest disclosure, cancelling it, and reopening it.
+Screenshots are attached to each UI test result. These tests do not sign in,
+change organizer data, or call AI. Use a dedicated signed-out simulator.
+Authenticated organizer UI coverage and real-device acceptance remain separate.
+
+All shared schemes use the default `PipPipGo.xctestplan`, which includes the unit
+and UI targets and disables parallel execution of each target. No test-only
+app authentication bypass is added.
+
+Live App Store Connect inspection confirmed the current `pippipgo` product is
+already enrolled, with separate Dev and Prod workflows; the older pending
+activation notes above are historical. Latest build observed before local
+validation was 96. Local simulator validation used a command-line build override
+of 97; the checked-in release number was not changed. Cloud builds continue to
+use `CI_BUILD_NUMBER` from Apple's counter.
+
+The Dev workflow now has a **required Test - iOS** action, scheme **Dev**, test
+option **Use Scheme Setting**, destination **iPhone 16**, runtime **Latest from
+Selected Xcode** (currently iOS 27.0). Its existing develop trigger and archive /
+internal TestFlight configuration remain in place. Prod workflow is unchanged.
+The new test target runs in hosted builds only after these repository changes
+are available on the selected branch. Saving a workflow does not prove a cloud
+run passed.
+
+Local invocation (replace the destination with a dedicated simulator UUID and
+verify the latest cloud number before assigning a build override):
+
+```sh
+xcodebuild test -project pippipgo.xcodeproj -scheme Dev \
+  -testPlan PipPipGo -destination 'platform=iOS Simulator,id=SIMULATOR_UUID' \
+  -parallel-testing-enabled NO
+```
+
+No backend deployment is required for this test setup.
+
+Validation: project plist and scheme/test-plan parsing passed; 13 CI hook tests
+passed. On a dedicated iPhone 16 / iOS 18.6 simulator, 167 unit tests passed on
+rerun. The first unit run had a transient failure in the existing
+`organizerRetryFreezesBodyAndResetsSession` test; it was not removed or weakened.
+An Apple test-runner Mach -308 crash required a fresh UI run. These are local
+simulator results, not hosted-run or physical-device acceptance.
+The corrected 2 XCUITests passed with zero failures; result bundle:
+`/tmp/pippipgo-xcuitest-results-3` (temporary local artifact).
+
+Hosted validation build **97** was started manually using the Dev workflow from
+`codex/xcuitest-cloud`, commit `1cfb174`. Build URL:
+https://appstoreconnect.apple.com/teams/e889b4eb-d539-4efa-9a6c-a1ad9fe29ef7/xcode-cloud/products/54c196ed-32dc-430b-8e5f-e299eb841cfc/builds/115fd622-b655-4fd5-9581-b8ea207d46a3/summary
+Initial status was Queued; do not interpret this as a passing hosted test result.
+
+Build 97 compiled the app and both test targets, but the simulator worker failed
+before running tests: `CI_PRIMARY_REPOSITORY_PATH` is absent during
+`test-without-building`. The pre-build hook now exits successfully for that phase,
+using the already compiled artifacts instead of trying to regenerate source
+configuration. A regression test reproduces the worker's missing checkout/build
+variables; all 14 CI hook tests pass. No test assertion was disabled.
+
+Corrected hosted build **98**, commit `feebabf`, uses the same Dev workflow:
+https://appstoreconnect.apple.com/teams/e889b4eb-d539-4efa-9a6c-a1ad9fe29ef7/xcode-cloud/products/54c196ed-32dc-430b-8e5f-e299eb841cfc/builds/d2c817a1-c4d1-4474-b42d-5c6ff0621776/summary
+Live verification: Build and signed Archive actions succeeded. Both build-for-testing
+and the simulator worker's pre-test hook succeeded. The simulator test action
+remained in progress at handoff, waiting for the unit-test host launch; no hosted
+passing-test claim is made. Internal TestFlight distribution is gated on required
+actions. Changes are published in PR #4 and have not been merged into main/develop.
+
+## Build 98 test failure — October 16, 2026
+
+The completed hosted report shows 167 passing tests, one failure and one skipped
+test. `APIClientTests.organizerRetryFreezesBodyAndResetsSession()` failed at
+`APIClientTests.swift:358`: the first save unexpectedly succeeded and `pending`
+was nil. The post-build hook correctly propagated xcodebuild's exit code 65;
+Build and signed Archive succeeded, while required testing blocked TestFlight.
+
+The test URL protocol used one global response queue for all sessions. A chat
+retry starts an asynchronous guide refresh, which can outlive its test and consume
+responses configured for the next test. The mock now routes requests to a unique
+session fixture and protects response queues and captured requests with a lock.
+Production retry behavior and the organizer assertions are unchanged.
+
+A regression deliberately sends an old-session request after configuring the next
+session's timeout/success queue. It failed against the original mock with a stolen
+timeout and passed with session isolation. The complete Dev test plan then passed
+on the dedicated iPhone 16 / iOS 18.6 simulator: 168 unit tests and two UI tests,
+zero failures. Local result bundle: `/tmp/pippipgo-build98-fixed.xcresult`.
+The initial narrow baseline filter selected zero tests and is not validation.
+
+Latest Cloud build observed in Xcode was 99; local simulator validation used
+`CURRENT_PROJECT_VERSION=100` without changing the checked-in release number.
+Hosted validation of this fix is pending. No backend deployment is required in
+Dev or Prod; physical-device acceptance is separate.

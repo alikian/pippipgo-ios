@@ -1,0 +1,35 @@
+{
+  "configurations": [
+    {
+      "id": "F50C4762-177A-4D4F-91DD-F58317E44331",
+      "name": "Simulator",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "targetForVariableExpansion": {
+      "containerPath": "container:pippipgo.xcodeproj",
+      "identifier": "7D1043473D55BFA90E8530D3",
+      "name": "pippipgo"
+    }
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:pippipgo.xcodeproj",
+        "identifier": "A94A8FE5CCB19BA61C4C0873",
+        "name": "pippipgoTests"
+      },
+      "parallelizable": false
+    },
+    {
+      "target": {
+        "containerPath": "container:pippipgo.xcodeproj",
+        "identifier": "AC1100000000000000000004",
+        "name": "pippipgoUITests"
+      },
+      "parallelizable": false
+    }
+  ],
+  "version": 1
+}

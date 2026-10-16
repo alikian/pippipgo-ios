@@ -47,6 +47,7 @@
 		EEFF00112233445566779900 /* pippipgoTests/LiveTranslationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFF00112233445566779901 /* pippipgoTests/LiveTranslationTests.swift */; };
 		AB10A0000000000000000001 /* pippipgoTests/NearbyRatingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10A0000000000000000002 /* pippipgoTests/NearbyRatingsTests.swift */; };
 		FE92C7C39C5007460E9702EA /* pippipgo/Intelligence/TravelerIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7432E3FE07086621256F7BE /* pippipgo/Intelligence/TravelerIntelligence.swift */; };
+		AC1100000000000000000001 = {isa = PBXBuildFile; fileRef = AC1100000000000000000002; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			remoteGlobalIDString = 7D1043473D55BFA90E8530D3;
 			remoteInfo = pippipgo;
 		};
+		AC110000000000000000000A = {isa = PBXContainerItemProxy; containerPortal = 98F54143AB4E86B28C3AFEE0; proxyType = 1; remoteGlobalIDString = 7D1043473D55BFA90E8530D3; remoteInfo = pippipgo; };
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -108,6 +110,8 @@
 		AB10A0000000000000000002 /* pippipgoTests/NearbyRatingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoTests/NearbyRatingsTests.swift; sourceTree = SOURCE_ROOT; };
 		F0FB40147CE94E8F6D0F626A /* pippipgo/Networking/APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Networking/APIClient.swift; sourceTree = SOURCE_ROOT; };
 		F7432E3FE07086621256F7BE /* pippipgo/Intelligence/TravelerIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgo/Intelligence/TravelerIntelligence.swift; sourceTree = SOURCE_ROOT; };
+		AC1100000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pippipgoUITests/NavigationUITests.swift; sourceTree = "<group>"; };
+		AC1100000000000000000003 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = pippipgoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +129,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AC1100000000000000000007 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -167,6 +172,7 @@
 		B28B7AF69320201D1CF206EB = {
 			isa = PBXGroup;
 			children = (
+				AC1100000000000000000002,
 				8F8437EB841B47BF906EEFF2 /* Configurations/Common.xcconfig */,
 				7905C8D5063C4132BC401802 /* Configurations/Prod.xcconfig */,
 				2D1ACF13AFFF496A81EA880E /* Configurations/Dev.xcconfig */,
@@ -208,6 +214,7 @@
 		FBDC4F23F93125BBEEAE800C /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				AC1100000000000000000003,
 				4E783A9E10D2A8ABA38CD11C /* pippipgo.app */,
 				6C7CCDEB3609F1FAA874E941 /* pippipgoTests.xctest */,
 			);
@@ -252,6 +259,17 @@
 			productReference = 6C7CCDEB3609F1FAA874E941 /* pippipgoTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		AC1100000000000000000004 /* pippipgoUITests */ = {
+ isa = PBXNativeTarget;
+ buildConfigurationList = AC1100000000000000000005;
+ buildPhases = (AC1100000000000000000006, AC1100000000000000000007, AC1100000000000000000008);
+ buildRules = ();
+ dependencies = (AC1100000000000000000009);
+ name = pippipgoUITests;
+ productName = pippipgoUITests;
+ productReference = AC1100000000000000000003;
+ productType = "com.apple.product-type.bundle.ui-testing";
+};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -261,6 +279,7 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
+ AC1100000000000000000004 = {CreatedOnToolsVersion = 27.0; TestTargetID = 7D1043473D55BFA90E8530D3; };
 					7D1043473D55BFA90E8530D3 = {
 						CreatedOnToolsVersion = 27.0;
 					};
@@ -296,6 +315,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				AC1100000000000000000004 /* pippipgoUITests */,
 				7D1043473D55BFA90E8530D3 /* pippipgo */,
 				A94A8FE5CCB19BA61C4C0873 /* pippipgoTests */,
 			);
@@ -323,6 +343,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AC1100000000000000000008 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -374,6 +395,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AC1100000000000000000006 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AC1100000000000000000001); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -382,6 +404,7 @@
 			target = 7D1043473D55BFA90E8530D3 /* pippipgo */;
 			targetProxy = D799BAE6088A90139B415FCC /* PBXContainerItemProxy */;
 		};
+		AC1100000000000000000009 = {isa = PBXTargetDependency; target = 7D1043473D55BFA90E8530D3; targetProxy = AC110000000000000000000A; };
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -576,6 +599,33 @@
 			};
 			name = Local;
 		};
+		AC110000000000000000000B = {isa = XCBuildConfiguration; buildSettings = {
+ CODE_SIGN_STYLE = Automatic;
+ DEVELOPMENT_TEAM = U47SMLD234;
+ GENERATE_INFOPLIST_FILE = YES;
+ PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.uitests;
+ PRODUCT_NAME = "$(TARGET_NAME)";
+ TARGETED_DEVICE_FAMILY = "1,2";
+ TEST_TARGET_NAME = pippipgo;
+ }; name = Dev; };
+		AC110000000000000000000C = {isa = XCBuildConfiguration; buildSettings = {
+ CODE_SIGN_STYLE = Automatic;
+ DEVELOPMENT_TEAM = U47SMLD234;
+ GENERATE_INFOPLIST_FILE = YES;
+ PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.uitests;
+ PRODUCT_NAME = "$(TARGET_NAME)";
+ TARGETED_DEVICE_FAMILY = "1,2";
+ TEST_TARGET_NAME = pippipgo;
+ }; name = Local; };
+		AC110000000000000000000D = {isa = XCBuildConfiguration; buildSettings = {
+ CODE_SIGN_STYLE = Automatic;
+ DEVELOPMENT_TEAM = U47SMLD234;
+ GENERATE_INFOPLIST_FILE = YES;
+ PRODUCT_BUNDLE_IDENTIFIER = com.pippipgo.ios.uitests;
+ PRODUCT_NAME = "$(TARGET_NAME)";
+ TARGETED_DEVICE_FAMILY = "1,2";
+ TEST_TARGET_NAME = pippipgo;
+ }; name = Prod; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -609,6 +659,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Prod;
 		};
+		AC1100000000000000000005 = {isa = XCConfigurationList; buildConfigurations = (AC110000000000000000000B, AC110000000000000000000C, AC110000000000000000000D); defaultConfigurationIsVisible = 0; defaultConfigurationName = Dev; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 98F54143AB4E86B28C3AFEE0 /* Project object */;
