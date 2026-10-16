@@ -1247,6 +1247,8 @@ struct LiveGuideTab: View {
     @State private var showMyTours = false
     @State private var showSettings = false
     @State private var mapLocationFeed: LiveGuideLocationFeed?
+    // Detect the marker's travel mode independently of the selected tour mode.
+    @State private var markerMotion = GuideEngine()
     @State private var currentMapCamera: MapCamera?
     @State private var nearby = NearbyPlacesModel()
     #if DEBUG
@@ -1399,6 +1401,11 @@ struct LiveGuideTab: View {
                   abs(location.timestamp.timeIntervalSinceNow) < 15,
                   CLLocationCoordinate2DIsValid(location.coordinate) else { return }
             lastLocation = location
+            markerMotion.ingest(GuideFix(latitude: location.coordinate.latitude,
+                                         longitude: location.coordinate.longitude,
+                                         accuracy: location.horizontalAccuracy,
+                                         speed: location.speed, course: location.course,
+                                         timestamp: location.timestamp))
             guide.shareMapLocation(location)
             refreshWeather(location)
             refreshPicks(location)
@@ -1444,8 +1451,9 @@ struct LiveGuideTab: View {
                 Button {
                     guide.tourMode = guide.tourMode == .walking ? .driving : .walking
                 } label: {
-                    LiveGuideUserMarker(active: guide.enabled, driving: guide.tourMode == .driving, walking: guide.isWalking)
-                        .id("\(guide.tourMode.rawValue)-\(guide.enabled)-\(guide.isWalking)")
+                    LiveGuideUserMarker(active: guide.enabled,
+                                        driving: GuideEngine.motion(for: markerMotion.speed).isDriving,
+                                        walking: guide.isWalking)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(LocalizedStringKey(guide.tourMode.title)))
@@ -1918,7 +1926,7 @@ struct LiveGuideUserMarker: View {
 
     var body: some View {
         ZStack {
-            if active && !reduceMotion && walking {
+            if active && !driving && !reduceMotion && walking {
                 ForEach(0..<2) { ring in
                     Circle()
                         .stroke(Color.green.opacity(0.6), lineWidth: 3)
@@ -1930,10 +1938,10 @@ struct LiveGuideUserMarker: View {
             }
             Circle().fill(.white).frame(width: 62, height: 62).shadow(radius: 6)
             Circle().fill(active ? Color.green : Color.blue).frame(width: 54, height: 54)
-            Image(systemName: driving ? "car.fill" : (active && walking ? "figure.walk" : "figure.stand"))
+            Image(systemName: driving ? "car.fill" : "figure.walk")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(.white)
-                .symbolEffect(.bounce, options: .repeating, isActive: active && !driving && walking && !reduceMotion)
+                .symbolEffect(.bounce, options: .repeating, isActive: !driving && !reduceMotion)
         }
         .onAppear { pulse = true }
         .accessibilityHidden(true)
