@@ -85,6 +85,14 @@ class CloudHookTests(unittest.TestCase):
             self.env["CI_XCODE_SCHEME"] = scheme
             self.run_hook("ci_pre_xcodebuild.sh", success=False)
 
+    def test_test_worker_needs_no_source_checkout(self):
+        self.env["CI_XCODEBUILD_ACTION"] = "test-without-building"
+        for name in ("CI_PRIMARY_REPOSITORY_PATH", "CI_BUILD_NUMBER", "CI_XCODE_SCHEME"):
+            self.env.pop(name)
+        self.run_hook("ci_pre_xcodebuild.sh")
+        self.run_hook("ci_post_xcodebuild.sh")
+        self.assertFalse((self.root / "Configurations/CIOverrides.xcconfig").exists())
+
     def test_testability_does_not_leak_into_archive(self):
         for action in ("build-for-testing", "test-without-building"):
             self.env["CI_XCODEBUILD_ACTION"] = action

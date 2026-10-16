@@ -27,18 +27,9 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A94A8FE5CCB19BA61C4C0873"
-               BuildableName = "pippipgoTests.xctest"
-               BlueprintName = "pippipgoTests"
-               ReferencedContainer = "container:pippipgo.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      <TestPlans>
+         <TestPlanReference reference="container:PipPipGo.xctestplan" default="YES" />
+      </TestPlans>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Prod"
