@@ -78,7 +78,7 @@ struct TranslationLanguage: Identifiable, Hashable, Sendable {
 /// The Translation tab's panel over the map: notice for the other person, the two languages,
 /// live captions and one Start/Stop button.
 struct InlineTranslationPanel: View {
-    let store: LiveVoiceStore
+    @Bindable var store: LiveVoiceStore
     private var pair: TranslationPair { store.mode.translation ?? .saved() }
 
     var body: some View {
@@ -100,20 +100,32 @@ struct InlineTranslationPanel: View {
                       systemImage: "waveform")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Button {
-                if store.active { store.stop() } else {
-                    if store.mode.translation == nil { store.setMode(.translate(.saved())) }
-                    store.start()
+            HStack(spacing: 12) {
+                Button {
+                    if store.active { store.stop() } else {
+                        if store.mode.translation == nil { store.setMode(.translate(.saved())) }
+                        store.start()
+                    }
+                } label: {
+                    Label(LocalizedStringKey(store.active ? "Stop translating" : "Start translation"),
+                          systemImage: store.active ? "stop.fill" : "mic.fill")
+                        .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
                 }
-            } label: {
-                Label(LocalizedStringKey(store.active ? "Stop translating" : "Start translation"),
-                      systemImage: store.active ? "stop.fill" : "mic.fill")
-                    .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .tint(store.active ? Color(red: 0.75, green: 0.15, blue: 0.12) : .blue)
+                .accessibilityIdentifier("translation.toggle")
+                // Mutes the spoken translation only; the text keeps updating.
+                Button { store.muted.toggle() } label: {
+                    Image(systemName: store.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.title3).frame(width: 48, height: 48)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.bordered).buttonBorderShape(.circle)
+                .tint(store.muted ? .orange : .blue)
+                .accessibilityLabel(Text(store.muted ? "Unmute" : "Mute"))
+                .accessibilityIdentifier("translation.mute")
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .tint(store.active ? Color(red: 0.75, green: 0.15, blue: 0.12) : .blue)
-            .accessibilityIdentifier("translation.toggle")
         }
     }
 }

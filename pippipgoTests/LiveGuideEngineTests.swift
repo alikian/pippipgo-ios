@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import Testing
 @testable import pippipgo
 
@@ -779,18 +780,165 @@ struct PlannedTourTests {
         #expect(progress.currentMode == .driving)
         var fix = GuideFix(latitude: 48.86, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: start)
         progress.update(fix, at: start)
+        fix.timestamp = start.addingTimeInterval(300)
         progress.update(fix, at: start.addingTimeInterval(300))
+        #expect(progress.needsWalkingConfirmation)
+        progress.confirmWalking()
         #expect(progress.currentMode == .walking)
         #expect(progress.next?.id == "garden")
         #expect(progress.currentRoute.destination.latitude == target.latitude)
         fix.latitude = target.latitude
+        fix.timestamp = start.addingTimeInterval(360)
         progress.update(fix, at: start.addingTimeInterval(360))
+        fix.timestamp = start.addingTimeInterval(420)
         progress.update(fix, at: start.addingTimeInterval(420))
         #expect(progress.next?.id == "gallery")
         #expect(progress.currentRoute.destination.latitude == 48.86)
         fix.latitude = 48.86
+        fix.timestamp = start.addingTimeInterval(480)
         progress.update(fix, at: start.addingTimeInterval(480))
         #expect(progress.next == nil)
+    }
+
+    @Test func mixedWalkVisitsSeveralPlacesBeforeReturningToCarAndRestoresProgress() throws {
+        var p = try plan(mode: "mixed")
+        let first = GuideCandidate(id: "square", name: "Square", latitude: 48.862, longitude: 2.35)
+        let second = GuideCandidate(id: "house", name: "House", latitude: 48.864, longitude: 2.35)
+        p.walking_segments = [.init(stop_seconds: 120, places: [first, second], visit_seconds: [60, 60],
+                                   anchor_id: "gallery", place: first, polyline: p.polyline, seconds: 500, distance_meters: 900)]
+        let start = Date(timeIntervalSince1970: 1000)
+        var progress = GuideTourProgress(plan: p, started: start)
+        func arrive(_ latitude: Double, _ seconds: Double) -> GuideFix {
+            GuideFix(latitude: latitude, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: start.addingTimeInterval(seconds))
+        }
+        progress.update(arrive(48.86, 0), at: start)
+        progress.update(arrive(48.86, 300), at: start.addingTimeInterval(300))
+        #expect(progress.needsWalkingConfirmation)
+        progress.confirmWalking()
+        #expect(progress.next?.id == "square")
+        #expect(progress.currentMode == .walking)
+        progress.update(arrive(first.latitude, 400), at: start.addingTimeInterval(400))
+        progress.update(arrive(first.latitude, 460), at: start.addingTimeInterval(460))
+        #expect(progress.next?.id == "house")
+        progress = GuideTourProgress(plan: p, checkpoint: progress.checkpoint)
+        #expect(progress.next?.id == "house")
+        #expect(progress.currentRoute.destination.latitude == second.latitude)
+        #expect(progress.googleMapsURL?.absoluteString.contains("48.864") == true)
+        progress.update(arrive(second.latitude, 600), at: start.addingTimeInterval(600))
+        progress.update(arrive(second.latitude, 660), at: start.addingTimeInterval(660))
+        #expect(progress.next?.id == "gallery")
+        #expect(progress.walkingStage == 3)
+        progress = GuideTourProgress(plan: p, checkpoint: progress.checkpoint)
+        #expect(progress.walkingStage == 3)
+        progress.update(arrive(48.86, 800), at: start.addingTimeInterval(800))
+        #expect(progress.next == nil)
+    }
+
+    @Test func navigationURLsUseCurrentTargetAndSelectedTransport() throws {
+        var p = try plan(mode: "transit", offline: true)
+        p.stops[0].travel_mode = "transit"
+        var progress = GuideTourProgress(plan: p, started: Date())
+        #expect(progress.navigationMode == "transit")
+        #expect(progress.appleMapsURL?.absoluteString.contains("mode=transit") == true)
+        p.stops[0].travel_mode = "rideshare"
+        progress = GuideTourProgress(plan: p, started: Date())
+        #expect(progress.rideShareURL()?.host == "m.uber.com")
+        #expect(progress.rideShareURL()?.path == "/looking")
+        let uber = URLComponents(url: try #require(progress.rideShareURL()), resolvingAgainstBaseURL: false)
+        let drop = try #require(uber?.queryItems?.first(where: { $0.name == "drop[0]" })?.value)
+        let coordinate = try JSONDecoder().decode([String: Double].self, from: Data(drop.utf8))
+        #expect(coordinate["latitude"] == progress.navigationTarget?.latitude)
+        #expect(coordinate["longitude"] == progress.navigationTarget?.longitude)
+        #expect(progress.rideShareURL(provider: "lyft")?.host == "ride.lyft.com")
+        #expect(progress.rideShareURL(provider: "lyft")?.path == "/u")
+        #expect(progress.appleMapsURL?.absoluteString.contains("mode=driving") == true)
+        p.round_trip = true; p.destination = p.origin
+        var finished = progress.checkpoint; finished.index = p.stops.count
+        progress = GuideTourProgress(plan: p, checkpoint: finished)
+        #expect(progress.next == nil)
+        #expect(progress.navigationTarget?.latitude == p.origin.latitude)
+        #expect(progress.navigationTarget?.longitude == p.origin.longitude)
+    }
+
+    @Test func offlineParkingRequiresConfirmationAndStaleFixesDoNotArrive() throws {
+        var p = try plan(mode: "mixed", offline: true)
+        p.stops[0].travel_mode = "driving"
+        var walking = p.stops[0]; walking.place.id = "walk"; walking.place.latitude += 0.002
+        walking.travel_mode = "walking"; p.stops.append(walking)
+        let now = Date()
+        var progress = GuideTourProgress(plan: p, started: now)
+        let old = GuideFix(latitude: 48.86, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: now.addingTimeInterval(-40))
+        progress.update(old, at: now)
+        #expect(!progress.arrived)
+        var current = old; current.timestamp = now
+        progress.update(current, at: now)
+        #expect(progress.needsWalkingConfirmation)
+        #expect(progress.next?.id == "gallery")
+        progress.confirmWalking()
+        #expect(progress.next?.id == "walk")
+        #expect(progress.navigationMode == "walking")
+    }
+
+    #if canImport(UIKit)
+    @MainActor @Test func downloadedNavigationKeepsTheSavedWaypointWithoutPlaceSearch() async throws {
+        var p = try plan(mode: "mixed", offline: true)
+        p.stops[0].place.name = "A saved waypoint with no searchable place name"
+        p.stops[0].reason = "transport_change"
+        p.stops[0].travel_mode = "driving"
+        let progress = GuideTourProgress(plan: p, started: Date())
+        let destination = try await TourNavigator.resolve(progress)
+        #expect(destination.name == p.stops[0].place.name)
+        #expect(destination.placemark.coordinate.latitude == p.stops[0].place.latitude)
+        #expect(destination.placemark.coordinate.longitude == p.stops[0].place.longitude)
+    }
+
+    @MainActor @Test func downloadedNavigationDoesNotRequestDirectionsWithoutConnection() throws {
+        let now = Date()
+        let progress = GuideTourProgress(plan: try plan(offline: true), started: now)
+        let fix = GuideFix(latitude: 48.85, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: now)
+        let navigator = TourNavigator()
+        navigator.update(fix, progress: progress, networkAvailable: false)
+        #expect(!navigator.loading)
+        #expect(navigator.route == nil)
+        #expect(navigator.instruction.isEmpty)
+        #expect(!navigator.unavailable)
+    }
+    #endif
+
+    @Test func onlineArrivalUsesTheResolvedRouteEndpointWhileOfflineKeepsSavedCoordinates() throws {
+        let now = Date()
+        let endpoint = GuideRoute.Point(latitude: 48.861, longitude: 2.35)
+        let fix = GuideFix(latitude: endpoint.latitude, longitude: endpoint.longitude, accuracy: 8, speed: 0, course: 0, timestamp: now)
+        var online = GuideTourProgress(plan: try plan(mode: "driving"), started: now)
+        online.update(fix, at: now, arrivalPoint: endpoint)
+        #expect(online.arrived)
+        var offline = GuideTourProgress(plan: try plan(mode: "driving", offline: true), started: now)
+        offline.update(fix, at: now, arrivalPoint: endpoint)
+        #expect(!offline.arrived)
+    }
+
+    @Test func farFromAWalkingTourTheTripToTheFirstStopIsADrive() throws {
+        let now = Date()
+        var progress = GuideTourProgress(plan: try plan(offline: true), started: now)
+        #expect(progress.navigationMode == "walking")
+        // About 16 km south of the first stop.
+        progress.update(GuideFix(latitude: 48.72, longitude: 2.35, accuracy: 8, speed: 20, course: 0, timestamp: now), at: now)
+        #expect(progress.navigationMode == "driving")
+        #expect(progress.currentMode == .driving)
+        // Still a drive while close, until arrival.
+        progress.update(GuideFix(latitude: 48.859, longitude: 2.35, accuracy: 8, speed: 10, course: 0, timestamp: now), at: now)
+        #expect(progress.navigationMode == "driving")
+        progress.update(GuideFix(latitude: 48.86, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: now), at: now)
+        #expect(progress.arrived)
+        #expect(progress.navigationMode == "walking")
+        #expect(!progress.needsWalkingConfirmation)
+    }
+
+    @Test func nearAWalkingTourTheTripToTheFirstStopStaysAWalk() throws {
+        let now = Date()
+        var progress = GuideTourProgress(plan: try plan(), started: now)
+        progress.update(GuideFix(latitude: 48.85, longitude: 2.35, accuracy: 8, speed: 1, course: 0, timestamp: now), at: now)
+        #expect(progress.navigationMode == "walking")
     }
 
     @Test func expiresAtTheTravelersTimeBudget() throws {
@@ -814,6 +962,59 @@ struct OfflineVoicePackageTests {
         return .init(version: 2, script_model: "gpt-6-luna", tts_model: "gpt-4o-mini-tts", voice: "coral", personality: "warm", clips: clips,
                      audio: Dictionary(uniqueKeysWithValues: clips.map { ($0.id, audio) }), voice_disclosure: "AI-generated")
     }
+    @Test func acceptsCompleteSixWaypointWikipediaPackage() throws {
+        var expanded = package()
+        expanded.script_model = "wikipedia-excerpts-v1"
+        let audio = try #require(expanded.audio.values.first)
+        let templates = expanded.clips.filter { $0.stop_index == 0 }
+        expanded.clips = expanded.clips.filter { $0.stop_index == nil }
+        for index in 0..<6 {
+            expanded.clips += templates.map { original in
+                var clip = original
+                clip.id = original.id.replacingOccurrences(of: "_0", with: "_\(index)", options: [], range: original.id.range(of: "_0"))
+                clip.stop_index = index; clip.fact_ids = [index]
+                return clip
+            }
+        }
+        expanded.audio = Dictionary(uniqueKeysWithValues: expanded.clips.map { ($0.id, audio) })
+        #expect(expanded.clips.count == 32)
+        #expect(expanded.verified(stopCount: 6))
+        #expect(!expanded.verified(stopCount: 7))
+    }
+
+    @Test func v3RequiresSourceRightsEvidenceAndExplicitlySilentStops() throws {
+        var p = package()
+        p.version = 3; p.navigation = "apple_maps_external"; p.story_license = "CC-BY-SA-4.0"
+        p.modifications = "Adapted and translated; synthesized speech added."
+        p.clips = p.clips.filter { ["intro", "complete", "stop_0"].contains($0.id) }
+        p.audio = p.audio.filter { ["intro", "complete", "stop_0"].contains($0.key) }
+        let raw: [String: Any] = ["stop_index": 0, "title": "Gallery", "article_url": "https://en.wikipedia.org/wiki/Gallery",
+            "revision_id": 42, "revision_date": "2026-10-16T12:00:00Z", "revision_url": "https://en.wikipedia.org/w/index.php?oldid=42",
+            "history_url": "https://en.wikipedia.org/w/index.php?title=Gallery&action=history", "language": "en",
+            "excerpt": "The gallery opened in 1900.", "retrieved_at": "2026-10-17T12:00:00Z", "attribution": "Wikipedia contributors",
+            "license": "CC BY-SA 4.0", "license_id": "CC-BY-SA-4.0", "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "modifications": "Adapted by OpenAI.", "source_modifications": "Plain-text excerpt."]
+        p.sources = [try JSONDecoder().decode(GuideOfflinePackage.Source.self, from: JSONSerialization.data(withJSONObject: raw))]
+        p.licenses = ["CC-BY-SA-4.0": .init(name: "CC BY-SA 4.0", url: "https://creativecommons.org/licenses/by-sa/4.0/", text: String(repeating: "License ", count: 200))]
+        p.skipped_narration = [.init(stop_index: 1, reason: "insufficient_source")]
+        p.evidence = [.init(stop_index: 0, quotes: ["The gallery opened in 1900."])]
+        p.omitted_waypoints = [.init(original_index: 2, reason: "independent_location_unavailable")]
+        #expect(p.verified(stopCount: 2))
+        var broken = p; broken.skipped_narration = []
+        #expect(!broken.verified(stopCount: 2))
+        broken = p; broken.evidence = [.init(stop_index: 0, quotes: ["Invented unsupported history."])]
+        #expect(!broken.verified(stopCount: 2))
+        broken = p; broken.sources?[0].revision_date = ""
+        #expect(!broken.verified(stopCount: 2))
+        broken = p; broken.licenses = [:]
+        #expect(!broken.verified(stopCount: 2))
+        broken = p; broken.omitted_waypoints = [.init(original_index: 6, reason: "independent_location_unavailable")]
+        #expect(!broken.verified(stopCount: 2))
+        let restored = try JSONDecoder().decode(GuideOfflinePackage.self, from: JSONEncoder().encode(p))
+        #expect(restored == p)
+        #expect(restored.sources?.first?.revision_id == 42)
+    }
+
     @Test func requiresEveryAudioAssetAndMatchingHashesVoiceAndModel() {
         let complete = package()
         #expect(complete.verified(stopCount: 1))
@@ -887,7 +1088,7 @@ struct DownloadedTourPlaybackTests {
         guide.resumeOffline(); #expect(!guide.offlinePaused)
         guide.repeatOffline(); guide.pauseOffline()
         let reopened = LiveGuideStore(client: client, authentication: tokens, voice: voice, translator: translator)
-        reopened.beginTour(plan)
+        reopened.startSavedTour(plan, resume: true)
         #expect(reopened.offlineClipID == guide.offlineClipID)
         #expect(reopened.activeTour?.index == guide.activeTour?.index)
         reopened.reset()
@@ -903,3 +1104,41 @@ struct DownloadedTourPlaybackTests {
     }
 }
 #endif
+
+struct OfflineRoadMapTests {
+    private func asset() throws -> GuideOfflineRoadMap {
+        let map = GuideRoadMapData(version: 1, bounds: .init(south: 32.9, west: -117.3, north: 33, east: -117.2),
+                                   roads: [.init(id: "42:0", name: "Main Street", kind: "residential", points: [
+                                    .init(latitude: 32.95, longitude: -117.26), .init(latitude: 32.96, longitude: -117.26)])],
+                                   attribution: "© OpenStreetMap contributors",
+                                   license_url: "https://www.openstreetmap.org/copyright", downloaded_at: "2026-10-16T20:00:00Z")
+        let data = try JSONEncoder().encode(map)
+        return .init(format: "pippipgo-osm-roads-v1", data: data.base64EncodedString(), bytes: data.count,
+                     sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined())
+    }
+
+    @Test func verifiesSavedRoadsAndRejectsCorruption() throws {
+        let saved = try JSONDecoder().decode(GuideOfflineRoadMap.self, from: JSONEncoder().encode(asset()))
+        #expect(saved.decoded()?.roads.first?.name == "Main Street")
+        var corrupt = saved; corrupt.sha256 = String(repeating: "0", count: 64)
+        #expect(corrupt.decoded() == nil)
+        corrupt = saved; corrupt.bytes += 1
+        #expect(corrupt.decoded() == nil)
+        corrupt = saved; corrupt.format = "unknown"
+        #expect(corrupt.decoded() == nil)
+        corrupt = saved; corrupt.bytes = 8_000_001
+        #expect(corrupt.decoded() == nil)
+    }
+
+    @Test func rejectsMissingGeometryAndInvalidBounds() throws {
+        var map = try #require(asset().decoded())
+        map.roads = []
+        #expect(!map.isValid)
+        map = try #require(asset().decoded())
+        map.bounds.north = map.bounds.south
+        #expect(!map.isValid)
+        map = try #require(asset().decoded())
+        map.roads[0].points[0].latitude = .infinity
+        #expect(!map.isValid)
+    }
+}

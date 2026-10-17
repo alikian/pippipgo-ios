@@ -130,9 +130,12 @@ struct LiveGuideOption: Identifiable, Equatable {
     func play(_ data: Data) -> Bool {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
-            try session.setActive(true)
             let player = try AVAudioPlayer(data: data, fileTypeHint: AVFileType.mp3.rawValue)
+            // Short cues lower music briefly; longer explicit stories take spoken-audio focus.
+            let short = player.duration <= 8
+            try session.setCategory(.playback, mode: short ? .voicePrompt : .spokenAudio,
+                                    options: short ? [.duckOthers, .interruptSpokenAudioAndMixWithOthers] : [])
+            try session.setActive(true)
             player.delegate = self
             self.player = player
             return player.play()
@@ -154,6 +157,120 @@ struct LiveGuideOption: Identifiable, Equatable {
 
     private func deactivate() {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+}
+
+/// Connected tours, including downloaded tours, use transient Apple directions.
+/// Without a connection, navigation belongs to the Maps app.
+@MainActor @Observable final class TourNavigator {
+    private(set) var route: GuideRoute?
+    private(set) var instruction = ""
+    private(set) var loading = false
+    private(set) var unavailable = false
+    private var ticket = UUID()
+    private var request: MKDirections?
+    private var key = ""
+    private var checked = Date.distantPast
+    private var turns: [(String, Double)] = []
+    private var spoken: Set<Int> = []
+    var onPrompt: ((String) -> Void)?
+
+    func stop() {
+        ticket = UUID(); request?.cancel(); request = nil; route = nil
+        instruction = ""; key = ""; turns = []; spoken = []; loading = false; unavailable = false
+    }
+    private static func routeKey(_ progress: GuideTourProgress) -> String {
+        "\(progress.plan.id):\(progress.index):\(progress.walkingStage):\(progress.navigationMode)"
+    }
+    func arrivalPoint(for progress: GuideTourProgress) -> GuideRoute.Point? {
+        guard progress.plan.offline != true, key == Self.routeKey(progress) else { return nil }
+        return route?.destination
+    }
+    static func resolve(_ progress: GuideTourProgress) async throws -> MKMapItem {
+        guard let target = progress.navigationTarget else { throw APIClientError.invalidResponse }
+        if progress.plan.offline == true || (progress.next == nil && progress.plan.round_trip) {
+            // Downloaded waypoints are independently sourced coordinates. Preserve
+            // the saved destination instead of searching for a similarly named place.
+            let item = MKMapItem(placemark: MKPlacemark(coordinate: .init(latitude: target.latitude, longitude: target.longitude)))
+            item.name = target.name
+            return item
+        }
+        if progress.index < progress.plan.stops.count,
+           progress.plan.stops[progress.index].reason == "transport_change",
+           progress.next?.id == progress.plan.stops[progress.index].place.id {
+            // Provider lot names can differ. Apple independently supplies nearby
+            // parking, rather than treating a golf-course name as the car park.
+            let search = MKLocalPointsOfInterestRequest(center: .init(latitude: target.latitude, longitude: target.longitude), radius: 300)
+            search.pointOfInterestFilter = MKPointOfInterestFilter(including: [.parking])
+            let response = try await MKLocalSearch(request: search).start()
+            let nearby = response.mapItems.filter {
+                $0.pointOfInterestCategory == .parking && GuideGeo.distance(target.latitude, target.longitude, $0.placemark.coordinate.latitude, $0.placemark.coordinate.longitude) <= 150
+            }
+            guard let item = nearby.min(by: {
+                GuideGeo.distance(target.latitude, target.longitude, $0.placemark.coordinate.latitude, $0.placemark.coordinate.longitude)
+                    < GuideGeo.distance(target.latitude, target.longitude, $1.placemark.coordinate.latitude, $1.placemark.coordinate.longitude)
+            }) else { throw APIClientError.invalidResponse }
+            return item
+        }
+        return try await resolve(target)
+    }
+    static func resolve(_ target: GuideTourPlan.Point) async throws -> MKMapItem {
+        let search = MKLocalSearch.Request()
+        search.naturalLanguageQuery = target.name
+        search.region = MKCoordinateRegion(center: .init(latitude: target.latitude, longitude: target.longitude), latitudinalMeters: 1000, longitudinalMeters: 1000)
+        let response = try await MKLocalSearch(request: search).start()
+        guard let item = response.mapItems.first(where: {
+            GuideGeo.distance(target.latitude, target.longitude, $0.placemark.coordinate.latitude, $0.placemark.coordinate.longitude) < 500
+                && ($0.name?.localizedCaseInsensitiveContains(target.name ?? "") == true || (target.name ?? "").localizedCaseInsensitiveContains($0.name ?? "----"))
+        }) else { throw APIClientError.invalidResponse }
+        return item
+    }
+    func update(_ fix: GuideFix, progress: GuideTourProgress, networkAvailable: Bool) {
+        guard networkAvailable, !progress.needsWalkingConfirmation, ["walking", "driving"].contains(progress.navigationMode), let target = progress.navigationTarget else { stop(); return }
+        let nextKey = Self.routeKey(progress)
+        let projection = route.flatMap { GuideCorridor.project(latitude: fix.latitude, longitude: fix.longitude, path: $0.path) }
+        let deviated = (projection?.across ?? 0) > (progress.navigationMode == "walking" ? 60 : 100)
+        if key == nextKey, !deviated, let projection {
+            if let (offset, turn) = turns.enumerated().first(where: { $0.element.1 >= projection.along - 15 }) {
+                instruction = turn.0
+                let lead = progress.navigationMode == "walking" ? 50.0 : 180.0
+                if turn.1 - projection.along < lead, !spoken.contains(offset) {
+                    spoken.insert(offset); onPrompt?(turn.0)
+                }
+            }
+            return
+        }
+        guard !loading || key != nextKey, key != nextKey || Date().timeIntervalSince(checked) > 20 else { return }
+        stop(); key = nextKey; checked = Date(); loading = true
+        let token = ticket
+        Task {
+            do {
+                let destination = try await Self.resolve(progress)
+                guard token == ticket else { return }
+                let input = MKDirections.Request()
+                input.source = MKMapItem(placemark: MKPlacemark(coordinate: .init(latitude: fix.latitude, longitude: fix.longitude)))
+                input.destination = destination
+                input.transportType = progress.navigationMode == "walking" ? .walking : .automobile
+                input.requestsAlternateRoutes = false
+                let directions = MKDirections(request: input); request = directions
+                let response = try await directions.calculate()
+                guard token == ticket else { return }
+                guard let result = response.routes.first else { throw APIClientError.invalidResponse }
+                var path = [CLLocationCoordinate2D](repeating: .init(), count: result.polyline.pointCount)
+                result.polyline.getCoordinates(&path, range: NSRange(location: 0, length: path.count))
+                route = GuideRoute(name: destination.name ?? target.name ?? "", destination: .init(latitude: destination.placemark.coordinate.latitude, longitude: destination.placemark.coordinate.longitude),
+                    minutes: Int(ceil(result.expectedTravelTime / 60)), meters: Int(result.distance),
+                    path: path.map { .init(latitude: $0.latitude, longitude: $0.longitude) })
+                route?.mode = progress.navigationMode == "walking" ? .walking : .driving
+                var along = 0.0
+                turns = result.steps.compactMap { step in
+                    defer { along += step.distance }
+                    return step.instructions.isEmpty ? nil : (step.instructions, along)
+                }
+                instruction = turns.first?.0 ?? ""; unavailable = false
+            } catch { if token == ticket { unavailable = true; route = nil; instruction = "" } }
+            if token == ticket { loading = false }
+        }
     }
 }
 
@@ -213,6 +330,8 @@ final class LiveGuideStore {
     /// Saved offline tours, most recently downloaded first. Each has its own name, chosen by
     /// the traveler or a plain fallback, and can be renamed or deleted independently.
     private(set) var downloadedTours: [GuideTourPlan] = []
+    private(set) var offlineRoadMap: GuideRoadMapData?
+    private(set) var offlineLocation: GuideRoute.Point?
     /// A device keeps a modest number of complete voice tours; the oldest is dropped first.
     static let maxDownloadedTours = 8
     private(set) var planningTour = false
@@ -220,6 +339,9 @@ final class LiveGuideStore {
     var tourNotice: String?
     @ObservationIgnored private var tourTask: Task<Void, Never>?
     @ObservationIgnored private var tourTicket = UUID()
+    /// Downloads outlive the builder screen and starting a tour; only sign-out cancels them.
+    @ObservationIgnored private var downloadTask: Task<Void, Never>?
+    @ObservationIgnored private var downloadTicket = UUID()
     private(set) var downloadProgress: Double = 0
     private(set) var downloadBytes = 0
     private(set) var offlinePaused = false
@@ -229,6 +351,7 @@ final class LiveGuideStore {
     @ObservationIgnored private var offlineSpoken: Set<String> = []
     @ObservationIgnored private var offlinePending: [String] = []
     @ObservationIgnored private let networkMonitor = NWPathMonitor()
+    @ObservationIgnored private var interruptedAudioWasPlaying = false
     @ObservationIgnored private var audioObservers: [NSObjectProtocol] = []
     @ObservationIgnored private var remoteTargets: [(MPRemoteCommand, Any)] = []
     private struct OfflinePlayback: Codable {
@@ -252,7 +375,7 @@ final class LiveGuideStore {
         activeTour?.plan.offline_package?.clips.filter { $0.kind == "answer" && $0.stop_index == activeTour?.index } ?? []
     }
     var offlineStories: [GuideOfflinePackage.Clip] {
-        activeTour?.plan.offline_package?.clips.filter { $0.kind == "deeper" && $0.stop_index == activeTour?.index } ?? []
+        activeTour?.plan.offline_package?.clips.filter { ($0.kind == "deeper" || ($0.kind == "stop" && activeTour?.plan.offline_package?.version == 3)) && $0.stop_index == activeTour?.index } ?? []
     }
     func askOfflineQuestion() {
         guard let package = activeTour?.plan.offline_package else { return }
@@ -401,10 +524,30 @@ final class LiveGuideStore {
 
     func cancelTourPlanning() {
         tourTicket = UUID(); tourTask?.cancel(); tourTask = nil
-        planningTour = false; downloadingTour = false
+        planningTour = false
     }
 
-    func beginTour(_ plan: GuideTourPlan) {
+    private func cancelDownload() {
+        downloadTicket = UUID(); downloadTask?.cancel(); downloadTask = nil
+        downloadingTour = false
+    }
+
+    /// Keeps any already-downloaded tour and clears the current proposal, so the builder
+    /// returns to a blank form ready to plan another, separate tour.
+    func planAnotherTour() {
+        cancelTourPlanning()
+        suggestedTour = nil; tourDraft = nil; tourNotice = nil
+    }
+
+    func hasSavedProgress(_ plan: GuideTourPlan) -> Bool { FileManager.default.fileExists(atPath: Self.playbackURL(plan.id).path) }
+    func startSavedTour(_ plan: GuideTourPlan, resume: Bool) {
+        if !resume { try? FileManager.default.removeItem(at: Self.playbackURL(plan.id)) }
+        beginTour(plan, resume: resume)
+    }
+    func confirmWalking() {
+        activeTour?.confirmWalking(); navigator.stop(); saveOfflinePlayback()
+    }
+    func beginTour(_ plan: GuideTourPlan, resume: Bool = false) {
         guard plan.isUsable, plan.offline == true || ISO8601DateFormatter.guide.date(from: plan.created_at).map({ abs($0.timeIntervalSinceNow) < 900 }) == true else {
             tourNotice = "This tour needs to be refreshed before starting."; return
         }
@@ -420,8 +563,9 @@ final class LiveGuideStore {
         engine.setRoute(plan.offline == true ? nil : plan.route)
         offlineSpoken = []; offlinePending = []
         activeTour = GuideTourProgress(plan: plan, started: Date())
+        offlineRoadMap = plan.offline_package?.road_map?.decoded()
         offlinePaused = false; offlineClipID = nil
-        if plan.offline == true,
+        if resume, plan.offline == true,
            let data = try? Data(contentsOf: Self.playbackURL(plan.id)), let saved = try? JSONDecoder().decode(OfflinePlayback.self, from: data), saved.checkpoint.planID == plan.id {
             // Explicit resume after relaunch; time away from the app does not consume the tour budget.
             var checkpoint = saved.checkpoint
@@ -438,17 +582,20 @@ final class LiveGuideStore {
     }
 
     func downloadTour(_ plan: GuideTourPlan, name: String) {
-        cancelTourPlanning()
-        let ticket = UUID(); tourTicket = ticket
+        guard !downloadingTour else { return }
+        let ticket = UUID(); downloadTicket = ticket
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         downloadingTour = true; tourNotice = "Preparing Pip’s stories and voice…"; downloadProgress = 0; downloadBytes = 0
         var stops: [GuideOfflineRequest.Stop] = []
         for stop in plan.stops {
             let anchor = GuideOfflineRequest.Stop(name: stop.place.name, latitude: stop.place.latitude, longitude: stop.place.longitude,
-                                                  travel_mode: plan.mode == "mixed" ? "driving" : plan.mode, stop_seconds: stop.stop_seconds)
+                                                  travel_mode: plan.mode == "mixed" ? "driving" : plan.mode, stop_seconds: stop.stop_seconds, role: plan.walking_segments?.contains(where: { $0.anchor_id == stop.place.id }) == true ? (plan.mode == "mixed" ? "parking" : "transfer") : "visit")
             stops.append(anchor)
             if let walk = plan.walking_segments?.first(where: { $0.anchor_id == stop.place.id }) {
-                stops.append(.init(name: walk.place.name, latitude: walk.place.latitude, longitude: walk.place.longitude, travel_mode: "walking", stop_seconds: walk.stop_seconds ?? 120))
+                for (index, place) in walk.visits.enumerated() {
+                    let seconds = walk.visit_seconds?.indices.contains(index) == true ? walk.visit_seconds![index] : (walk.stop_seconds ?? 120)
+                    stops.append(.init(name: place.name, latitude: place.latitude, longitude: place.longitude, travel_mode: "walking", stop_seconds: seconds))
+                }
                 var returning = anchor; returning.travel_mode = "walking"; returning.stop_seconds = 0; returning.return_to_anchor = true
                 stops.append(returning)
             }
@@ -456,21 +603,21 @@ final class LiveGuideStore {
         let request = GuideOfflineRequest(stops: stops,
                                          duration_minutes: plan.duration_minutes, language: language, mode: plan.mode,
                                          preferences: .init(moods: plan.request?.moods ?? [], companions: plan.request?.companions ?? "solo", energy: plan.request?.energy ?? "balanced"),
-                                         round_trip: plan.round_trip, origin: .init(name: "Start", latitude: plan.origin.latitude, longitude: plan.origin.longitude))
-        tourTask = Task {
-            defer { if tourTicket == ticket { downloadingTour = false } }
+                                         round_trip: plan.round_trip, origin: .init(name: "Start", latitude: plan.origin.latitude, longitude: plan.origin.longitude), include_road_map: false)
+        downloadTask = Task {
+            defer { if downloadTicket == ticket { downloadingTour = false } }
             do {
                 let encoder = JSONEncoder(); encoder.outputFormatting = .sortedKeys
                 let requestData = SHA256.hash(data: try encoder.encode(request)).map { String(format: "%02x", $0) }.joined()
                 let cached = (try? Data(contentsOf: Self.stagingURL)).flatMap { try? JSONDecoder().decode(OfflineStaging.self, from: $0) }
                 let prepared: GuideTourPlan?
-                if let cached, cached.sourceID == plan.id, cached.request == requestData { prepared = cached.plan }
+                if let cached, cached.sourceID == plan.id, cached.request == requestData, cached.plan.offline_package?.version == 3 { prepared = cached.plan }
                 else {
                     let reply: GuideTourReply = try await client.send(.post(.guideTourOffline, body: request), using: authentication)
                     prepared = reply.plan
                 }
-                guard tourTicket == ticket, !Task.isCancelled else { return }
-                guard var offline = prepared, offline.offline == true, offline.isUsable, var package = offline.offline_package, package.version == 2, package.clips.count == 2 + 5 * offline.stops.count else {
+                guard downloadTicket == ticket, !Task.isCancelled else { return }
+                guard var offline = prepared, offline.offline == true, offline.isUsable, var package = offline.offline_package, package.version == 3, package.clips.count >= 2 else {
                     tourNotice = "Offline stories are not available for every stop in this tour."; return
                 }
                 offline.name = name.isEmpty ? nil : String(name.prefix(60))
@@ -481,7 +628,7 @@ final class LiveGuideStore {
                 for (index, clip) in package.clips.enumerated() {
                     if package.audio[clip.id] != nil { continue }
                     let audio: GuideOfflinePackage.Audio = try await client.send(.post(.guideTourOfflineAudio, body: GuideOfflineAudioRequest(text: clip.text, voice: package.voice, personality: package.personality)), using: authentication)
-                    guard tourTicket == ticket, !Task.isCancelled else { return }
+                    guard downloadTicket == ticket, !Task.isCancelled else { return }
                     package.audio[clip.id] = audio
                     downloadBytes = package.byteCount
                     downloadProgress = Double(index + 1) / Double(package.clips.count)
@@ -502,8 +649,13 @@ final class LiveGuideStore {
                 try? FileManager.default.removeItem(at: Self.stagingURL)
                 tourNotice = "Ready Offline. Pip’s stories and OpenAI voice are downloaded."
             } catch {
-                guard tourTicket == ticket, !Task.isCancelled else { return }
-                tourNotice = "The complete voice tour could not be downloaded. Please try again online."
+                guard downloadTicket == ticket, !Task.isCancelled else { return }
+                if let apiError = error as? APIClientError,
+                   case .rejected(_, let response, _) = apiError, response.code == "offline_stop_unavailable" {
+                    tourNotice = "A tour stop could not be independently sourced for offline use. Try another tour."
+                } else {
+                    tourNotice = "The complete voice tour could not be downloaded. Please try again online."
+                }
             }
         }
     }
@@ -568,6 +720,48 @@ final class LiveGuideStore {
     @ObservationIgnored private var lastSharedFix: GuideFix?
     private let speech = AVSpeechSynthesizer()
     private let voicePlayer = GuideVoicePlayer()
+    let navigator = TourNavigator()
+    private let navigationSpeech = AVSpeechSynthesizer()
+    private var navigationSuspendedStory = false
+    var navigationSpeaking: Bool { navigationSpeech.isSpeaking }
+    func navigationPrompt(_ text: String) {
+        guard enabled, !voice.active, !translator.active, !navigationSpeech.isSpeaking else { return }
+        if voicePlayer.isPlaying { navigationSuspendedStory = true; voicePlayer.pause() }
+        if speech.isSpeaking { speech.pauseSpeaking(at: .word) }
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = Self.bestVoice(for: language)
+        navigationSpeech.speak(utterance)
+    }
+    func openNavigation(provider: String? = nil) {
+        guard let progress = activeTour, let target = progress.navigationTarget else { return }
+        let token = epoch
+        Task {
+            guard epoch == token, activeTour?.plan.id == progress.plan.id else { return }
+            if progress.navigationMode == "rideshare", let provider {
+                guard networkAvailable else { tourNotice = "Connect to the internet to book a ride."; return }
+                guard let url = progress.rideShareURL(provider: provider) else { return }
+                await UIApplication.shared.open(url)
+                return
+            }
+            if progress.plan.offline == true {
+                // Independent saved coordinates work with the Maps handoff on iOS 17 too;
+                // unified /directions URLs require iOS 18.4 or later.
+                let item = MKMapItem(placemark: MKPlacemark(coordinate: .init(latitude: target.latitude, longitude: target.longitude)))
+                item.name = target.name
+                item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: progress.navigationMode == "walking" ? MKLaunchOptionsDirectionsModeWalking : progress.navigationMode == "transit" ? MKLaunchOptionsDirectionsModeTransit : MKLaunchOptionsDirectionsModeDriving])
+            } else {
+                do {
+                    let item = try await TourNavigator.resolve(progress)
+                    guard epoch == token, activeTour?.plan.id == progress.plan.id else { return }
+                    item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: progress.navigationMode == "walking" ? MKLaunchOptionsDirectionsModeWalking : progress.navigationMode == "transit" ? MKLaunchOptionsDirectionsModeTransit : MKLaunchOptionsDirectionsModeDriving])
+                } catch {
+                    guard epoch == token, activeTour?.plan.id == progress.plan.id else { return }
+                    tourNotice = "Navigation is unavailable. Try again online."
+                }
+            }
+        }
+    }
+
     private let client: APIClient
     private let authentication: any AccessTokenProviding
     private let voice: LiveVoiceStore
@@ -589,10 +783,19 @@ final class LiveGuideStore {
         downloadedTours = Self.loadDownloadedTours()
         // The system manages its own audio session for the iPhone voice, leaving Talk to Pip's alone.
         speech.usesApplicationAudioSession = false
+        navigationSpeech.usesApplicationAudioSession = false
         networkMonitor.pathUpdateHandler = { [weak self] path in
             let available = path.status == .satisfied
-            Task { @MainActor in self?.networkAvailable = available }
+            Task { @MainActor in
+                guard let self else { return }
+                self.networkAvailable = available
+                if !available {
+                    self.navigator.stop()
+                    self.navigationSpeech.stopSpeaking(at: .immediate)
+                }
+            }
         }
+        navigator.onPrompt = { [weak self] text in self?.navigationPrompt(text) }
         networkMonitor.start(queue: DispatchQueue(label: "pippipgo.tour-connectivity"))
         for name in [AVAudioSession.interruptionNotification, AVAudioSession.routeChangeNotification] {
             let observer = NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
@@ -600,7 +803,21 @@ final class LiveGuideStore {
                     && (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) == AVAudioSession.InterruptionType.began.rawValue
                 let unplugged = notification.name == AVAudioSession.routeChangeNotification
                     && (notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
-                if interruption || unplugged { Task { @MainActor in if self?.activeTour?.plan.offline == true { self?.pauseOffline() } } }
+                Task { @MainActor in
+                    guard let self else { return }
+                    if unplugged { self.pauseOffline(); self.interruptedAudioWasPlaying = false }
+                    else if interruption {
+                        self.interruptedAudioWasPlaying = self.voicePlayer.isPlaying
+                        self.voicePlayer.pause(); self.saveOfflinePlayback()
+                    } else if notification.name == AVAudioSession.interruptionNotification,
+                              (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) == AVAudioSession.InterruptionType.ended.rawValue {
+                        let options = AVAudioSession.InterruptionOptions(rawValue: notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0)
+                        if options.contains(.shouldResume), self.interruptedAudioWasPlaying, !self.offlinePaused, !self.voice.active, !self.translator.active {
+                            self.voicePlayer.resume()
+                        } else if self.interruptedAudioWasPlaying { self.offlinePaused = true }
+                        self.interruptedAudioWasPlaying = false
+                    }
+                }
             }
             audioObservers.append(observer)
         }
@@ -691,7 +908,9 @@ final class LiveGuideStore {
         for (command, target) in remoteTargets { command.removeTarget(target) }
         remoteTargets = []
         if activeTour?.plan.offline == true { MPNowPlayingInfoCenter.default().nowPlayingInfo = nil }
-        activeTour = nil
+        navigator.stop(); navigationSpeech.stopSpeaking(at: .immediate)
+        navigationSuspendedStory = false
+        activeTour = nil; offlineRoadMap = nil; offlineLocation = nil
         engine.plannedOnly = false
         rawHeading = nil; headingReceivedAt = nil
         isWalking = false
@@ -711,6 +930,7 @@ final class LiveGuideStore {
     /// Sign-out or account switch: forget everything this account's guide knew.
     func reset() {
         cancelTourPlanning()
+        cancelDownload()
         suggestedTour = nil; downloadedTours = []; tourDraft = nil; tourNotice = nil
         stop()
         try? FileManager.default.removeItem(at: Self.toursDirectory)
@@ -742,6 +962,7 @@ final class LiveGuideStore {
                            accuracy: location.horizontalAccuracy, speed: location.speed, course: location.course,
                            timestamp: location.timestamp)
         guard engine.ingest(fix) else { return }
+        offlineLocation = activeTour?.plan.offline == true ? .init(latitude: fix.latitude, longitude: fix.longitude) : nil
         lastMovementFix = fix
         isWalking = fix.isMoving(at: Date())
         if isWalking { movingMapFix = fix }
@@ -787,14 +1008,20 @@ final class LiveGuideStore {
             if progress.plan.offline == true, let next = progress.next,
                GuideGeo.distance(fix.latitude, fix.longitude, next.latitude, next.longitude) < (progress.currentMode == .walking ? 120 : 300) {
                 let id = "stop_\(progress.index)"
-                if !offlineSpoken.contains(id), !offlinePending.contains(id) { offlinePending.append(id) }
+                if progress.plan.offline_package?.clips.contains(where: { $0.id == id }) == true, !offlineSpoken.contains(id), !offlinePending.contains(id) { offlinePending.append(id) }
             }
-            progress.update(fix, at: now)
+            progress.update(fix, at: now, arrivalPoint: navigator.arrivalPoint(for: progress))
             activeTour = progress
+            if navigationSuspendedStory, !navigationSpeech.isSpeaking {
+                navigationSuspendedStory = false
+                if !offlinePaused { voicePlayer.resume() }
+                if speech.isPaused { speech.continueSpeaking() }
+            }
+            navigator.update(fix, progress: progress, networkAvailable: networkAvailable)
             if progress.plan.offline == true {
                 if progress.index != previousIndex, previousIndex < progress.plan.stops.count {
                     let id = "transition_\(previousIndex)"
-                    if !offlineSpoken.contains(id), !offlinePending.contains(id) { offlinePending.append(id) }
+                    if progress.plan.offline_package?.clips.contains(where: { $0.id == id }) == true, !offlineSpoken.contains(id), !offlinePending.contains(id) { offlinePending.append(id) }
                 }
                 offlinePending.removeAll { offlineSpoken.contains($0) }
                 saveOfflinePlayback()
@@ -817,7 +1044,7 @@ final class LiveGuideStore {
                 enabled = false; try? FileManager.default.removeItem(at: Self.playbackURL(progress.plan.id)); tourNotice = "Your tour is complete."; return
             }
             engine.selectTourMode(progress.currentMode)
-            engine.setRoute(progress.plan.offline == true ? nil : progress.currentRoute)
+            engine.setRoute(progress.plan.offline == true ? nil : (navigator.route ?? progress.currentRoute))
             if let next = progress.next {
                 var candidate = next; candidate.tier = .mustSee
                 let request = GuideNearbyRequest(latitude: fix.latitude, longitude: fix.longitude, radius_meters: 500, language: language)
@@ -889,7 +1116,7 @@ final class LiveGuideStore {
         startConversation()
     }
 
-    var route: GuideRoute? { activeTour == nil ? voice.route : nil }
+    var route: GuideRoute? { activeTour == nil ? voice.route : navigator.route }
     func clearRoute() { voice.clearRoute() }
 
     private func startConversation() {
@@ -978,7 +1205,7 @@ final class LiveGuideStore {
     // MARK: Speaking
 
     private var busyElsewhere: Bool {
-        translator.active || speech.isSpeaking || voicePlayer.isPlaying || (voice.active && (!voice.acceptsGuideEvents || voice.guideShouldWait))
+        interruptedAudioWasPlaying || navigationSpeech.isSpeaking || translator.active || speech.isSpeaking || voicePlayer.isPlaying || (voice.active && (!voice.acceptsGuideEvents || voice.guideShouldWait))
     }
 
     private func evaluate(now: Date) {
@@ -1245,10 +1472,15 @@ struct LiveGuideTab: View {
     @State private var showTourBuilder = false
     @State private var editActiveTour = false
     @State private var showMyTours = false
+    @State private var createAfterMyTours = false
     @State private var showSettings = false
+    @State private var showActiveTourSources = false
+    @State private var showStopQuestions = false
+    @State private var confirmStopTour = false
+    /// The area last fitted around the route; the camera refits only when the traveler leaves it.
+    @State private var fittedRouteRect: MKMapRect?
     @State private var mapLocationFeed: LiveGuideLocationFeed?
     // Detect the marker's travel mode independently of the selected tour mode.
-    @State private var markerMotion = GuideEngine()
     @State private var currentMapCamera: MapCamera?
     @State private var nearby = NearbyPlacesModel()
     #if DEBUG
@@ -1266,9 +1498,6 @@ struct LiveGuideTab: View {
     @State private var pinSelection: NearbyPlace.ID?
     @State private var weather: CurrentWeather?
     @State private var weatherFetched: (location: CLLocation, at: Date)?
-    @State private var picks: [PipPick] = []
-    @State private var picksFetched: (location: CLLocation, at: Date)?
-    @State private var selectedPick: PipPick?
     @State private var hotelCoordinate: CLLocationCoordinate2D?
     @State private var lastLocation: CLLocation?
     /// "lat,lon,unix time" of where the car was left; forgotten after a day.
@@ -1278,6 +1507,10 @@ struct LiveGuideTab: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var controlsFloatOnMap: Bool {
+        guide.activeTour != nil && (tab == .guide || tab == .explore)
+    }
 
     /// Keep controls beside the map when the window has room, including in Split View.
     /// Accessibility text uses the wider bottom panel instead of a narrow column.
@@ -1301,12 +1534,25 @@ struct LiveGuideTab: View {
                         }
                         .frame(width: panelWidth)
                         .frame(maxHeight: collapsed ? 60 : max(160, geometry.size.height - topBarHeight - 32), alignment: .bottom)
-                        .background(.bar, in: RoundedRectangle(cornerRadius: 20))
+                        .background {
+                            if !controlsFloatOnMap {
+                                RoundedRectangle(cornerRadius: 20).fill(.bar)
+                            }
+                        }
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .padding(.leading, 16)
                         .padding(.bottom, 16)
                     } else {
-                        panel.frame(maxWidth: 560)
+                        Group {
+                            if controlsFloatOnMap {
+                                ViewThatFits(in: .vertical) {
+                                    panel
+                                    ScrollView { panel }
+                                }
+                                .frame(maxHeight: max(160, geometry.size.height - topBarHeight - 32), alignment: .bottom)
+                            } else { panel }
+                        }
+                            .frame(maxWidth: 560)
                             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { panelTop = $0 }
                             .onDisappear { panelTop = nil }
                     }
@@ -1316,9 +1562,9 @@ struct LiveGuideTab: View {
 
     var body: some View {
         ZStack {
-            if showTourBuilder {
+            if showTourBuilder || showMyTours {
                 // Even a covered SwiftUI Map receives keyboard inset updates on the
-                // physical phone. Detach it while editing; camera/route state stays here.
+                // phone and simulator. Detach it during tour presentation; camera state stays here.
                 Color(.systemBackground)
             } else {
                 adaptiveMap
@@ -1326,7 +1572,7 @@ struct LiveGuideTab: View {
         }
             .ignoresSafeArea(.keyboard)
             .overlay(alignment: .top) {
-                if !showTourBuilder {
+                if !showTourBuilder && !showMyTours {
                     topBar
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topBarHeight = $0 }
                 }
@@ -1390,18 +1636,6 @@ struct LiveGuideTab: View {
                                          is_daytime: true, time_zone: nil, aqi: 72, aqi_category: "Good air quality")
                 parking = "32.9412,-117.2318,\(Date().timeIntervalSince1970)"
             }
-            // Simulator review: `-PipSamplePicks` shows sample picks without an account.
-            .task {
-                guard ProcessInfo.processInfo.arguments.contains("-PipSamplePicks") else { return }
-                picks = [
-                    PipPick(id: "s1", name: "Torrey Pines State Reserve", latitude: 32.92, longitude: -117.25,
-                            rating: 4.8, user_rating_count: 9100, reason: "Sunny 24° · you love coastal walks"),
-                    PipPick(id: "s2", name: "Piazza Carmel Gelato", latitude: 32.94, longitude: -117.23,
-                            rating: 4.6, user_rating_count: 410, reason: "Afternoon treat · fits your budget"),
-                    PipPick(id: "s3", name: "Carmel Valley Library", latitude: 32.95, longitude: -117.24,
-                            rating: 4.5, user_rating_count: 120, reason: "Quiet spot · you enjoy reading"),
-                ]
-            }
             // Simulator review: `-PipHomeTab search -PipGuestCategory restrooms` searches once located.
             .task {
                 let arguments = ProcessInfo.processInfo.arguments
@@ -1422,12 +1656,33 @@ struct LiveGuideTab: View {
             .fullScreenCover(isPresented: $showTourBuilder, onDismiss: { guide.cancelTourPlanning() }) {
                 TourBuilderView(guide: guide, location: lastLocation, profileInterests: profileInterests, editActiveTour: editActiveTour)
             }
-            .sheet(isPresented: $showMyTours) { MyToursView(guide: guide) }
+            .fullScreenCover(isPresented: $showMyTours, onDismiss: {
+                if createAfterMyTours {
+                    createAfterMyTours = false; editActiveTour = false; showTourBuilder = true
+                }
+            }) {
+                MyToursView(guide: guide, onStart: { showMyTours = false }, createTour: {
+                    createAfterMyTours = true; showMyTours = false
+                })
+            }
             .sheet(isPresented: $showSettings) {
                 NavigationStack {
                     Form { LiveGuideSettingsSection(guide: guide) }
                         .navigationTitle("Tour Guide").navigationBarTitleDisplayMode(.inline)
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showSettings = false } } }
+                }
+                .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showActiveTourSources) {
+                if let package = guide.activeTour?.plan.offline_package {
+                    OfflineTourSourcesView(package: package)
+                }
+            }
+            .sheet(isPresented: $showStopQuestions) {
+                NavigationStack {
+                    ScrollView { OfflineTourQuestions(guide: guide).padding() }
+                        .navigationTitle("Ask about this stop").navigationBarTitleDisplayMode(.inline)
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showStopQuestions = false } } }
                 }
                 .presentationDetents([.medium, .large])
             }
@@ -1449,18 +1704,14 @@ struct LiveGuideTab: View {
                   abs(location.timestamp.timeIntervalSinceNow) < 15,
                   CLLocationCoordinate2DIsValid(location.coordinate) else { return }
             lastLocation = location
-            markerMotion.ingest(GuideFix(latitude: location.coordinate.latitude,
-                                         longitude: location.coordinate.longitude,
-                                         accuracy: location.horizontalAccuracy,
-                                         speed: location.speed, course: location.course,
-                                         timestamp: location.timestamp))
             guide.shareMapLocation(location)
             refreshWeather(location)
-            refreshPicks(location)
             if !zoomedToStart {
                 // Before any fix the map shows a whole continent; never keep that zoom.
                 zoomedToStart = true
-                if tab == .explore {
+                if tab != .explore, guide.activeTour != nil, let route = guide.route {
+                    fitRoute(route, including: location)
+                } else if tab == .explore {
                     position = .camera(MapCamera(centerCoordinate: location.coordinate, distance: 1_200, pitch: 60))
                 } else {
                     withAnimation { position = .region(MKCoordinateRegion(center: location.coordinate,
@@ -1477,6 +1728,12 @@ struct LiveGuideTab: View {
                 guard !position.positionedByUser else { return }
                 camera.pitch = 60
                 position = .camera(camera)
+            } else if let route = guide.route, guide.activeTour != nil {
+                // Keep the route framed; refit only once the traveler moves outside it.
+                guard !position.positionedByUser else { return }
+                if fittedRouteRect.map({ !$0.contains(MKMapPoint(location.coordinate)) }) ?? true {
+                    fitRoute(route, including: location)
+                }
             } else if guide.enabled {
                 withAnimation(.linear(duration: 0.5)) { position = .camera(camera) }
             } else {
@@ -1487,27 +1744,45 @@ struct LiveGuideTab: View {
         feed.start()
     }
 
+    /// Frames the traveler, route path and destination with a little margin, never closer
+    /// than about 500 m across so a short walk keeps its surroundings.
+    private func fitRoute(_ route: GuideRoute, including location: CLLocation?) {
+        var points = route.path.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) }
+        points.append(MKMapPoint(CLLocationCoordinate2D(latitude: route.destination.latitude, longitude: route.destination.longitude)))
+        if let location { points.append(MKMapPoint(location.coordinate)) }
+        var rect = points.reduce(MKMapRect.null) { $0.union(MKMapRect(origin: $1, size: MKMapSize(width: 0, height: 0))) }
+        guard !rect.isNull else { return }
+        let minimum = 500 * MKMapPointsPerMeterAtLatitude(MKMapPoint(x: rect.midX, y: rect.midY).coordinate.latitude)
+        rect = rect.insetBy(dx: -max(0, minimum - rect.width) / 2, dy: -max(0, minimum - rect.height) / 2)
+        rect = rect.insetBy(dx: -rect.width * 0.06, dy: -rect.height * 0.06)
+        fittedRouteRect = rect
+        withAnimation { position = .rect(rect) }
+    }
+
     private func updateMapPerspective() {
+        if tab != .explore, guide.activeTour != nil, let route = guide.route {
+            fitRoute(route, including: lastLocation); return
+        }
         guard var camera = currentMapCamera ?? lastLocation.map({ MapCamera(centerCoordinate: $0.coordinate, distance: 1_200) }) else { return }
         camera.pitch = tab == .explore ? 60 : 0
         position = .camera(camera)
     }
 
-    private func map(top mapTop: CGFloat, bottom mapBottom: CGFloat, leadingInset: CGFloat) -> some View {
+    private var showsOfflineRoadMap: Bool {
+        tab == .guide && !guide.networkAvailable && guide.activeTour?.plan.offline == true && guide.offlineRoadMap != nil
+    }
+
+    @ViewBuilder private func map(top mapTop: CGFloat, bottom mapBottom: CGFloat, leadingInset: CGFloat) -> some View {
+        if showsOfflineRoadMap, let roads = guide.offlineRoadMap {
+            OfflineRoadMapView(data: roads, stops: guide.activeTour?.plan.stops ?? [],
+                               location: guide.offlineLocation ?? lastLocation.map { .init(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude) },
+                               origin: guide.activeTour.map { .init(latitude: $0.plan.origin.latitude, longitude: $0.plan.origin.longitude) })
+                .safeAreaPadding(.top, max(0, topBarBottom - mapTop))
+                .safeAreaPadding(.bottom, max(0, mapBottom - (panelTop ?? mapBottom)))
+                .ignoresSafeArea()
+        } else {
         Map(position: $position, selection: $pinSelection) {
-            UserAnnotation { _ in
-                Button {
-                    guide.tourMode = guide.tourMode == .walking ? .driving : .walking
-                } label: {
-                    LiveGuideUserMarker(active: guide.enabled,
-                                        driving: GuideEngine.motion(for: markerMotion.speed).isDriving,
-                                        walking: guide.isWalking)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text(LocalizedStringKey(guide.tourMode.title)))
-                .accessibilityHint(Text("Switch tour mode"))
-                .accessibilityIdentifier("liveGuide.tourMarker")
-            }
+            UserAnnotation()
             ForEach(guide.places) { place in
                 Marker(place.name, systemImage: place.tier == .mustSee ? "star.fill" : "mappin",
                        coordinate: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
@@ -1519,11 +1794,6 @@ struct LiveGuideTab: View {
             }
             if let car = parkedCar {
                 Marker("You parked here", systemImage: "car.fill", coordinate: car.coordinate).tint(.blue)
-            }
-            if let pick = selectedPick {
-                Marker(pick.name, systemImage: "star.fill",
-                       coordinate: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude))
-                    .tint(.purple)
             }
             if tab == .search {
                 ForEach(nearby.places) { place in
@@ -1544,9 +1814,12 @@ struct LiveGuideTab: View {
         }
         // Keep the Metal-backed map alive across tab/annotation changes. The tour
         // editor temporarily detaches it to avoid the device keyboard observation loop.
-        .onChange(of: guide.route) { _, route in
-            // Show the whole walk: traveler and destination together.
-            if route != nil { withAnimation { position = .automatic } }
+        .onChange(of: guide.route) { old, route in
+            // Show the whole route: traveler, path and destination, not every marker on the map.
+            guard let route else { fittedRouteRect = nil; return }
+            if old?.destination != route.destination || !position.positionedByUser {
+                fitRoute(route, including: lastLocation)
+            }
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             currentMapCamera = context.camera
@@ -1559,6 +1832,7 @@ struct LiveGuideTab: View {
         .safeAreaPadding(.bottom, max(0, mapBottom - (panelTop ?? mapBottom)))
         // Full screen like Google Maps: the map runs under the status bar, panel and tab bar.
         .ignoresSafeArea()
+        }
     }
 
     private var parkedCar: CLLocation? {
@@ -1614,7 +1888,11 @@ struct LiveGuideTab: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
-                    if tab == .search {
+                    if let active = guide.activeTour, tab == .guide || tab == .explore {
+                        Text(verbatim: active.plan.displayName).font(.headline).lineLimit(2)
+                            .accessibilityAddTraits(.isHeader).accessibilityIdentifier("tour.activeName")
+                        Spacer(minLength: 0)
+                    } else if tab == .search {
                         searchBar
                     } else {
                         Spacer(minLength: 0)
@@ -1632,22 +1910,25 @@ struct LiveGuideTab: View {
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { topBarBottom = $0 }
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    if let weather { WeatherChip(weather: weather) }
+                    if !showsOfflineRoadMap {
+                    if let weather, tab != .guide, tab != .explore { WeatherChip(weather: weather) }
                     if let car = parkedCar { parkingChip(car) }
                     Button { satellite.toggle() } label: {
                         Image(systemName: satellite ? "map" : "square.2.layers.3d").font(.title3).mapControlCircle()
                     }
                     .accessibilityLabel(Text("Map style"))
                     .accessibilityIdentifier("map.style")
+                    }
                     if AppConfiguration.live.environment != .prod {
                         BuildEnvironmentIndicator(environment: AppConfiguration.live.environment)
                     }
                 }
                 Spacer(minLength: 8)
-                floatingControls
+                if !showsOfflineRoadMap { floatingControls }
             }
             .padding(.horizontal, 12)
-            if let route = guide.route {
+            // During a tour the route is shown in the Next card at the bottom instead.
+            if let route = guide.route, !controlsFloatOnMap {
                 LiveGuideRouteCard(route: route, close: guide.clearRoute).padding(.horizontal, 60)
             }
         }
@@ -1733,24 +2014,13 @@ struct LiveGuideTab: View {
         Task { if let current = await guide.currentWeather(at: location) { weather = current } }
     }
 
-    /// On Guide or Explore while the app is open; every 30 minutes, or after moving about 2 km.
-    private func refreshPicks(_ location: CLLocation) {
-        guard scenePhase == .active, tab == .guide || tab == .explore else { return }
-        if let last = picksFetched, Date().timeIntervalSince(last.at) < 1_800,
-           location.distance(from: last.location) < 2_000 { return }
-        picksFetched = (location, Date())
-        let summary = weather.map { [$0.description, $0.temperature_celsius.map { "\(Int($0.rounded()))°C" }]
-            .compactMap { $0 }.joined(separator: " ") }
-        Task { picks = await guide.picks(at: location, weather: summary) }
-    }
-
     /// Apple Maps-style floating buttons.
     private var floatingControls: some View {
         VStack(spacing: 8) {
             AppLanguageMenu().mapControlCircle()
             AudioOutputButton().mapControlCircle()
-            if tab == .guide || tab == .explore {
-                // Settings here are specifically how often Pip speaks during the tour.
+            if (tab == .guide || tab == .explore) && guide.activeTour == nil {
+                // Settings here are specifically how often Pip speaks; during a tour they are in More.
                 Button { showSettings = true } label: {
                     Image(systemName: "speaker.wave.2").font(.title3).mapControlCircle()
                 }
@@ -1775,9 +2045,12 @@ struct LiveGuideTab: View {
 
     /// One Apple Maps-style panel above the tab bar; its content follows the selected tab.
     @ViewBuilder private var panel: some View {
-        if tab != .search || nearby.category != nil || selectedPlace != nil {
+        if controlsFloatOnMap {
+            activeTourMapControls
+                .padding(.horizontal, 16).padding(.vertical, 12)
+        } else if tab != .search || nearby.category != nil || selectedPlace != nil {
             VStack(alignment: .leading, spacing: 14) {
-                PanelHandle(collapsed: $collapsed)
+                if !controlsFloatOnMap { PanelHandle(collapsed: $collapsed) }
                 switch tab {
                 case .pip:
                     PipPanel(chat: chat, collapsed: collapsed)
@@ -1795,67 +2068,111 @@ struct LiveGuideTab: View {
             }
             .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 12)
             .background {
-                // Apple's standard bar material, see-through like the tab bar below it. Collapsed, the
-                // controls float on the map with no sheet behind them.
-                UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
-                    .fill(.bar).opacity(collapsed ? 0 : 1)
-                    .ignoresSafeArea(edges: .bottom)
+                if !controlsFloatOnMap {
+                    UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)
+                        .fill(.bar).opacity(collapsed ? 0 : 1)
+                        .ignoresSafeArea(edges: .bottom)
+                }
             }
         }
     }
 
-    /// Tour controls, status and what Pip last pointed out. While stopped, a native segmented
-    /// control picks walking or driving, with one large Start guide button beneath it, centered
-    /// above the tab bar. While running, one large Stop button replaces both.
-    /// "Pip's picks for you": a few places chosen for this traveller, with Pip's reason.
-    @ViewBuilder private var picksRow: some View {
-        if !collapsed, !guide.enabled, !picks.isEmpty {
+    /// One card: where to go next, one primary navigation button, one row of equal playback
+    /// buttons, and everything else in the More menu.
+    @ViewBuilder private var activeTourMapControls: some View {
+        if let progress = guide.activeTour {
+            let offline = progress.plan.offline == true
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Label("Pip’s picks for you", systemImage: "sparkles").font(.headline)
-                    Spacer()
-                    if let pick = selectedPick {
-                        Button {
-                            let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude)))
-                            item.name = pick.name
-                            item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking])
-                        } label: {
-                            Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond.fill")
-                                .font(.caption.weight(.semibold))
-                        }
-                        .buttonStyle(.borderedProminent).controlSize(.small)
-                        .accessibilityIdentifier("guide.pick.directions")
-                    }
-                }
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(picks) { pick in
-                            PipPickCard(pick: pick, selected: selectedPick?.id == pick.id) {
-                                selectedPick = pick
-                                withAnimation {
-                                    position = .region(MKCoordinateRegion(
-                                        center: CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude),
-                                        latitudinalMeters: 700, longitudinalMeters: 700))
-                                }
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
+                        if let next = progress.next {
+                            let route = guide.navigator.route
+                            let name = guide.navigator.arrivalPoint(for: progress) == nil ? next.name : (route?.name ?? next.name)
+                            if let route {
+                                Image(systemName: route.mode == .driving ? "car.fill" : "figure.walk").font(.title3).foregroundStyle(.white)
+                                    .frame(width: 44, height: 44).background(Color.blue, in: Circle())
+                                    .accessibilityHidden(true)
                             }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Next: \(name)").font(.headline).lineLimit(2)
+                                if let route { RouteETA(route: route) }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier(route == nil ? "tour.next" : "tour.routeCard")
+                        } else {
+                            Spacer(minLength: 0)
                         }
+                        activeTourMenu(progress)
+                    }
+                    TourNavigationControls(guide: guide, endTour: { confirmStopTour = true })
+                    if offline {
+                        OfflineTourPlaybackControls(guide: guide)
+                    } else if guide.announcementSpeaking, !guide.talking {
+                        TourControlButton(title: "Skip", systemImage: "forward.end.fill") { guide.skipAnnouncement() }
+                            .accessibilityIdentifier("liveGuide.skipAnnouncement")
                     }
                 }
-                Text("Places and ratings from Google Maps.").font(.caption2).foregroundStyle(.secondary)
+                .padding(12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+                if let notice = guide.notice {
+                    Label(LocalizedStringKey(notice), systemImage: "exclamationmark.circle")
+                        .font(.subheadline).padding(8)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+                if let message = guide.tourNotice {
+                    Text(LocalizedStringKey(message)).font(.subheadline).padding(8)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+                if guide.status == .denied {
+                    Button("Open location settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    }.buttonStyle(.bordered).frame(minHeight: 44)
+                }
+                if !offline, let mention = guide.lastMention {
+                    LiveGuideMentionView(mention: mention, guide: guide)
+                }
+            }
+            .confirmationDialog("End this tour?", isPresented: $confirmStopTour, titleVisibility: .visible) {
+                Button("End Tour", role: .destructive) { withAnimation(.spring) { guide.enabled = false } }
+                    .accessibilityIdentifier("tour.stopConfirm")
+                Button("Cancel", role: .cancel) {}
             }
         }
     }
 
+    /// Less frequent tour actions.
+    private func activeTourMenu(_ progress: GuideTourProgress) -> some View {
+        Menu {
+            Button("Adjust Tour", systemImage: "slider.horizontal.3") { editActiveTour = true; showTourBuilder = true }
+                .accessibilityIdentifier("liveGuide.adjustTour")
+            if progress.plan.offline == true, progress.plan.offline_package?.version != 3 {
+                Button("Ask about this stop", systemImage: "questionmark.bubble") { showStopQuestions = true }
+                    .accessibilityIdentifier("tour.askStop")
+            }
+            if progress.plan.offline == true, guide.networkAvailable {
+                Button("Talk to Pip online", systemImage: "waveform") { guide.toggleConversation() }
+            }
+            if progress.plan.offline_package != nil {
+                Button("Sources and licenses", systemImage: "doc.text") { showActiveTourSources = true }
+                    .accessibilityIdentifier("tour.sources")
+            }
+            Button("Settings", systemImage: "speaker.wave.2") { showSettings = true }
+                .accessibilityIdentifier("liveGuide.settings")
+        } label: {
+            Image(systemName: "ellipsis").font(.title3.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .background(.thinMaterial, in: Circle())
+                .contentShape(Circle())
+        }
+        .accessibilityLabel(Text("More options"))
+        .accessibilityIdentifier("tour.more")
+    }
+
+    /// Explore Freely and tour start. An active tour uses `activeTourMapControls` instead.
     @ViewBuilder private var guidePanel: some View {
         if guide.enabled {
-            if guide.activeTour != nil {
-                Button { editActiveTour = true; showTourBuilder = true } label: {
-                    Label("Adjust Tour", systemImage: "slider.horizontal.3")
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("liveGuide.adjustTour")
-            }
             Button(role: .destructive) { withAnimation(.spring) { guide.enabled = false } } label: {
                 Label("Stop tour", systemImage: "stop.fill")
                     .font(.title3.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 56)
@@ -1866,15 +2183,31 @@ struct LiveGuideTab: View {
             .accessibilityIdentifier("liveGuide.enabled")
         } else {
             if tab == .guide {
-                Button { editActiveTour = false; showTourBuilder = true } label: {
-                    Label("Create My Tour", systemImage: "sparkles")
-                        .font(.title3.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 56)
-                }
-                .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
-                .accessibilityIdentifier("liveGuide.createTour")
-                if !guide.downloadedTours.isEmpty {
+                if !guide.networkAvailable, !guide.downloadedTours.isEmpty {
+                    // Offline: guide the traveler straight to what will actually work.
+                    Text("You’re offline. Play one of your downloaded tours.").font(.subheadline).foregroundStyle(.secondary)
                     Button { showMyTours = true } label: {
-                        Label("My Tours", systemImage: "list.bullet")
+                        Label("My Tours (\(guide.downloadedTours.count))", systemImage: "list.bullet")
+                            .font(.title3.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 56)
+                    }
+                    .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                    .accessibilityIdentifier("liveGuide.myTours")
+                } else {
+                    Button { editActiveTour = false; showTourBuilder = true } label: {
+                        Label("Create My Tour", systemImage: "sparkles")
+                            .font(.title3.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 56)
+                    }
+                    .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                    .disabled(!guide.networkAvailable)
+                    .accessibilityIdentifier("liveGuide.createTour")
+                    if !guide.networkAvailable {
+                        Text("You’re offline. Connect to the internet to plan a new tour.").font(.footnote).foregroundStyle(.secondary)
+                    }
+                    Button { showMyTours = true } label: {
+                        Label {
+                            if guide.downloadedTours.isEmpty { Text("My Tours") }
+                            else { Text("My Tours (\(guide.downloadedTours.count))") }
+                        } icon: { Image(systemName: "list.bullet") }
                     }
                     .frame(minHeight: 44)
                     .accessibilityIdentifier("liveGuide.myTours")
@@ -1902,22 +2235,8 @@ struct LiveGuideTab: View {
                 .accessibilityIdentifier("liveGuide.startGuide")
             }
         }
-        if !collapsed { picksRow }
-        if let progress = guide.activeTour {
-            if let next = progress.next { Text("Next: \(next.name)").font(.headline) }
-            if progress.plan.offline == true {
-                if let image = progress.plan.offline_package?.images?.first(where: { $0.stop_index == progress.index }) { OfflineTourImageView(image: image) }
-                OfflineTourControls(guide: guide)
-                Text("OpenAI voice · Prepared offline stories and answers").font(.footnote).foregroundStyle(.secondary)
-                Text(progress.plan.attribution ?? "").font(.caption2).foregroundStyle(.secondary)
-                if let raw = progress.next?.wikipedia_url, let url = URL(string: raw), url.scheme == "https", url.host?.hasSuffix(".wikipedia.org") == true {
-                    Link("Story source", destination: url).font(.footnote).frame(minHeight: 44)
-                }
-            } else if let url = progress.googleMapsURL {
-                Link("View tour route", destination: url).frame(minHeight: 44)
-            }
-        }
-        if let message = guide.tourNotice { Text(LocalizedStringKey(message)).font(.subheadline).foregroundStyle(.secondary) }
+        if guide.downloadingTour, !collapsed { TourDownloadProgressRow(guide: guide) }
+        else if let message = guide.tourNotice { Text(LocalizedStringKey(message)).font(.subheadline).foregroundStyle(.secondary) }
         if guide.enabled, guide.status != .listening {
             Label(LocalizedStringKey(guide.status.message), systemImage: statusSymbol)
                 .font(.subheadline).foregroundStyle(.secondary)
@@ -1955,38 +2274,6 @@ struct LiveGuideTab: View {
         case .unavailable: "exclamationmark.circle"
         case .off, .listening: "pause.circle"
         }
-    }
-}
-
-/// The traveler on the map; walking motion follows accepted location updates.
-struct LiveGuideUserMarker: View {
-    let active: Bool
-    let driving: Bool
-    let walking: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pulse = false
-
-    var body: some View {
-        ZStack {
-            if active && !driving && !reduceMotion && walking {
-                ForEach(0..<2) { ring in
-                    Circle()
-                        .stroke(Color.green.opacity(0.6), lineWidth: 3)
-                        .frame(width: 70, height: 70)
-                        .scaleEffect(pulse ? 2.4 : 0.8)
-                        .opacity(pulse ? 0 : 0.9)
-                        .animation(.easeOut(duration: 2).repeatForever(autoreverses: false).delay(Double(ring)), value: pulse)
-                }
-            }
-            Circle().fill(.white).frame(width: 62, height: 62).shadow(radius: 6)
-            Circle().fill(active ? Color.green : Color.blue).frame(width: 54, height: 54)
-            Image(systemName: driving ? "car.fill" : "figure.walk")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(.white)
-                .symbolEffect(.bounce, options: .repeating, isActive: !driving && !reduceMotion)
-        }
-        .onAppear { pulse = true }
-        .accessibilityHidden(true)
     }
 }
 
@@ -2081,21 +2368,11 @@ struct LiveGuideRouteCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "figure.walk").font(.title2).foregroundStyle(.white)
+            Image(systemName: route.mode == .driving ? "car.fill" : "figure.walk").font(.title2).foregroundStyle(.white)
                 .frame(width: 44, height: 44).background(Color.blue, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: route.name).font(.headline).foregroundStyle(.primary).lineLimit(2)
-                HStack(spacing: 6) {
-                    if let minutes = route.minutes {
-                        Text(Duration.seconds(minutes * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated)))
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    if let meters = route.meters {
-                        Text(Measurement(value: Double(meters), unit: UnitLength.meters)
-                            .formatted(.measurement(width: .abbreviated, usage: .road)))
-                            .font(.subheadline).foregroundStyle(.secondary)
-                    }
-                }
+                RouteETA(route: route)
             }
             Spacer(minLength: 0)
             Button(action: close) { Image(systemName: "xmark.circle.fill").font(.title2).foregroundStyle(.secondary) }
@@ -2103,6 +2380,26 @@ struct LiveGuideRouteCard: View {
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("tour.routeCard")
+    }
+}
+
+/// "19 min  17 mi" in the traveler's locale and units.
+struct RouteETA: View {
+    let route: GuideRoute
+    var body: some View {
+        HStack(spacing: 6) {
+            if let minutes = route.minutes {
+                Text(Duration.seconds(minutes * 60).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated)))
+                    .font(.subheadline.weight(.semibold))
+            }
+            if let meters = route.meters {
+                Text(Measurement(value: Double(meters), unit: UnitLength.meters)
+                    .formatted(.measurement(width: .abbreviated, usage: .road)))
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
     }
 }
 
@@ -2246,45 +2543,6 @@ struct PicksResponse: Decodable, Sendable {
     let picks: [PipPick]
 }
 
-/// A card for one of Pip's picks: name, stars and Pip's reason. Tap to show it on the map.
-struct PipPickCard: View {
-    let pick: PipPick
-    let selected: Bool
-    let show: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button(action: show) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: pick.name).font(.subheadline.weight(.semibold)).lineLimit(2)
-                        .foregroundStyle(.primary)
-                    if let rating = pick.rating {
-                        HStack(spacing: 3) {
-                            Image(systemName: "star.fill").foregroundStyle(.orange).accessibilityHidden(true)
-                            Text(rating.formatted(.number.precision(.fractionLength(1))))
-                            if let count = pick.user_rating_count {
-                                Text(verbatim: "(\(count.formatted()))").foregroundStyle(.secondary)
-                            }
-                        }
-                        .font(.caption.weight(.semibold))
-                    }
-                    if let reason = pick.reason {
-                        Text(verbatim: reason).font(.caption).foregroundStyle(.blue).lineLimit(2)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(10)
-        .frame(width: 190, alignment: .leading)
-        .background(Color.secondary.opacity(selected ? 0.22 : 0.1), in: RoundedRectangle(cornerRadius: 14))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("guide.pick.\(pick.id)")
-    }
-}
-
 /// Apple supplies preview geometry independently of the planner's route provider.
 private struct AppleTourPreview: View {
     let plan: GuideTourPlan
@@ -2301,7 +2559,9 @@ private struct AppleTourPreview: View {
                     Marker("\((index + 1).formatted()). \(stop.place.name)", coordinate: CLLocationCoordinate2D(latitude: stop.place.latitude, longitude: stop.place.longitude))
                 }
                 ForEach(plan.walking_segments ?? [], id: \.place.id) { walk in
-                    Marker(walk.place.name, systemImage: "figure.walk", coordinate: CLLocationCoordinate2D(latitude: walk.place.latitude, longitude: walk.place.longitude))
+                    ForEach(walk.visits) { place in
+                        Marker(place.name, systemImage: "figure.walk", coordinate: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
+                    }
                 }
                 Marker("Destination", systemImage: "flag.checkered", coordinate: coordinate(plan.destination))
                 ForEach(Array(routes.enumerated()), id: \.offset) { _, route in
@@ -2338,8 +2598,8 @@ private struct AppleTourPreview: View {
         for walk in plan.walking_segments ?? [] {
             guard let anchor = plan.stops.first(where: { $0.place.id == walk.anchor_id }) else { continue }
             let from = CLLocationCoordinate2D(latitude: anchor.place.latitude, longitude: anchor.place.longitude)
-            let to = CLLocationCoordinate2D(latitude: walk.place.latitude, longitude: walk.place.longitude)
-            legs += [(from, to, true), (to, from, true)]
+            let points = [from] + walk.visits.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } + [from]
+            legs += zip(points, points.dropFirst()).map { ($0.0, $0.1, true) }
         }
         var calculated: [MKRoute] = []
         do {
@@ -2452,7 +2712,7 @@ private struct TourBuilderView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    if let message = guide.tourNotice {
+                    if let message = guide.tourNotice, !preview {
                         Label { Text(LocalizedStringKey(message)) } icon: { Image(systemName: "info.circle") }
                             .font(.subheadline)
                             .accessibilityIdentifier("tourBuilder.notice")
@@ -2492,6 +2752,9 @@ private struct TourBuilderView: View {
                                 .accessibilityIdentifier("tourBuilder.activities")
                             if transportModes.contains("walking") && transportModes.contains("driving") {
                                 Text("Drive to your chosen area, then explore on foot. Travel time is included.")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            } else if transportModes.contains("walking") && !transportModes.isDisjoint(with: ["transit", "rideshare"]) {
+                                Text("Travel to your chosen area, then explore on foot. Travel time is included.")
                                     .font(.footnote).foregroundStyle(.secondary)
                             } else {
                                 Text("Leave blank to let Pip choose. The tour starts in your chosen area. Travel there is not included.")
@@ -2723,7 +2986,7 @@ private struct TourBuilderView: View {
         AppleTourPreview(plan: plan)
         Text("About \(Int(ceil(Double(plan.estimated_seconds) / 60))) minutes in total").font(.title2.bold())
         if plan.round_trip { Label("Return to where I started", systemImage: "arrow.uturn.backward").font(.subheadline) }
-        if let walk = plan.walking_seconds, let drive = plan.driving_seconds {
+        if plan.mode == "mixed", let walk = plan.walking_seconds, let drive = plan.driving_seconds {
             Text("Walking: \(Int(ceil(Double(walk) / 60))) min · Driving: \(Int(ceil(Double(drive) / 60))) min").font(.subheadline)
         }
         if let title = transportOptions.first(where: { $0.0 == plan.mode })?.1 {
@@ -2746,10 +3009,20 @@ private struct TourBuilderView: View {
                             if let name = author.displayName { Text(verbatim: name).font(.caption2).foregroundStyle(.secondary) }
                         }
                     }
-                    Text(LocalizedStringKey(stop.reason == "transport_change" ? "Park here, then walk" : stop.visit_kind == "pass_by" ? "Hear the story while passing" : stop.place.categories.contains("food") ? "Food stop" : "Time to explore")).font(.subheadline).foregroundStyle(.secondary)
+                    Text(LocalizedStringKey(stop.reason == "transport_change" ? "Park here, then walk" : stop.reason == "arrival_transfer" ? "Arrive here, then walk" : stop.visit_kind == "pass_by" ? "Hear the story while passing" : stop.place.categories.contains("food") ? "Food stop" : "Time to explore")).font(.subheadline).foregroundStyle(.secondary)
                     if stop.reason == "interest_match" { Text("Matches your interests").font(.caption).foregroundStyle(.secondary) }
                     if let walk = plan.walking_segments?.first(where: { $0.anchor_id == stop.place.id }) {
-                        Text("Walk to \(walk.place.name) and return").font(.subheadline)
+                        ForEach(Array(walk.visits.enumerated()), id: \.element.id) { offset, place in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(verbatim: "\(offset + 1). \(place.name)").font(.subheadline.weight(.semibold))
+                                if let summary = place.google_summary { Text(verbatim: summary).font(.subheadline) }
+                                if let address = place.google_address { Text(verbatim: address).font(.caption).foregroundStyle(.secondary) }
+                                if let raw = place.google_maps_uri, let url = URL(string: raw), url.scheme == "https" {
+                                    Link("Google Maps", destination: url).font(.caption).frame(minHeight: 44)
+                                }
+                            }
+                        }
+                        Text("Places and ratings from Google Maps.").font(.caption2).foregroundStyle(.secondary)
                     }
                 }
             }.padding(.vertical, 5)
@@ -2757,7 +3030,7 @@ private struct TourBuilderView: View {
         if plan.food_status == "not_included" { Text("No food stop fits this tour. Adjust the time or preferences to try again.").font(.footnote) }
         if plan.food_status == "unverified_dietary" { Text("Menus and dietary suitability need to be confirmed with the venue.").font(.footnote) }
         Text("Estimates may change. Confirm opening hours and access before visiting.").font(.footnote).foregroundStyle(.secondary)
-        Button("Start Tour") { guide.beginTour(plan); if guide.enabled { dismiss() } }
+        Button("Start Tour") { var named = plan; named.name = tourName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : tourName; guide.beginTour(named); if guide.enabled { dismiss() } }
             .frame(maxWidth: .infinity, minHeight: 52).buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
             .accessibilityIdentifier("tourBuilder.start")
         TextField("Tour name", text: $tourName)
@@ -2769,41 +3042,90 @@ private struct TourBuilderView: View {
             }.disabled(guide.downloadingTour).frame(minHeight: 44)
             .accessibilityIdentifier("tourBuilder.download")
         }
+        if let message = guide.tourNotice {
+            if message == "Ready Offline. Pip’s stories and OpenAI voice are downloaded." {
+                Label("Tour downloaded", systemImage: "checkmark.circle.fill")
+                    .accessibilityIdentifier("tourBuilder.downloadComplete")
+                if guide.downloadedTours.first?.offline_package?.omitted_waypoints?.isEmpty == false {
+                    Text("Some stops are unavailable offline. Review the saved stops before starting.")
+                        .font(.footnote).accessibilityIdentifier("tour.omittedStops")
+                }
+            } else {
+                Text(LocalizedStringKey(message)).font(.subheadline)
+                    .accessibilityIdentifier("tourBuilder.notice")
+            }
+        }
         if guide.downloadingTour {
             Text(Int64(guide.downloadBytes), format: .byteCount(style: .file)).font(.caption)
         }
-        Text("Downloads include OpenAI stories, voice and prepared answers. Road maps and rerouting are not included.").font(.footnote).foregroundStyle(.secondary)
+        Text("Downloads include available sourced stories and voice.").font(.footnote).foregroundStyle(.secondary)
         Text("Places and routes from Google Maps.").font(.caption2).foregroundStyle(.secondary)
+        if !guide.downloadingTour {
+            Button("Plan Another Tour") { tourName = ""; guide.planAnotherTour() }
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .accessibilityIdentifier("tourBuilder.planAnother")
+        }
     }
 }
 
+
+/// Equal-size icon-over-label tour button, so a row of them reads as one group.
+struct TourControlButton: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage).font(.title3)
+                Text(title).font(.footnote.weight(.semibold)).lineLimit(2).multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, minHeight: 56)
+        }
+        .buttonStyle(.bordered).buttonBorderShape(.roundedRectangle(radius: 14))
+    }
+}
+
+/// Repeat, Pause/Resume and Skip in the familiar media-player order.
+struct OfflineTourPlaybackControls: View {
+    let guide: LiveGuideStore
+    var body: some View {
+        HStack(spacing: 8) {
+            TourControlButton(title: "Repeat", systemImage: "backward.end.fill") { guide.repeatOffline() }
+            TourControlButton(title: LocalizedStringKey(guide.offlinePaused ? "Resume" : "Pause"),
+                              systemImage: guide.offlinePaused ? "play.fill" : "pause.fill") {
+                guide.offlinePaused ? guide.resumeOffline() : guide.pauseOffline()
+            }
+            TourControlButton(title: "Skip", systemImage: "forward.end.fill") { guide.skipAnnouncement() }
+        }
+    }
+}
+
+/// Prepared offline answers for the current stop.
+struct OfflineTourQuestions: View {
+    @Bindable var guide: LiveGuideStore
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(guide.offlineAnswers) { answer in
+                Button { guide.playOfflineStory(answer.id) } label: { Text(verbatim: answer.question ?? answer.title) }.frame(minHeight: 44)
+            }
+            HStack {
+                TextField("Your question", text: $guide.offlineQuestion).textFieldStyle(.roundedBorder)
+                    .onSubmit { guide.askOfflineQuestion() }
+                Button("Ask") { guide.askOfflineQuestion() }.frame(minWidth: 44, minHeight: 44)
+            }
+            Text("Offline answers are prepared in advance. Current hours and conditions need internet.").font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+}
 
 struct OfflineTourControls: View {
     @Bindable var guide: LiveGuideStore
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Button { guide.offlinePaused ? guide.resumeOffline() : guide.pauseOffline() } label: {
-                    Label { Text(LocalizedStringKey(guide.offlinePaused ? "Resume" : "Pause")) } icon: { Image(systemName: guide.offlinePaused ? "play.fill" : "pause.fill") }
-                }
-                Button("Repeat", systemImage: "backward.end.fill") { guide.repeatOffline() }
-                Button("Skip", systemImage: "forward.end.fill") { guide.skipAnnouncement() }
-            }.buttonStyle(.bordered).frame(minHeight: 44)
-            ForEach(guide.offlineStories) { story in
-                Button { guide.playOfflineStory(story.id) } label: { Label(story.title, systemImage: "book") }.frame(minHeight: 44)
-            }
-            DisclosureGroup("Ask about this stop") {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(guide.offlineAnswers) { answer in
-                        Button { guide.playOfflineStory(answer.id) } label: { Text(verbatim: answer.question ?? answer.title) }.frame(minHeight: 44)
-                    }
-                    HStack {
-                        TextField("Your question", text: $guide.offlineQuestion).textFieldStyle(.roundedBorder)
-                            .onSubmit { guide.askOfflineQuestion() }
-                        Button("Ask") { guide.askOfflineQuestion() }.frame(minWidth: 44, minHeight: 44)
-                    }
-                    Text("Offline answers are prepared in advance. Current hours and conditions need internet.").font(.footnote).foregroundStyle(.secondary)
-                }
+            OfflineTourPlaybackControls(guide: guide)
+            if guide.activeTour?.plan.offline_package?.version != 3 {
+                DisclosureGroup("Ask about this stop") { OfflineTourQuestions(guide: guide) }
             }
             if guide.networkAvailable {
                 Button("Talk to Pip online", systemImage: "waveform") { guide.toggleConversation() }.frame(minHeight: 44)
@@ -2816,26 +3138,56 @@ struct OfflineTourControls: View {
 /// rename it or delete it; swipe to delete here too, the familiar iOS way.
 struct MyToursView: View {
     @Bindable var guide: LiveGuideStore
+    var onStart: () -> Void = {}
+    var createTour: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
+    @State private var deletingTourID: String?
+    @State private var confirmDelete = false
     var body: some View {
         NavigationStack {
             Group {
-                if guide.downloadedTours.isEmpty {
+                if guide.downloadedTours.isEmpty && !guide.downloadingTour {
                     ContentUnavailableView("No saved tours yet", systemImage: "list.bullet",
                                            description: Text("Download a tour to play it here later, even offline."))
                 } else {
                     List {
+                        if guide.downloadingTour {
+                            TourDownloadProgressRow(guide: guide)
+                        }
                         ForEach(guide.downloadedTours, id: \.id) { plan in
-                            NavigationLink { DownloadedTourView(guide: guide, tourID: plan.id) } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(verbatim: plan.displayName).font(.headline)
-                                    Text("\(plan.stops.count) stops · \(plan.duration_minutes) min")
-                                        .font(.subheadline).foregroundStyle(.secondary)
+                            HStack(spacing: 12) {
+                                // Play starts straight away; the row opens details.
+                                if guide.activeTour?.plan.id != plan.id {
+                                    let resume = guide.hasSavedProgress(plan)
+                                    Button { guide.startSavedTour(plan, resume: resume); onStart() } label: {
+                                        Image(systemName: "play.fill").font(.title3)
+                                            .frame(width: 48, height: 48)
+                                            .background(Color.accentColor, in: Circle())
+                                            .foregroundStyle(.white)
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .accessibilityLabel(Text(resume ? "Resume Tour" : "Start Tour"))
+                                    .accessibilityIdentifier("myTours.play.\(plan.id)")
+                                } else {
+                                    Image(systemName: "waveform").font(.title3).foregroundStyle(Color.accentColor)
+                                        .symbolEffect(.variableColor.iterative)
+                                        .frame(width: 48, height: 48)
+                                        .accessibilityHidden(true)
                                 }
-                                .padding(.vertical, 4)
+                                NavigationLink { DownloadedTourView(guide: guide, tourID: plan.id, onStart: onStart) } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(verbatim: plan.displayName).font(.headline)
+                                        Text("\(plan.stops.count) stops · \(plan.duration_minutes) min")
+                                            .font(.subheadline).foregroundStyle(.secondary)
+                                    }
+                                    .padding(.vertical, 4)
+                                }
                             }
-                            .swipeActions {
-                                Button("Delete", systemImage: "trash", role: .destructive) { guide.deleteTour(plan.id) }
+                            .swipeActions(allowsFullSwipe: false) {
+                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                    deletingTourID = plan.id
+                                    confirmDelete = true
+                                }
                             }
                         }
                     }
@@ -2843,8 +3195,46 @@ struct MyToursView: View {
             }
             .navigationTitle("My Tours")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .alert("Delete this tour?", isPresented: $confirmDelete) {
+                Button("Delete", role: .destructive) {
+                    if let deletingTourID { guide.deleteTour(deletingTourID) }
+                    deletingTourID = nil
+                }
+                Button("Cancel", role: .cancel) { deletingTourID = nil }
+            } message: {
+                Text("This removes the downloaded tour from this iPhone. It cannot be undone.")
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { createTour() } label: { Label("New Tour", systemImage: "plus") }
+                        .disabled(!guide.networkAvailable)
+                        .accessibilityIdentifier("myTours.createTour")
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if !guide.networkAvailable {
+                    Text("You’re offline. Connect to the internet to plan a new tour.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                        .padding()
+                }
+            }
         }
+    }
+}
+
+struct TourDownloadProgressRow: View {
+    let guide: LiveGuideStore
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Downloading tour…").font(.headline)
+            ProgressView(value: guide.downloadProgress)
+            Text(guide.downloadProgress, format: .percent.precision(.fractionLength(0)))
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("tour.downloadProgress")
     }
 }
 
@@ -2853,11 +3243,14 @@ struct MyToursView: View {
 struct DownloadedTourView: View {
     @Bindable var guide: LiveGuideStore
     let tourID: String
+    var onStart: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @State private var renaming = false
     @State private var newName = ""
     @State private var confirmDelete = false
+    @State private var roadMap: GuideRoadMapData?
+    @State private var showSources = false
     private var plan: GuideTourPlan? { guide.downloadedTours.first { $0.id == tourID } }
     /// Pushed from My Tours, so this relies on that screen's own navigation bar and back button.
     var body: some View {
@@ -2865,12 +3258,34 @@ struct DownloadedTourView: View {
             VStack(alignment: .leading, spacing: 18) {
                 if let plan {
                     Text("Pip’s voice is AI-generated.").font(.footnote).foregroundStyle(.secondary)
-                    Text("Downloaded route stops · No offline road maps or rerouting").font(.footnote)
+                    if plan.offline_package?.omitted_waypoints?.isEmpty == false {
+                        Text("Some stops are unavailable offline. Review the saved stops before starting.")
+                            .font(.footnote).accessibilityIdentifier("tour.omittedStops")
+                    }
+                    if let roads = roadMap {
+                        OfflineRoadMapView(data: roads, stops: plan.stops,
+                                           location: guide.activeTour?.plan.id == tourID ? guide.offlineLocation : nil,
+                                           origin: .init(latitude: plan.origin.latitude, longitude: plan.origin.longitude))
+                            .frame(height: 300).clipShape(RoundedRectangle(cornerRadius: 16))
+                        Text("Downloaded roads · No offline rerouting").font(.footnote)
+                    }
                     if guide.activeTour?.plan.id != tourID {
-                        Button("Play downloaded tour", systemImage: "play.fill") { guide.beginTour(plan) }
-                            .buttonStyle(.borderedProminent).frame(minHeight: 48)
+                        if guide.hasSavedProgress(plan) {
+                            Button("Resume Tour", systemImage: "play.fill") { guide.startSavedTour(plan, resume: true); onStart() }
+                                .buttonStyle(.borderedProminent).frame(minHeight: 48).accessibilityIdentifier("myTours.resume")
+                            Button("Start Again") { guide.startSavedTour(plan, resume: false); onStart() }
+                                .frame(minHeight: 44).accessibilityIdentifier("myTours.restart")
+                        } else {
+                            Button("Start Tour", systemImage: "play.fill") { guide.startSavedTour(plan, resume: false); onStart() }
+                                .buttonStyle(.borderedProminent).frame(minHeight: 48).accessibilityIdentifier("myTours.start")
+                        }
                     } else {
+                        TourNavigationControls(guide: guide)
                         OfflineTourControls(guide: guide)
+                    }
+                    if plan.offline_package?.version == 3 {
+                        Label("Tour downloaded", systemImage: "checkmark.circle.fill").accessibilityIdentifier("tour.downloadComplete")
+                        Button("Sources and licenses") { showSources = true }.frame(minHeight: 44).accessibilityIdentifier("tour.sources")
                     }
                     if let mention = guide.lastMention { Text(verbatim: mention.placeName).font(.headline); Text(verbatim: mention.text) }
                     if let notice = guide.tourNotice { Text(LocalizedStringKey(notice)).foregroundStyle(.secondary) }
@@ -2878,11 +3293,24 @@ struct DownloadedTourView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("\(index + 1). \(stop.place.name)").font(.headline)
                             if let image = plan.offline_package?.images?.first(where: { $0.stop_index == index }) { OfflineTourImageView(image: image) }
-                            Text(verbatim: plan.offline_package?.clips.first(where: { $0.id == "stop_\(index)" })?.text ?? stop.place.summary ?? "").font(.body)
-                            if let raw = stop.place.wikipedia_url, let url = URL(string: raw) { Link("Story source", destination: url) }
+                            if let story = plan.offline_package?.clips.first(where: { $0.id == "stop_\(index)" }) {
+                                Text(verbatim: story.text).font(.body)
+                            } else { Text("No sourced story is available for this stop.").font(.footnote).foregroundStyle(.secondary) }
+                            if let raw = stop.place.wikipedia_url, let url = URL(string: raw) {
+                                Link("Story source", destination: url)
+                                Link("CC BY-SA 4.0", destination: URL(string: "https://creativecommons.org/licenses/by-sa/4.0/")!)
+                            }
+                            if let raw = stop.place.coordinate_source, let url = URL(string: raw), url.host == "www.openstreetmap.org" {
+                                Link("OpenStreetMap", destination: url).font(.caption).frame(minHeight: 44)
+                                Link("ODbL", destination: URL(string: "https://www.openstreetmap.org/copyright")!).font(.caption).frame(minHeight: 44)
+                            }
                         }
                     }
                     Text(plan.attribution ?? "").font(.caption2).foregroundStyle(.secondary)
+                    Button("Delete", systemImage: "trash", role: .destructive) { confirmDelete = true }
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("myTours.delete")
                 }
             }.padding()
         }
@@ -2909,7 +3337,10 @@ struct DownloadedTourView: View {
         } message: {
             Text("This removes the downloaded tour from this iPhone. It cannot be undone.")
         }
-        .onAppear { guide.setForeground(true) }
+        .sheet(isPresented: $showSources) {
+            if let package = plan?.offline_package { OfflineTourSourcesView(package: package) }
+        }
+        .onAppear { roadMap = plan?.offline_package?.road_map?.decoded(); guide.setForeground(true) }
         .onChange(of: scenePhase) { _, phase in guide.setForeground(phase == .active) }
         .onChange(of: plan == nil) { _, missing in if missing { dismiss() } }
     }
@@ -2921,8 +3352,227 @@ struct OfflineTourImageView: View {
     var body: some View {
         if let data = Data(base64Encoded: image.data), let uiImage = UIImage(data: data) {
             Image(uiImage: uiImage).resizable().scaledToFit().frame(maxHeight: 220).accessibilityHidden(true)
-            Text(verbatim: image.credit + " · " + image.license).font(.caption2).foregroundStyle(.secondary)
+            Text(verbatim: image.credit + " · " + image.license + " · " + image.modified).font(.caption2).foregroundStyle(.secondary)
+            if let license = URL(string: image.license_url) { Link(image.license, destination: license).font(.caption).frame(minHeight: 44) }
             if let url = URL(string: image.source) { Link("Photo source", destination: url).font(.caption).frame(minHeight: 44) }
+        }
+    }
+}
+
+/// A local vector renderer. No MapKit tiles, network calls or computed directions.
+struct OfflineRoadMapView: View {
+    let data: GuideRoadMapData
+    let stops: [GuideTourPlan.Stop]
+    let location: GuideRoute.Point?
+    var origin: GuideRoute.Point? = nil
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var zoom: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var following = false
+    @GestureState private var drag: CGSize = .zero
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            let targets = stops.map { GuideRoute.Point(latitude: $0.place.latitude, longitude: $0.place.longitude) } + (origin.map { [$0] } ?? [])
+            let south = (targets.map(\.latitude).min() ?? data.bounds.south) - 0.002
+            let north = (targets.map(\.latitude).max() ?? data.bounds.north) + 0.002
+            let west = (targets.map(\.longitude).min() ?? data.bounds.west) - 0.002
+            let east = (targets.map(\.longitude).max() ?? data.bounds.east) + 0.002
+            let width = max(0.00001, (east - west) * cos((south + north) / 2 * .pi / 180))
+            let height = max(0.00001, north - south)
+            let unit = min(max(1, size.width - 40) / width, max(1, size.height - 40) / height) * zoom
+            let center = following ? location : nil
+            let latitude = center?.latitude ?? (south + north) / 2
+            let longitude = center?.longitude ?? (west + east) / 2
+            let cosine = cos((south + north) / 2 * .pi / 180)
+            let shift = CGSize(width: offset.width + drag.width, height: offset.height + drag.height)
+            let point: (GuideRoute.Point) -> CGPoint = { coordinate in
+                CGPoint(x: size.width / 2 + (coordinate.longitude - longitude) * cosine * unit + shift.width,
+                        y: size.height / 2 - (coordinate.latitude - latitude) * unit + shift.height)
+            }
+            Canvas { context, _ in
+                for road in data.roads {
+                    let minor = ["service", "footway", "path", "steps", "cycleway", "track"].contains(road.kind)
+                    if minor && zoom < 4 { continue }
+                    var path = Path()
+                    for (index, coordinate) in road.points.enumerated() {
+                        let position = point(coordinate)
+                        if index == 0 { path.move(to: position) } else { path.addLine(to: position) }
+                    }
+                    let major = ["motorway", "trunk", "primary", "secondary"].contains(road.kind.replacingOccurrences(of: "_link", with: ""))
+                    let walking = ["footway", "path", "steps", "cycleway"].contains(road.kind)
+                    let roadColor: Color = colorScheme == .dark ? (major ? .white : .gray) : Color(white: major ? 0.32 : 0.5)
+                    context.stroke(path, with: .color(roadColor), style: StrokeStyle(lineWidth: major ? 2.4 : 0.8,
+                                    lineCap: .round, lineJoin: .round, dash: walking ? [3, 3] : []))
+                }
+                // Measure labels so long names cannot overlap their neighbours.
+                var names = Set<String>()
+                var occupied: [CGRect] = []
+                if zoom >= 2 {
+                    let priority = ["motorway", "trunk", "primary", "secondary", "tertiary", "residential"]
+                    let roads = data.roads.sorted {
+                        (priority.firstIndex(of: $0.kind) ?? 99) < (priority.firstIndex(of: $1.kind) ?? 99)
+                    }
+                    for road in roads where !road.name.isEmpty && !road.points.isEmpty {
+                        guard names.count < (zoom >= 8 ? 24 : 12), !names.contains(road.name) else { continue }
+                        let position = point(road.points[road.points.count / 2])
+                        let text = context.resolve(Text(verbatim: road.name).font(.caption).foregroundColor(.primary))
+                        let measured = text.measure(in: CGSize(width: 1000, height: 40))
+                        let rect = CGRect(x: position.x - measured.width / 2 - 5, y: position.y - measured.height / 2 - 5,
+                                          width: measured.width + 10, height: measured.height + 10)
+                        guard measured.width < size.width * 0.6, CGRect(origin: .zero, size: size).contains(rect),
+                              !occupied.contains(where: { $0.intersects(rect) }) else { continue }
+                        occupied.append(rect); names.insert(road.name)
+                        context.draw(text, at: position)
+                    }
+                }
+                var pins: [(CGPoint, [Int])] = []
+                for (index, stop) in stops.enumerated() {
+                    let position = point(.init(latitude: stop.place.latitude, longitude: stop.place.longitude))
+                    if let nearby = pins.firstIndex(where: { hypot($0.0.x - position.x, $0.0.y - position.y) < 32 }) {
+                        pins[nearby].1.append(index + 1)
+                    } else { pins.append((position, [index + 1])) }
+                }
+                for (position, numbers) in pins {
+                    let title = numbers.map { $0.formatted() }.joined(separator: ", ")
+                    let width = max(26, CGFloat(title.count * 7 + 12))
+                    let badge = CGRect(x: position.x - width / 2, y: position.y - 13, width: width, height: 26)
+                    context.fill(Path(roundedRect: badge, cornerRadius: 13), with: .color(.red))
+                    context.draw(Text(title).font(.caption.bold()).foregroundColor(.white), at: position)
+                }
+                if let location {
+                    let position = point(location)
+                    context.fill(Path(ellipseIn: CGRect(x: position.x - 11, y: position.y - 11, width: 22, height: 22)), with: .color(.white))
+                    context.fill(Path(ellipseIn: CGRect(x: position.x - 7, y: position.y - 7, width: 14, height: 14)), with: .color(.blue))
+                    context.stroke(Path(ellipseIn: CGRect(x: position.x - 11, y: position.y - 11, width: 22, height: 22)), with: .color(.black), lineWidth: 1)
+                }
+            }
+            .background(colorScheme == .dark ? Color(white: 0.12) : Color(white: 0.95))
+            .clipped()
+            .contentShape(Rectangle())
+            .gesture(DragGesture().updating($drag) { value, state, _ in state = value.translation }
+                .onEnded { value in
+                    offset.width += value.translation.width
+                    offset.height += value.translation.height
+                })
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Offline road map"))
+            .accessibilityValue(stops.enumerated().map { "\($0.offset + 1). \($0.element.place.name)" }.joined(separator: ", "))
+            .accessibilityIdentifier("tour.offlineRoadMap")
+            .overlay(alignment: .topTrailing) {
+                VStack(spacing: 4) {
+                    Button { zoom = min(64, zoom * 2) } label: { Image(systemName: "plus").frame(width: 44, height: 44) }
+                        .accessibilityLabel(Text("Zoom in"))
+                    Button { zoom = max(1, zoom / 2); offset = .zero } label: { Image(systemName: "minus").frame(width: 44, height: 44) }
+                        .accessibilityLabel(Text("Zoom out"))
+                    Button { following = location != nil; offset = .zero; zoom = following ? max(zoom, 4) : 1 } label: {
+                        Image(systemName: "location.fill").frame(width: 44, height: 44)
+                    }.accessibilityLabel(Text("Recenter"))
+                }
+                .buttonStyle(.plain).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)).padding(12)
+            }
+            .overlay(alignment: .bottomLeading) {
+                Link("© OpenStreetMap contributors", destination: URL(string: data.license_url)!)
+                    .font(.caption).padding(8).frame(minHeight: 44)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8)).padding(8)
+            }
+        }
+    }
+}
+
+
+/// Directions for the next stop. With `endTour`, the action sits beside an End Tour button.
+struct TourNavigationControls: View {
+    @Bindable var guide: LiveGuideStore
+    var endTour: (() -> Void)? = nil
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    var body: some View {
+        if let progress = guide.activeTour {
+            if progress.navigationMode == "rideshare", !progress.needsWalkingConfirmation {
+                Text("Confirm pickup, price and booking in the ride app. Internet is required.").font(.footnote).foregroundStyle(.secondary)
+            } else if !progress.needsWalkingConfirmation, guide.networkAvailable, ["walking", "driving"].contains(progress.navigationMode) {
+                if guide.navigator.loading { ProgressView("Finding directions…") }
+                if !guide.navigator.instruction.isEmpty {
+                    Text(verbatim: guide.navigator.instruction).font(.headline).accessibilityIdentifier("tour.nextTurn")
+                }
+                if guide.navigator.unavailable { Text("Navigation is unavailable. Try again online.").font(.footnote) }
+            }
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+            layout {
+                primaryAction(progress)
+                if let endTour {
+                    Button(role: .destructive, action: endTour) {
+                        Label("End Tour", systemImage: "stop.fill").frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.bordered).buttonBorderShape(.capsule)
+                    .accessibilityIdentifier("liveGuide.enabled")
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+        }
+    }
+
+    @ViewBuilder private func primaryAction(_ progress: GuideTourProgress) -> some View {
+        if progress.needsWalkingConfirmation {
+            Button { guide.confirmWalking() } label: {
+                Label("Start walking", systemImage: "figure.walk").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).accessibilityIdentifier("tour.confirmWalking")
+        } else if progress.navigationMode == "rideshare" {
+            Menu {
+                Button("Uber") { guide.openNavigation(provider: "uber") }
+                Button("Lyft") { guide.openNavigation(provider: "lyft") }
+            } label: {
+                Label("Book a ride", systemImage: "car.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).accessibilityIdentifier("tour.bookRide")
+        } else {
+            Button { guide.openNavigation() } label: {
+                Label(LocalizedStringKey(progress.navigationMode == "transit" ? "Transit directions" : "Open Maps"), systemImage: "arrow.triangle.turn.up.right.diamond.fill")
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).accessibilityIdentifier("tour.openAppleMaps")
+        }
+    }
+}
+
+struct OfflineTourSourcesView: View {
+    let package: GuideOfflinePackage
+    @Environment(\.dismiss) private var dismiss
+    @State private var exportURL: URL?
+    var body: some View {
+        NavigationStack {
+            List {
+                if let modifications = package.modifications { Text(verbatim: modifications).font(.footnote) }
+                ForEach(package.sources ?? [], id: \.stop_index) { source in
+                    Section {
+                        Text(verbatim: source.attribution)
+                        Text(verbatim: source.revision_date).font(.caption)
+                        if let url = URL(string: source.revision_url) { Link("Story source", destination: url) }
+                        Text(verbatim: source.source_modifications).font(.caption)
+                        DisclosureGroup { Text(verbatim: source.excerpt).font(.body) } label: { Text(verbatim: source.title) }
+                    } header: { Text(verbatim: source.title) }
+                }
+                ForEach((package.licenses ?? [:]).keys.sorted(), id: \.self) { key in
+                    if let license = package.licenses?[key] {
+                        DisclosureGroup(license.name) { Text(verbatim: license.text).font(.caption).textSelection(.enabled) }
+                            .accessibilityIdentifier("tour.sourceLicense.\(key)")
+                    }
+                }
+                if let exportURL { ShareLink(item: exportURL) { Label("Share stories and sources", systemImage: "square.and.arrow.up") } }
+            }
+            .navigationTitle("Sources and licenses").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.accessibilityIdentifier("tour.sourcesDone") } }
+            .task {
+                // Only licensed content is exported, without the traveler's start location or progress.
+                let url = FileManager.default.temporaryDirectory.appending(path: "pippipgo-stories-\(UUID().uuidString).json")
+                if let data = try? JSONEncoder().encode(package) {
+                    do { try data.write(to: url, options: .atomic); exportURL = url } catch { exportURL = nil }
+                }
+            }
+            .onDisappear { if let exportURL { try? FileManager.default.removeItem(at: exportURL) } }
         }
     }
 }

@@ -182,6 +182,8 @@ final class VoiceAudio: @unchecked Sendable {
     @MainActor var hasPendingPlayback: Bool { queuedFrames > 0 }
     private var generation = UUID()
     private let playbackFormat = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!
+    /// Silences spoken output only; playback timing and the microphone are unchanged.
+    @MainActor var muted = false { didSet { player.volume = muted ? 0 : 1 } }
 
     @MainActor func start() async throws -> AsyncThrowingStream<Data, Error> {
         guard !stopped else { throw CancellationError() }
@@ -230,6 +232,7 @@ final class VoiceAudio: @unchecked Sendable {
             tapped = true
         }
         try engine.start()
+        player.volume = muted ? 0 : 1
         player.play()
         return stream
     }
@@ -403,6 +406,8 @@ final class LiveVoiceStore {
     private var socket: URLSessionWebSocketTask?
     private var session: URLSession?
     private var audio: VoiceAudio?
+    /// Spoken replies are silent; transcripts still update. Kept across sessions until turned off.
+    var muted = false { didSet { audio?.muted = muted } }
     /// Read-only presentation state from the existing playback queue.
     var isPlayingResponse: Bool { audio?.hasPendingPlayback == true }
     private let client: APIClient
@@ -510,7 +515,7 @@ final class LiveVoiceStore {
                             return
                         }
                         guard !connected else { continue }
-                        let audio = VoiceAudio(); self.audio = audio
+                        let audio = VoiceAudio(); audio.muted = muted; self.audio = audio
                         let stream = try await audio.start()
                         guard self.epoch == ticket, !Task.isCancelled else { audio.stop(); return }
                         connected = true; watchdog?.cancel()

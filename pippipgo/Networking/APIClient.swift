@@ -151,7 +151,7 @@ struct APIClient: Sendable {
         components.fragment = nil
         if case .sync(let cursor) = operation.endpoint { components.queryItems = [.init(name: "after", value: String(cursor))] }
         guard let url = components.url else { throw APIClientError.invalidRequest("Invalid backend URL.") }
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 65)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: operation.endpoint == .guideTourOffline ? 180 : 65)
         request.httpMethod = operation.method
         request.httpBody = operation.body
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
