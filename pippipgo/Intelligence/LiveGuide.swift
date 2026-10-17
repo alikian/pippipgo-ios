@@ -1315,11 +1315,21 @@ struct LiveGuideTab: View {
     }
 
     var body: some View {
-        adaptiveMap
+        ZStack {
+            if showTourBuilder {
+                // Even a covered SwiftUI Map receives keyboard inset updates on the
+                // physical phone. Detach it while editing; camera/route state stays here.
+                Color(.systemBackground)
+            } else {
+                adaptiveMap
+            }
+        }
             .ignoresSafeArea(.keyboard)
             .overlay(alignment: .top) {
-                topBar
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topBarHeight = $0 }
+                if !showTourBuilder {
+                    topBar
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topBarHeight = $0 }
+                }
             }
             .onAppear {
                 locateMapInitially()
@@ -1406,7 +1416,10 @@ struct LiveGuideTab: View {
                 mapLocationFeed = nil
                 nearby.stop()
             }
-            .sheet(isPresented: $showTourBuilder, onDismiss: { guide.cancelTourPlanning() }) {
+            // Editing in a sheet over the live Map triggers MapKit edge-inset/corner
+            // observation loops on the connected iOS 27 phone when its keyboard opens.
+            // Present full-screen while the background map is detached above.
+            .fullScreenCover(isPresented: $showTourBuilder, onDismiss: { guide.cancelTourPlanning() }) {
                 TourBuilderView(guide: guide, location: lastLocation, profileInterests: profileInterests, editActiveTour: editActiveTour)
             }
             .sheet(isPresented: $showMyTours) { MyToursView(guide: guide) }
@@ -1529,7 +1542,8 @@ struct LiveGuideTab: View {
                     .tint(.red)
             }
         }
-        // Keep the Metal-backed map alive; only annotation content changes identity.
+        // Keep the Metal-backed map alive across tab/annotation changes. The tour
+        // editor temporarily detaches it to avoid the device keyboard observation loop.
         .onChange(of: guide.route) { _, route in
             // Show the whole walk: traveler and destination together.
             if route != nil { withAnimation { position = .automatic } }

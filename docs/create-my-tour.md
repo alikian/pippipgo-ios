@@ -107,3 +107,15 @@ Passed October 16 on an isolated iPhone 16 / iOS 18.6 simulator with ad-hoc sign
 Backend deployment is required before updated app rollout and remains pending for both Dev and Prod. See backend `docs/create-my-tour.md` for routing budgets and transit/ride-share limitations. No organizer-data migration is required.
 
 Integration on current develop preserved the adaptive iPad map sidebar while measuring the independent viewport. Both tour UI tests passed again after this merge (2 tests, 0 failures; `/private/tmp/pippipgo-develop-tour-ui.xcresult`).
+
+## Physical-device keyboard recurrence — October 16, 2026
+
+The user reproduced the Area-field failure after the independent-viewport change. Xcode's device console identified repeated `constraints` and `corners` invalidations on `_MapKit_SwiftUI._SwiftUIMKMapView`, with `__mapkit_edgeInsetsSentinel` animations and `Observation tracking feedback loop detected!`. The earlier viewport change and iOS 18.6 simulator pass therefore did not establish a physical-device fix.
+
+The existing Area UI test reproduced the hang on Akiphone (iPhone 16 Pro Max, iOS 27.0.1 / 24A446): it reached `tourBuilder.area`, tapped it at 12.26 seconds, then received no app event-loop idle notification and exceeded the 60-second test allowance. Baseline report: `/private/tmp/pippipgo-device-keyboard-before.xcresult`.
+
+A full-screen presentation alone also reproduced the Area-tap hang on the unlocked phone (`/private/tmp/pippipgo-device-keyboard-unlocked.xcresult`), while its transport-selection test passed. Create My Tour now uses full-screen presentation **and temporarily removes the background SwiftUI Map from the view hierarchy** while editing. The existing camera, route and parent view state are retained; the map is restored on dismissal. The UI test additionally reopens the form and enters a second park name before dismissing it again. This targets the observed sheet/map/keyboard interaction without removing keyboard avoidance from the form. No backend deployment is required for this presentation change.
+
+The physical-device build uses override 110 after verifying Xcode Cloud Dev build 109 (Prod 102); the shared fallback number is unchanged. The earlier full-screen-only simulator suite passed, which again did not prove device behavior. A locked-phone run was stopped without treating it as a keyboard result.
+
+Final validation on unlocked Akiphone: **2 tests passed, 0 failures** in 39.1 seconds after the background-map removal. The Area test typed “Balboa Park,” switched to activities, returned to Area, dismissed the form, reopened it, typed “Golden Gate Park,” then dismissed it and verified the Guide action returned. The transport multi-selection test also passed. Signed build-for-testing passed. Report: `/private/tmp/pippipgo-device-keyboard-detached.xcresult`. This validates these interactions on this physical iPhone/iOS version; it is not a complete device regression or manual acceptance of tour generation. No tour was created or saved by these tests.

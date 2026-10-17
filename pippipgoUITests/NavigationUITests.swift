@@ -125,5 +125,13 @@ final class TourBuilderUITests: XCTestCase {
                       "The sheet must dismiss and return to a responsive Guide screen.")
         openBuilder.tap()
         XCTAssertTrue(area.waitForExistence(timeout: 5))
+        // Reopening exercises restoration of the presenting map and another
+        // keyboard presentation, including the physical-device failure path.
+        area.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        area.typeText("Golden Gate Park")
+        XCTAssertEqual((area.value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), "Golden Gate Park")
+        app.navigationBars.buttons["Done"].tap()
+        XCTAssertTrue(openBuilder.waitForExistence(timeout: 5))
     }
 }
