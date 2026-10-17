@@ -714,6 +714,28 @@ struct PlannedTourTests {
         return try JSONDecoder().decode(GuideTourPlan.self, from: JSONSerialization.data(withJSONObject: raw))
     }
 
+    @Test func preservesTransportChoicesAndReadsLegacyRequests() throws {
+        var request = GuideTourRequest(origin: .init(latitude: 48.85, longitude: 2.35,
+                                                     captured_at: "2026-10-16T19:00:00Z"),
+                                       mode: "walking", duration_minutes: 30, direction: "surprise",
+                                       round_trip: false, language: "en")
+        request.transport_modes = ["walking", "rideshare", "transit"]
+        let data = try JSONEncoder().encode(request)
+        let decoded = try JSONDecoder().decode(GuideTourRequest.self, from: data)
+        #expect(decoded.transport_modes == request.transport_modes)
+        var legacy = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        legacy.removeValue(forKey: "transport_modes")
+        let old = try JSONDecoder().decode(GuideTourRequest.self, from: JSONSerialization.data(withJSONObject: legacy))
+        #expect(old.transport_modes == nil)
+        #expect(old.mode == "walking")
+        for mode in ["rideshare", "transit"] {
+            let passenger = try plan(mode: mode)
+            #expect(passenger.isUsable)
+            let components = URLComponents(url: passenger.googleMapsURL!, resolvingAgainstBaseURL: false)
+            #expect(components?.queryItems?.first(where: { $0.name == "travelmode" })?.value == (mode == "transit" ? "transit" : "driving"))
+        }
+    }
+
     @Test func validatesBudgetsAndKeepsOfflineDistinct() throws {
         let online = try plan()
         #expect(online.isUsable)

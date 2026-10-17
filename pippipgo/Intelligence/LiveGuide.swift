@@ -341,11 +341,11 @@ final class LiveGuideStore {
         if start, voice.tourStartID == plan.id { beginTour(plan) }
     }
 
-    func planTourByVoice(mode: String, location: CLLocation?) {
+    func planTourByVoice(mode: String, location: CLLocation?, transportModes: [String]? = nil) {
         guard !translator.active else { tourNotice = "Pause live translation before talking to Pip."; return }
         if voice.active { voice.stop() }
         let reliable = location.flatMap { abs($0.timestamp.timeIntervalSinceNow) < 15 && $0.course >= 0 && $0.speed >= 0.8 && (0...50).contains($0.horizontalAccuracy) ? $0 : nil }
-        let context = GuideStartContext(venue: nil, nearby: [], tour_mode: mode, planning_tour: true,
+        let context = GuideStartContext(venue: nil, nearby: [], tour_mode: mode, transport_modes: transportModes, planning_tour: true,
                                        heading: reliable?.course, heading_captured_at: reliable.map { ISO8601DateFormatter().string(from: $0.timestamp) })
         voice.start(guide: try? JSONEncoder().encode(context))
     }
@@ -445,7 +445,7 @@ final class LiveGuideStore {
         var stops: [GuideOfflineRequest.Stop] = []
         for stop in plan.stops {
             let anchor = GuideOfflineRequest.Stop(name: stop.place.name, latitude: stop.place.latitude, longitude: stop.place.longitude,
-                                                  travel_mode: plan.mode == "walking" ? "walking" : "driving", stop_seconds: stop.stop_seconds)
+                                                  travel_mode: plan.mode == "mixed" ? "driving" : plan.mode, stop_seconds: stop.stop_seconds)
             stops.append(anchor)
             if let walk = plan.walking_segments?.first(where: { $0.anchor_id == stop.place.id }) {
                 stops.append(.init(name: walk.place.name, latitude: walk.place.latitude, longitude: walk.place.longitude, travel_mode: "walking", stop_seconds: walk.stop_seconds ?? 120))
@@ -1259,8 +1259,6 @@ struct LiveGuideTab: View {
     /// Screen positions of the map's edges, the floating top bar's bottom and the panel's top, so
     /// the map frames places, the traveler and Apple's attribution between them while still
     /// drawing edge to edge under the status bar, panel and tab bar.
-    @State private var mapTop: CGFloat = 0
-    @State private var mapBottom: CGFloat = 0
     @State private var panelTop: CGFloat?
     @State private var topBarBottom: CGFloat = 0
     @State private var topBarHeight: CGFloat = 220
@@ -1290,7 +1288,12 @@ struct LiveGuideTab: View {
                 && geometry.size.height >= topBarHeight + 200
                 && !dynamicTypeSize.isAccessibilitySize && hasPanel
             let panelWidth: CGFloat = 360
-            map(leadingInset: sidebar ? panelWidth + 32 : 0)
+            // Measure the independent viewport, never the padded Map itself.
+            // This breaks the safe-area feedback loop during keyboard presentation.
+            let frame = geometry.frame(in: .global)
+            map(top: frame.minY - geometry.safeAreaInsets.top,
+                bottom: frame.maxY + geometry.safeAreaInsets.bottom,
+                leadingInset: sidebar ? panelWidth + 32 : 0)
                 .overlay(alignment: sidebar ? .bottomLeading : .bottom) {
                     if sidebar {
                         ScrollView {
@@ -1313,6 +1316,7 @@ struct LiveGuideTab: View {
 
     var body: some View {
         adaptiveMap
+            .ignoresSafeArea(.keyboard)
             .overlay(alignment: .top) {
                 topBar
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topBarHeight = $0 }
@@ -1476,7 +1480,7 @@ struct LiveGuideTab: View {
         position = .camera(camera)
     }
 
-    private func map(leadingInset: CGFloat) -> some View {
+    private func map(top mapTop: CGFloat, bottom mapBottom: CGFloat, leadingInset: CGFloat) -> some View {
         Map(position: $position, selection: $pinSelection) {
             UserAnnotation { _ in
                 Button {
@@ -1541,14 +1545,6 @@ struct LiveGuideTab: View {
         .safeAreaPadding(.bottom, max(0, mapBottom - (panelTop ?? mapBottom)))
         // Full screen like Google Maps: the map runs under the status bar, panel and tab bar.
         .ignoresSafeArea()
-        // The reported frame excludes the safe areas the map draws under; add them back.
-        .onGeometryChange(for: ClosedRange<CGFloat>.self) { proxy in
-            let frame = proxy.frame(in: .global)
-            return (frame.minY - proxy.safeAreaInsets.top)...(frame.maxY + proxy.safeAreaInsets.bottom)
-        } action: {
-            mapTop = $0.lowerBound
-            mapBottom = $0.upperBound
-        }
     }
 
     private var parkedCar: CLLocation? {
@@ -2339,7 +2335,7 @@ private struct AppleTourPreview: View {
                 let request = MKDirections.Request()
                 request.source = MKMapItem(placemark: MKPlacemark(coordinate: from))
                 request.destination = MKMapItem(placemark: MKPlacemark(coordinate: to))
-                request.transportType = walking ? .walking : .automobile
+                request.transportType = walking ? .walking : plan.mode == "transit" ? .transit : .automobile
                 let directions = MKDirections(request: request)
                 let response = try await withTaskCancellationHandler {
                     try await directions.calculate()
@@ -2402,7 +2398,10 @@ private struct TourBuilderView: View {
 
     @State private var minutes = 30
     @State private var customTime = false
-    @State private var mode = "walking"
+    @State private var transportModes: Set<String> = ["walking"]
+    private var mode: String { transportModes.sorted().first ?? "walking" }
+    private let transportOptions = [("walking", "Walking"), ("driving", "Driving"),
+                                    ("rideshare", "Ride Share"), ("transit", "Public transport")]
     @State private var moods: Set<String> = []
     @State private var personal = false
     @State private var companions = ""
@@ -2432,7 +2431,7 @@ private struct TourBuilderView: View {
         return abs(location.timestamp.timeIntervalSince(locationClock)) < 120 && (0...100).contains(location.horizontalAccuracy)
             && CLLocationCoordinate2DIsValid(location.coordinate)
     }
-    private var movingDriver: Bool { mode != "walking" && (currentLocation?.speed ?? 0) > 2.2 }
+    private var movingDriver: Bool { transportModes == ["driving"] && (currentLocation?.speed ?? 0) > 2.2 }
     private let columns = [GridItem(.adaptive(minimum: 115), spacing: 8)]
 
     var body: some View {
@@ -2461,7 +2460,14 @@ private struct TourBuilderView: View {
                             if customTime { Stepper("\(minutes) minutes", value: $minutes, in: 5...480, step: 5) }
                         }
                         section("How would you like to explore?") {
-                            choices([("walking", "Walking"), ("driving", "Driving"), ("mixed", "Walking and driving")], selection: $mode)
+                            LazyVGrid(columns: columns, spacing: 8) {
+                                ForEach(transportOptions, id: \.0) { id, title in
+                                    chip(title, selected: transportModes.contains(id)) {
+                                        if !transportModes.insert(id).inserted { transportModes.remove(id) }
+                                    }
+                                    .accessibilityIdentifier("tourBuilder.transport.\(id)")
+                                }
+                            }
                         }
                         section("Have something in mind?") {
                             TextField("Area or park (optional)", text: $area)
@@ -2529,13 +2535,13 @@ private struct TourBuilderView: View {
                         }
                         if movingDriver {
                             Text("Driving? Talk to Pip to plan your tour, or set it up before departure.").font(.subheadline)
-                            Button("Talk to Pip") { guide.planTourByVoice(mode: mode, location: currentLocation); dismiss() }.buttonStyle(.borderedProminent)
+                            Button("Talk to Pip") { guide.planTourByVoice(mode: mode, location: currentLocation, transportModes: transportModes.sorted()); dismiss() }.buttonStyle(.borderedProminent)
                         } else {
                             Button(action: create) {
                                 HStack { if guide.planningTour { ProgressView() }; Text("Create My Tour") }.frame(maxWidth: .infinity, minHeight: 52)
                             }
                             .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
-                            .disabled(!locationReady || guide.planningTour || (area.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && direction == "destination" && destination.trimmingCharacters(in: .whitespaces).isEmpty))
+                            .disabled(transportModes.isEmpty || !locationReady || guide.planningTour || (area.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && direction == "destination" && destination.trimmingCharacters(in: .whitespaces).isEmpty))
                             .accessibilityIdentifier("tourBuilder.create")
                         }
                     }
@@ -2572,7 +2578,7 @@ private struct TourBuilderView: View {
             }
             .onAppear {
                 startLocationUpdates()
-                mode = guide.tourMode == .walking ? "walking" : "driving"
+                transportModes = [guide.tourMode == .walking ? "walking" : "driving"]
                 preview = !editActiveTour && guide.suggestedTour != nil
                 if reliableHeading != nil { direction = "current" }
                 if let active = guide.route, active.mode == guide.tourMode, !active.name.isEmpty {
@@ -2581,7 +2587,7 @@ private struct TourBuilderView: View {
                 let draft = editActiveTour ? guide.activeTour?.plan.request : guide.tourDraft ?? guide.suggestedTour?.request
                 if let draft {
                     area = draft.area ?? ""; activities = draft.activities ?? ""
-                    minutes = draft.duration_minutes; mode = draft.mode; moods = Set(draft.moods)
+                    minutes = draft.duration_minutes; transportModes = Set(draft.transport_modes ?? (draft.mode == "mixed" ? ["walking", "driving"] : [draft.mode])); moods = Set(draft.moods)
                     companions = draft.companions ?? ""; energy = draft.energy; food = draft.food
                     direction = draft.direction; destination = draft.destination ?? ""; roundTrip = draft.round_trip
                     walkingLimit = draft.walking_limit_meters; cuisine = draft.cuisine ?? ""; dietary = draft.dietary ?? ""
@@ -2657,7 +2663,7 @@ private struct TourBuilderView: View {
 
     private func create() {
         locationClock = Date()
-        guard let location = currentLocation, locationReady else { return }
+        guard !transportModes.isEmpty, let location = currentLocation, locationReady else { return }
         let selectedArea = area.trimmingCharacters(in: .whitespacesAndNewlines)
         let selectedActivities = activities.trimmingCharacters(in: .whitespacesAndNewlines)
         let selectedDirection = selectedArea.isEmpty ? direction : "surprise"
@@ -2672,7 +2678,7 @@ private struct TourBuilderView: View {
                                        activities: selectedActivities.isEmpty ? nil : selectedActivities,
                                        moods: moods.sorted(), companions: companions.isEmpty ? nil : companions, energy: energy, food: food,
                                        cuisine: cuisine.isEmpty ? nil : cuisine, dietary: dietary.isEmpty ? nil : dietary,
-                                       walking_limit_meters: walkingLimit)
+                                       walking_limit_meters: walkingLimit, transport_modes: transportModes.sorted())
         guide.createTour(request)
     }
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -2700,6 +2706,12 @@ private struct TourBuilderView: View {
         if plan.round_trip { Label("Return to where I started", systemImage: "arrow.uturn.backward").font(.subheadline) }
         if let walk = plan.walking_seconds, let drive = plan.driving_seconds {
             Text("Walking: \(Int(ceil(Double(walk) / 60))) min · Driving: \(Int(ceil(Double(drive) / 60))) min").font(.subheadline)
+        }
+        if let title = transportOptions.first(where: { $0.0 == plan.mode })?.1 {
+            Text(LocalizedStringKey(title)).font(.subheadline)
+        }
+        if plan.mode == "rideshare" {
+            Text("Includes a pickup time allowance. Availability and fares are not confirmed.").font(.footnote).foregroundStyle(.secondary)
         }
         if let parking = plan.parking_seconds, parking > 0 {
             Text("Includes time for parking. Parking availability is not confirmed.").font(.footnote).foregroundStyle(.secondary)

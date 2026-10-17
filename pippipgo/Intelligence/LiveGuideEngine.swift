@@ -181,6 +181,7 @@ struct GuideStartContext: Codable, Sendable {
     var venue: String?
     var nearby: [GuideMentionPlace]
     var tour_mode: String? = nil
+    var transport_modes: [String]? = nil
     var planning_tour = false
     var heading: Double? = nil
     var heading_captured_at: String? = nil
@@ -1143,6 +1144,7 @@ struct GuideTourRequest: Codable, Sendable, Equatable {
     var cuisine: String? = nil
     var dietary: String? = nil
     var walking_limit_meters: Int = 4000
+    var transport_modes: [String]? = nil
 }
 
 struct GuideTourPlan: Codable, Sendable, Equatable {
@@ -1210,7 +1212,7 @@ struct GuideTourPlan: Codable, Sendable, Equatable {
         url.queryItems = [URLQueryItem(name: "api", value: "1"),
                           URLQueryItem(name: "origin", value: "\(origin.latitude),\(origin.longitude)"),
                           URLQueryItem(name: "destination", value: "\(destination.latitude),\(destination.longitude)"),
-                          URLQueryItem(name: "travelmode", value: mode == "walking" ? "walking" : "driving"),
+                          URLQueryItem(name: "travelmode", value: mode == "walking" ? "walking" : mode == "transit" ? "transit" : "driving"),
                           URLQueryItem(name: "waypoints", value: stops.filter { GuideGeo.distance($0.place.latitude, $0.place.longitude, destination.latitude, destination.longitude) > 20 }.prefix(3).map { "\($0.place.latitude),\($0.place.longitude)" }.joined(separator: "|"))]
         return url.url
     }
@@ -1221,7 +1223,7 @@ struct GuideTourPlan: Codable, Sendable, Equatable {
         return route
     }
     var isUsable: Bool {
-        ["walking", "driving", "mixed"].contains(mode) && (5...480).contains(duration_minutes)
+        ["walking", "driving", "mixed", "rideshare", "transit"].contains(mode) && (5...480).contains(duration_minutes)
             && estimated_seconds > 0 && estimated_seconds <= duration_minutes * 60
             && distance_meters.isFinite && (0...40_000_000).contains(distance_meters)
             && !stops.isEmpty && (offline == true || route.path.count >= 2) && stops.count <= 4

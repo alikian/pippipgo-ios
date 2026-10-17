@@ -83,3 +83,27 @@ This supersedes the earlier approach-drive behavior: when `area` is supplied, th
 Local backend restarted with this fix. Dev and Prod backend deployment is pending and must precede rollout of this behavior to those environments. Existing proposals must be regenerated. Live provider and physical-device acceptance remain pending; mocked tests cover remote-origin walking/driving tours, with and without a return trip.
 
 Live public-coordinate provider check (no traveler records): a 120-minute driving request for Santa Monica from public downtown Los Angeles coordinates returned `ok`, a Santa Monica origin, and Ocean View Park, Downtown Santa Monica, Palisades Park and Santa Monica Pier (108 estimated minutes). Provider errors: none. An initial check exposed Venice inside the rectangular viewport; matching provider locality is now required when the resolved area provides a locality, excluding that neighboring-city stop. Unknown locality is excluded conservatively. Neighborhood/park boundaries remain approximate within the matching city. Simulator app build passed. This provider check does not establish device acceptance.
+
+## Area field keyboard freeze — October 16, 2026
+
+The attached Akiphone Local session logged `Observation tracking feedback loop detected!` with repeated layout invalidations on the root hosting view. Pausing the unresponsive app showed UIKit safe-area updates during `TUIKeyboardTrackingCoordinator` keyboard presentation. This was a live hang; the inspected session had not terminated with a crash.
+
+The map previously measured its own frame plus safe-area insets, stored those measurements in state, then used them to set its own safe-area padding. The map now reads bounds from an independent full-screen GeometryReader and keeps its background viewport stable while sheet keyboards appear. The tour form retains normal keyboard avoidance.
+
+Validation: signed Local device build passed with `CURRENT_PROJECT_VERSION=109`, following latest visible Xcode Cloud Dev build 108 (Prod 102). The shared fallback version is unchanged. Physical-device typing after installing the fix and iOS 27 runtime acceptance remain pending; compilation does not prove the hang is resolved. No backend changes or deployment are required.
+
+### Keyboard UI regression coverage
+
+`TourBuilderUITests.testAreaOrParkTypingKeepsTourBuilderResponsive` uses the existing debug home preview, opens Create My Tour, types “Balboa Park,” enters an activity, returns to the area field, and dismisses/reopens the sheet. It checks field contents, keyboard presence and continued navigation, and retains a screenshot with the keyboard open. It does not submit a tour or use account credentials.
+
+Passed October 16 on an isolated iPhone 16 / iOS 18.6 simulator with ad-hoc signing: 1 test, 0 failures. Result bundle: `/private/tmp/pippipgo-tour-keyboard-final.xcresult`. Unsigned simulator execution could not restore Keychain state; the signed run used the normal app entitlements. Text checks ignore keyboard-added trailing whitespace. iOS 27 physical-device acceptance remains pending. No backend deployment is required.
+
+## Multiple transport choices — October 16, 2026
+
+“How would you like to explore?” now offers independently selectable Walking, Driving, Ride Share and Public transport buttons, with Walking selected initially. At least one option is required. Choices are encoded in the optional `transport_modes` array and restored from draft/active requests when adjusting a tour; old requests without this field still decode. Voice handoff preserves the allowed options. The planner chooses a primary route from the allowed options rather than requiring every option to be used. Review displays that transport; ride share includes a localized pickup-allowance explanation without promising availability or fares. New strings are translated in every supported catalog locale.
+
+`TourBuilderUITests.testTransportChoicesAllowMultipleSelection` checks that all four options can remain selected, individual deselection preserves other choices, and clearing all choices disables creation. Both this and the area keyboard test passed on isolated iPhone 16 / iOS 18.6 (2 tests, 0 failures; `/private/tmp/pippipgo-transport-ui.xcresult`). The Swift guide suite passed 46 tests, including selection serialization, old-request decoding and passenger-mode plan validation. A signed Local device build passed using build override 109, following latest observed Xcode Cloud Dev 108 (Prod 102). Physical-device and live provider acceptance for new transport modes remain pending.
+
+Backend deployment is required before updated app rollout and remains pending for both Dev and Prod. See backend `docs/create-my-tour.md` for routing budgets and transit/ride-share limitations. No organizer-data migration is required.
+
+Integration on current develop preserved the adaptive iPad map sidebar while measuring the independent viewport. Both tour UI tests passed again after this merge (2 tests, 0 failures; `/private/tmp/pippipgo-develop-tour-ui.xcresult`).
