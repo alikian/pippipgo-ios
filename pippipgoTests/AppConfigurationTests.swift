@@ -79,11 +79,19 @@ struct AppConfigurationTests {
         let info = try #require(Bundle.main.infoDictionary)
         let ats = info["NSAppTransportSecurity"] as? [String: Any]
         if config.environment == .local {
+            #if targetEnvironment(simulator)
             #expect(config.backendBaseURL.host == "localhost")
+            #else
+            #expect(config.backendBaseURL.host != "localhost")
+            #endif
             let domains = try #require(ats?["NSExceptionDomains"] as? [String: Any])
             #expect(domains["localhost"] != nil)
             #expect(domains["$(PIPPIPGO_LAN_HOST)"] == nil)
-            #expect(domains["192.168.0.156"] != nil)
+            #expect(domains.count == 2)
+            #expect(domains["*"] == nil)
+            if let host = config.backendBaseURL.host, host != "localhost" {
+                #expect(domains[host] != nil)
+            }
             #expect(info["CFBundleDisplayName"] as? String == "PipPipGo Local")
         } else {
             #expect(ats == nil)

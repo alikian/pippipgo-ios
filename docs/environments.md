@@ -11,7 +11,7 @@ have been replaced. The project, target and Swift module remain `pippipgo`.
 
 | Scheme | Home-screen name | API base URL | Status |
 | --- | --- | --- | --- |
-| Local | PipPipGo Local | Simulator: `http://localhost:8765`; device: `http://192.168.0.208:8765` | Uses the Mac backend, existing Cognito and development DynamoDB |
+| Local | PipPipGo Local | Simulator: `http://localhost:8765`; device: `http://192.168.0.155:8765` | Uses the Mac backend, existing Cognito and development DynamoDB |
 | Dev | PipPipGo Dev | `https://api-dev.pippipgo.com` | Hosted Dev API deployed |
 | Prod | PipPipGo | `https://api.pippipgo.com` | Hosted Prod deployed; generated identity configured |
 
