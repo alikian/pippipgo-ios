@@ -2490,8 +2490,13 @@ private struct TourBuilderView: View {
                             TextField("What would you like to do? (optional)", text: $activities, axis: .vertical)
                                 .lineLimit(2...4).textFieldStyle(.roundedBorder)
                                 .accessibilityIdentifier("tourBuilder.activities")
-                            Text("Leave blank to let Pip choose. The tour starts in your chosen area. Travel there is not included.")
-                                .font(.footnote).foregroundStyle(.secondary)
+                            if transportModes.contains("walking") && transportModes.contains("driving") {
+                                Text("Drive to your chosen area, then explore on foot. Travel time is included.")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            } else {
+                                Text("Leave blank to let Pip choose. The tour starts in your chosen area. Travel there is not included.")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            }
                         }
                         // Everything past this point is optional, so the first screen asks only
                         // the two questions every traveler needs to answer.
@@ -2741,7 +2746,7 @@ private struct TourBuilderView: View {
                             if let name = author.displayName { Text(verbatim: name).font(.caption2).foregroundStyle(.secondary) }
                         }
                     }
-                    Text(LocalizedStringKey(stop.visit_kind == "pass_by" ? "Hear the story while passing" : stop.place.categories.contains("food") ? "Food stop" : "Time to explore")).font(.subheadline).foregroundStyle(.secondary)
+                    Text(LocalizedStringKey(stop.reason == "transport_change" ? "Park here, then walk" : stop.visit_kind == "pass_by" ? "Hear the story while passing" : stop.place.categories.contains("food") ? "Food stop" : "Time to explore")).font(.subheadline).foregroundStyle(.secondary)
                     if stop.reason == "interest_match" { Text("Matches your interests").font(.caption).foregroundStyle(.secondary) }
                     if let walk = plan.walking_segments?.first(where: { $0.anchor_id == stop.place.id }) {
                         Text("Walk to \(walk.place.name) and return").font(.subheadline)

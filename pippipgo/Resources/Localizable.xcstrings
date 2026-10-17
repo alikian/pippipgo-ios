@@ -1,6 +1,186 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Park here, then walk" : {
+      "comment" : "Combined driving and walking tour.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اركن هنا، ثم امشِ"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Park here, then walk"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aparca aquí y continúa a pie"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اینجا پارک کنید، سپس پیاده بروید"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pumarada rito, saka maglakad"
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pumarada rito, saka maglakad"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garez-vous ici, puis marchez"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parcheggia qui, poi prosegui a piedi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここに駐車してから歩きます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여기에 주차한 후 걸어가세요"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Припаркуйтесь здесь и идите пешком"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buraya park edip yürüyün"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đỗ xe tại đây, sau đó đi bộ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此停车，然后步行"
+          }
+        }
+      }
+    },
+    "Drive to your chosen area, then explore on foot. Travel time is included." : {
+      "comment" : "Combined driving and walking tour.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قُد إلى المنطقة التي اخترتها، ثم استكشفها سيرًا على الأقدام. يشمل الوقت مدة التنقل."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drive to your chosen area, then explore on foot. Travel time is included."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conduce hasta la zona elegida y luego explórala a pie. El tiempo de traslado está incluido."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تا منطقهٔ انتخابی رانندگی کنید، سپس پیاده بگردید. زمان رفت‌وآمد محاسبه شده است."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magmaneho papunta sa napiling lugar, saka maglakad para mamasyal. Kasama ang oras ng biyahe."
+          }
+        },
+        "fil-PH" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magmaneho papunta sa napiling lugar, saka maglakad para mamasyal. Kasama ang oras ng biyahe."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rejoignez la zone choisie en voiture, puis explorez-la à pied. Le temps de trajet est inclus."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raggiungi in auto la zona scelta, poi esplorala a piedi. Il tempo di viaggio è incluso."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだエリアまで車で移動し、そこから徒歩で散策します。移動時間も含まれます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택한 지역까지 운전한 후 걸어서 둘러보세요. 이동 시간이 포함됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доезжайте до выбранного района, затем исследуйте его пешком. Время в пути включено."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seçtiğiniz bölgeye araçla gidin, ardından yürüyerek keşfedin. Yolculuk süresi dahildir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lái xe đến khu vực đã chọn, sau đó đi bộ khám phá. Đã bao gồm thời gian di chuyển."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "驾车前往所选区域，然后步行游览。已包含交通时间。"
+          }
+        }
+      }
+    },
     "Includes a pickup time allowance. Availability and fares are not confirmed." : {
       "comment" : "Create My Tour transport choices.",
       "extractionState" : "manual",

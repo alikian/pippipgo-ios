@@ -1368,7 +1368,8 @@ struct GuideTourProgress: Sendable {
     }
     var currentRoute: GuideRoute {
         guard walkingStage > 0, let walk else { return plan.route }
-        var route = GuideRoute(name: next?.name ?? "", destination: .init(latitude: plan.stops[index].place.latitude, longitude: plan.stops[index].place.longitude),
+        let destination = walkingStage == 1 ? walk.place : plan.stops[index].place
+        var route = GuideRoute(name: next?.name ?? "", destination: .init(latitude: destination.latitude, longitude: destination.longitude),
                                minutes: Int(ceil(Double(walk.seconds) / 60)), meters: Int(walk.distance_meters), path: GuideRoute.decode(walk.polyline))
         route.mode = .walking
         return route

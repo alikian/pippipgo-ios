@@ -66,6 +66,9 @@ final class TourBuilderUITests: XCTestCase {
             choice.tap()
             XCTAssertTrue(choice.isSelected)
             XCTAssertTrue(walking.isSelected, "Selecting another option must keep Walking selected.")
+            if id == "driving" {
+                XCTAssertTrue(app.staticTexts["Drive to your chosen area, then explore on foot. Travel time is included."].exists)
+            }
         }
         for id in ["walking", "driving", "rideshare", "transit"] {
             XCTAssertTrue(app.buttons["tourBuilder.transport.\(id)"].isSelected)

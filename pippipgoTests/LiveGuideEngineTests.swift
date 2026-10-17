@@ -776,15 +776,18 @@ struct PlannedTourTests {
         p.walking_segments = [.init(stop_seconds: 60, anchor_id: "gallery", place: target, polyline: p.polyline, seconds: 180, distance_meters: 400)]
         let start = Date(timeIntervalSince1970: 1000)
         var progress = GuideTourProgress(plan: p, started: start)
+        #expect(progress.currentMode == .driving)
         var fix = GuideFix(latitude: 48.86, longitude: 2.35, accuracy: 8, speed: 0, course: 0, timestamp: start)
         progress.update(fix, at: start)
         progress.update(fix, at: start.addingTimeInterval(300))
         #expect(progress.currentMode == .walking)
         #expect(progress.next?.id == "garden")
+        #expect(progress.currentRoute.destination.latitude == target.latitude)
         fix.latitude = target.latitude
         progress.update(fix, at: start.addingTimeInterval(360))
         progress.update(fix, at: start.addingTimeInterval(420))
         #expect(progress.next?.id == "gallery")
+        #expect(progress.currentRoute.destination.latitude == 48.86)
         fix.latitude = 48.86
         progress.update(fix, at: start.addingTimeInterval(480))
         #expect(progress.next == nil)
